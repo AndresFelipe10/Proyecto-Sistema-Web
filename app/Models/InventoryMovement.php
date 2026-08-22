@@ -1,0 +1,61 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class InventoryMovement extends Model
+{
+    use HasFactory;
+
+    public const TYPE_ENTRY = 'entry';
+    public const TYPE_EXIT = 'exit';
+    public const TYPE_ADJUSTMENT = 'adjustment';
+
+    protected $table = 'inventory_movements';
+
+    protected $fillable = [
+        'business_id',
+        'product_id',
+        'user_id',
+        'sale_id',
+        'type',
+        'quantity',
+        'previous_stock',
+        'new_stock',
+        'reason',
+        'movement_date',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'quantity' => 'integer',
+            'previous_stock' => 'integer',
+            'new_stock' => 'integer',
+            'movement_date' => 'datetime',
+        ];
+    }
+
+    public function business(): BelongsTo
+    {
+        return $this->belongsTo(Business::class);
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function sale(): BelongsTo
+    {
+        return $this->belongsTo(Sale::class);
+    }
+}
