@@ -46,6 +46,18 @@
             font-size: 0.875rem;
             font-weight: 500;
         }
+        .tenant-selector {
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            border-radius: 2rem;
+            padding: 0.35rem 0.95rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
     </style>
 </head>
 <body>
@@ -66,9 +78,51 @@
                             <i class="bi bi-speedometer2 me-1"></i> Dashboard
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold text-secondary" href="{{ route('businesses.index') }}">
+                            <i class="bi bi-buildings me-1"></i> Emprendimientos
+                        </a>
+                    </li>
                 </ul>
 
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    @if (isset($currentBusiness))
+                        <div class="dropdown">
+                            <button class="btn tenant-selector dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-shop text-primary"></i> {{ $currentBusiness->name }}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-2">
+                                <li class="dropdown-header small text-uppercase fw-bold text-muted">Cambiar Emprendimiento</li>
+                                @if (isset($userBusinesses))
+                                    @foreach ($userBusinesses as $biz)
+                                        <li>
+                                            <form method="POST" action="{{ route('businesses.switch', $biz) }}">
+                                                @csrf
+                                                <button type="submit" class="dropdown-item d-flex justify-content-between align-items-center py-2 {{ $biz->id === $currentBusiness->id ? 'active fw-bold' : '' }}">
+                                                    <span>{{ $biz->name }}</span>
+                                                    @if ($biz->id === $currentBusiness->id)
+                                                        <i class="bi bi-check2"></i>
+                                                    @endif
+                                                </button>
+                                            </form>
+                                        </li>
+                                    @endforeach
+                                @endif
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item small text-primary fw-semibold" href="{{ route('businesses.create') }}">
+                                        <i class="bi bi-plus-circle me-1"></i> Registrar otro negocio
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item small text-secondary" href="{{ route('businesses.index') }}">
+                                        <i class="bi bi-gear me-1"></i> Administrar todos
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    @endif
+
                     <span class="user-pill">
                         <i class="bi bi-person-circle me-1 text-primary"></i> {{ auth()->user()->name }}
                     </span>
@@ -88,6 +142,13 @@
         @if (session('status'))
             <div class="alert alert-success alert-dismissible fade show rounded-3" role="alert">
                 <i class="bi bi-check-circle-fill me-2"></i> {{ session('status') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
+        @if (session('info'))
+            <div class="alert alert-info alert-dismissible fade show rounded-3" role="alert">
+                <i class="bi bi-info-circle-fill me-2"></i> {{ session('info') }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         @endif

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,19 @@ Route::middleware('guest')->group(function () {
 
 // Rutas protegidas por autenticación
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+
+    // Rutas de creación de emprendimiento (accesibles aunque el usuario aún no tenga un tenant)
+    Route::get('/businesses/create', [BusinessController::class, 'create'])->name('businesses.create');
+    Route::post('/businesses', [BusinessController::class, 'store'])->name('businesses.store');
+
+    // Rutas que requieren tenant activo
+    Route::middleware('tenant')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/businesses', [BusinessController::class, 'index'])->name('businesses.index');
+        Route::get('/businesses/{business}/edit', [BusinessController::class, 'edit'])->name('businesses.edit');
+        Route::put('/businesses/{business}', [BusinessController::class, 'update'])->name('businesses.update');
+        Route::post('/businesses/{business}/switch', [BusinessController::class, 'switch'])->name('businesses.switch');
+    });
 });

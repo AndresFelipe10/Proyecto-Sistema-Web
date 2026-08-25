@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InventoryMovement extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToTenant;
 
     public const TYPE_ENTRY = 'entry';
     public const TYPE_EXIT = 'exit';
@@ -37,11 +38,6 @@ class InventoryMovement extends Model
             'new_stock' => 'integer',
             'movement_date' => 'datetime',
         ];
-    }
-
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
     }
 
     public function product(): BelongsTo
