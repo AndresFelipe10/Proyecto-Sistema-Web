@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -42,5 +43,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/businesses/{business}/edit', [BusinessController::class, 'edit'])->name('businesses.edit');
         Route::put('/businesses/{business}', [BusinessController::class, 'update'])->name('businesses.update');
         Route::post('/businesses/{business}/switch', [BusinessController::class, 'switch'])->name('businesses.switch');
+
+        // Rutas exclusivas para el rol Administrador del emprendimiento
+        Route::middleware('role:admin')->group(function () {
+            Route::get('/users', [UserController::class, 'index'])->name('users.index');
+            Route::get('/users/invite', [UserController::class, 'create'])->name('users.create');
+            Route::post('/users', [UserController::class, 'store'])->name('users.store');
+            Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+            Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+            Route::post('/users/{user}/toggle-active', [UserController::class, 'toggleActive'])->name('users.toggleActive');
+        });
     });
 });

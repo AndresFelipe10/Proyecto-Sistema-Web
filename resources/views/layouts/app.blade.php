@@ -74,15 +74,22 @@
             <div class="collapse navbar-collapse" id="navbarContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link fw-semibold active" href="{{ route('dashboard') }}">
+                        <a class="nav-link fw-semibold {{ request()->routeIs('dashboard') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('dashboard') }}">
                             <i class="bi bi-speedometer2 me-1"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link fw-semibold text-secondary" href="{{ route('businesses.index') }}">
+                        <a class="nav-link fw-semibold {{ request()->routeIs('businesses.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('businesses.index') }}">
                             <i class="bi bi-buildings me-1"></i> Emprendimientos
                         </a>
                     </li>
+                    @if (auth()->check() && auth()->user()->isCurrentAdmin())
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold {{ request()->routeIs('users.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('users.index') }}">
+                                <i class="bi bi-people me-1"></i> Equipo
+                            </a>
+                        </li>
+                    @endif
                 </ul>
 
                 <div class="d-flex align-items-center gap-3 flex-wrap">

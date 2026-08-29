@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\Tenant\TenantManager;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -71,5 +72,68 @@ class User extends Authenticatable
     public function inventoryMovements(): HasMany
     {
         return $this->hasMany(InventoryMovement::class);
+    }
+
+    /**
+     * Get the role of the user in a specific business.
+     */
+    public function roleInBusiness(Business $business): ?Role
+    {
+        $membership = $this->businesses()
+            ->where('businesses.id', $business->id)
+            ->wherePivot('is_active', true)
+            ->first();
+
+        if (! $membership) {
+            return null;
+        }
+
+        return Role::find($membership->pivot->role_id);
+    }
+
+    /**
+     * Check if user is an admin in a specific business.
+     */
+    public function isAdminOf(Business $business): bool
+    {
+        return $this->roleInBusiness($business)?->slug === Role::ROLE_ADMIN;
+    }
+
+    /**
+     * Check if user is an employee in a specific business.
+     */
+    public function isEmployeeOf(Business $business): bool
+    {
+        return $this->roleInBusiness($business)?->slug === Role::ROLE_EMPLOYEE;
+    }
+
+    /**
+     * Get user's role in the currently active tenant business.
+     */
+    public function currentRole(): ?Role
+    {
+        $tenant = app(TenantManager::class)->get();
+
+        if (! $tenant) {
+            return null;
+        }
+
+        return $this->roleInBusiness($tenant);
+    }
+
+    /**
+     * Check if user is an admin in the currently active tenant business.
+     */
+    public function isCurrentAdmin(): bool
+    {
+        return $this->currentRole()?->slug === Role::ROLE_ADMIN;
+    }
+
+    /**
+     * Check if user is an employee in the currently active tenant business.
+     */
+    public function isCurrentEmployee(): bool
+    {
+        return $this->currentRole()?->slug === Role::ROLE_EMPLOYEE;
     }
 }
