@@ -79,6 +79,16 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link fw-semibold {{ request()->routeIs('products.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('products.index') }}">
+                            <i class="bi bi-boxes me-1"></i> Productos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold {{ request()->routeIs('categories.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('categories.index') }}">
+                            <i class="bi bi-tags me-1"></i> Categorías
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link fw-semibold {{ request()->routeIs('businesses.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('businesses.index') }}">
                             <i class="bi bi-buildings me-1"></i> Emprendimientos
                         </a>
