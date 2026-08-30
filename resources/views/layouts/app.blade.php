@@ -89,6 +89,16 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link fw-semibold {{ request()->routeIs('customers.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('customers.index') }}">
+                            <i class="bi bi-people-fill me-1"></i> Clientes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold {{ request()->routeIs('suppliers.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('suppliers.index') }}">
+                            <i class="bi bi-truck me-1"></i> Proveedores
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link fw-semibold {{ request()->routeIs('categories.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('categories.index') }}">
                             <i class="bi bi-tags me-1"></i> Categorías
                         </a>
@@ -101,7 +111,7 @@
                     @if (auth()->check() && auth()->user()->isCurrentAdmin())
                         <li class="nav-item">
                             <a class="nav-link fw-semibold {{ request()->routeIs('users.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('users.index') }}">
-                                <i class="bi bi-people me-1"></i> Equipo
+                                <i class="bi bi-shield-person me-1"></i> Equipo
                             </a>
                         </li>
                     @endif
