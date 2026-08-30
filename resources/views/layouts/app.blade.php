@@ -84,6 +84,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link fw-semibold {{ request()->routeIs('inventory.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('inventory.index') }}">
+                            <i class="bi bi-arrow-left-right me-1"></i> Inventario
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link fw-semibold {{ request()->routeIs('categories.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('categories.index') }}">
                             <i class="bi bi-tags me-1"></i> Categorías
                         </a>
