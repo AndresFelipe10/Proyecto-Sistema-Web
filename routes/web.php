@@ -11,6 +11,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryAlertController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UserController;
@@ -120,6 +121,12 @@ Route::middleware('auth')->group(function () {
 
             // Anulación de Ventas (Solo Administrador)
             Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])->name('sales.destroy');
+
+            // Módulo de Reportes (Solo Administrador)
+            Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+            Route::get('/reports/sales', [ReportController::class, 'sales'])->name('reports.sales');
+            Route::get('/reports/inventory', [ReportController::class, 'inventory'])->name('reports.inventory');
+            Route::get('/reports/top-products', [ReportController::class, 'topProducts'])->name('reports.top-products');
         });
     });
 });

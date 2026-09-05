@@ -115,6 +115,11 @@
                     </li>
                     @if (auth()->check() && auth()->user()->isCurrentAdmin())
                         <li class="nav-item">
+                            <a class="nav-link fw-semibold {{ request()->routeIs('reports.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('reports.index') }}">
+                                <i class="bi bi-file-earmark-bar-graph me-1"></i> Reportes
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link fw-semibold {{ request()->routeIs('users.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('users.index') }}">
                                 <i class="bi bi-shield-person me-1"></i> Equipo
                             </a>
