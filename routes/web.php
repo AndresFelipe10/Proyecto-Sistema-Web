@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ProductSearchController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -69,6 +71,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
         Route::get('/suppliers/{supplier}', [SupplierController::class, 'show'])->name('suppliers.show');
 
+        // Ventas (Lectura y Registro para Administrador y Empleado)
+        Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');
+        Route::get('/sales/create', [SaleController::class, 'create'])->name('sales.create');
+        Route::post('/sales', [SaleController::class, 'store'])->name('sales.store');
+        Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
+
+        // API interna para búsqueda de productos (POS autocomplete)
+        Route::get('/api/products/search', ProductSearchController::class)->name('api.products.search');
+
         // Rutas exclusivas para el rol Administrador del emprendimiento
         Route::middleware('role:admin')->group(function () {
             // Gestión de Colaboradores
@@ -104,6 +115,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/suppliers/{supplier}/edit', [SupplierController::class, 'edit'])->name('suppliers.edit');
             Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
             Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
+
+            // Anulación de Ventas (Solo Administrador)
+            Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])->name('sales.destroy');
         });
     });
 });

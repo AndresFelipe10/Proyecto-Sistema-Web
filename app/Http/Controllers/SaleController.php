@@ -1,0 +1,139 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Exceptions\InsufficientStockException;
+use App\Http\Requests\Sale\StoreSaleRequest;
+use App\Models\Customer;
+use App\Models\Product;
+use App\Models\Sale;
+use App\Services\Sales\SaleService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
+
+class SaleController extends Controller
+{
+    public function __construct(
+        protected SaleService $saleService
+    ) {}
+
+    /**
+     * Display a listing of sales.
+     */
+    public function index(Request $request): View
+    {
+        Gate::authorize('viewAny', Sale::class);
+
+        $query = Sale::with(['customer', 'user']);
+
+        // Filter by date range
+        if ($from = $request->input('from')) {
+            $query->whereDate('sale_date', '>=', $from);
+        }
+        if ($to = $request->input('to')) {
+            $query->whereDate('sale_date', '<=', $to);
+        }
+
+        // Filter by payment method
+        if ($request->filled('payment_method')) {
+            $query->where('payment_method', $request->input('payment_method'));
+        }
+
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        // Search by invoice number or customer name
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('invoice_number', 'like', "%{$search}%")
+                  ->orWhereHas('customer', function ($cq) use ($search) {
+                      $cq->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $sales = $query->latest('sale_date')->paginate(15)->withQueryString();
+
+        return view('sales.index', [
+            'sales' => $sales,
+            'search' => $search,
+            'from' => $from,
+            'to' => $request->input('to'),
+            'selectedPaymentMethod' => $request->input('payment_method'),
+            'selectedStatus' => $request->input('status'),
+        ]);
+    }
+
+    /**
+     * Show the form for creating a new sale (POS).
+     */
+    public function create(): View
+    {
+        Gate::authorize('create', Sale::class);
+
+        $customers = Customer::where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'identification_number']);
+
+        return view('sales.create', [
+            'customers' => $customers,
+        ]);
+    }
+
+    /**
+     * Store a newly created sale in storage.
+     */
+    public function store(StoreSaleRequest $request): RedirectResponse
+    {
+        try {
+            $sale = $this->saleService->processSale(
+                data: $request->validated(),
+                businessId: (int) session('current_business_id'),
+                userId: (int) auth()->id(),
+            );
+
+            return redirect()->route('sales.show', $sale)
+                ->with('status', "Venta {$sale->invoice_number} registrada exitosamente.");
+        } catch (InsufficientStockException $e) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['items' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Display the specified sale (invoice/receipt).
+     */
+    public function show(Sale $sale): View
+    {
+        Gate::authorize('view', $sale);
+
+        $sale->load(['details.product', 'customer', 'user']);
+
+        return view('sales.show', [
+            'sale' => $sale,
+        ]);
+    }
+
+    /**
+     * Cancel a sale and restore stock (admin only).
+     */
+    public function destroy(Sale $sale): RedirectResponse
+    {
+        Gate::authorize('delete', $sale);
+
+        if ($sale->status === 'cancelled') {
+            return redirect()->route('sales.index')
+                ->with('info', "La venta {$sale->invoice_number} ya se encuentra anulada.");
+        }
+
+        $this->saleService->cancelSale($sale, (int) auth()->id());
+
+        return redirect()->route('sales.index')
+            ->with('status', "Venta {$sale->invoice_number} anulada correctamente. Stock restaurado.");
+    }
+}

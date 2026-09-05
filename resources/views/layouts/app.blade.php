@@ -89,6 +89,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link fw-semibold {{ request()->routeIs('sales.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('sales.index') }}">
+                            <i class="bi bi-cart-check me-1"></i> Ventas
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link fw-semibold {{ request()->routeIs('customers.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('customers.index') }}">
                             <i class="bi bi-people-fill me-1"></i> Clientes
                         </a>
