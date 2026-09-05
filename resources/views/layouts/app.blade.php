@@ -113,6 +113,11 @@
                             <i class="bi bi-buildings me-1"></i> Emprendimientos
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold {{ request()->routeIs('ai.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('ai.index') }}">
+                            <i class="bi bi-stars text-primary me-1"></i> Asistente IA
+                        </a>
+                    </li>
                     @if (auth()->check() && auth()->user()->isCurrentAdmin())
                         <li class="nav-item">
                             <a class="nav-link fw-semibold {{ request()->routeIs('reports.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('reports.index') }}">

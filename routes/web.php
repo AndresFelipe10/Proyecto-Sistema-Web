@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AiAssistantController;
 use App\Http\Controllers\Api\ProductSearchController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -82,6 +83,10 @@ Route::middleware('auth')->group(function () {
 
         // API interna para búsqueda de productos (POS autocomplete)
         Route::get('/api/products/search', ProductSearchController::class)->name('api.products.search');
+
+        // Asistente de Consultas en Lenguaje Natural (IA)
+        Route::get('/ai/assistant', [AiAssistantController::class, 'index'])->name('ai.index');
+        Route::post('/ai/ask', [AiAssistantController::class, 'ask'])->middleware('throttle:30,1')->name('ai.ask');
 
         // Rutas exclusivas para el rol Administrador del emprendimiento
         Route::middleware('role:admin')->group(function () {
