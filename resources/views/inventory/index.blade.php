@@ -15,6 +15,20 @@
     @endcan
 </div>
 
+{{-- Pestañas de Navegación del Módulo de Inventario --}}
+<ul class="nav nav-pills mb-4 gap-2">
+    <li class="nav-item">
+        <a class="nav-link rounded-pill px-4 {{ request()->routeIs('inventory.index') ? 'active' : 'bg-white text-secondary shadow-sm' }}" href="{{ route('inventory.index') }}">
+            <i class="bi bi-clock-history me-1"></i> Movimientos de Inventario
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link rounded-pill px-4 {{ request()->routeIs('inventory.alerts') ? 'active' : 'bg-white text-secondary shadow-sm' }}" href="{{ route('inventory.alerts') }}">
+            <i class="bi bi-shield-exclamation me-1"></i> Panel Inteligente & Alertas
+        </a>
+    </li>
+</ul>
+
 <!-- Filtros de Historial -->
 <div class="card card-custom p-3 bg-white mb-4">
     <form method="GET" action="{{ route('inventory.index') }}" class="row g-2 align-items-center">

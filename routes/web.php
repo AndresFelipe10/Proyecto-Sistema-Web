@@ -8,6 +8,7 @@ use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InventoryAlertController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SaleController;
@@ -58,6 +59,7 @@ Route::middleware('auth')->group(function () {
 
         // Inventario (Lectura y Registro de Movimientos para Administrador y Empleado)
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+        Route::get('/inventory/alerts', [InventoryAlertController::class, 'index'])->name('inventory.alerts');
         Route::get('/inventory/create', [InventoryController::class, 'create'])->name('inventory.create');
         Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
 
