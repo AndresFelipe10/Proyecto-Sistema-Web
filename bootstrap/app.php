@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\SecurityHeadersMiddleware;
 use App\Http\Middleware\SetCurrentTenant;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -13,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->appendToGroup('web', [
+            SecurityHeadersMiddleware::class,
+        ]);
+
         $middleware->alias([
             'tenant' => SetCurrentTenant::class,
             'role' => CheckRole::class,
