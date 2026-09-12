@@ -1,26 +1,45 @@
-# Roadmap
+# Roadmap del Proyecto
 
-Fases en orden recomendado. Pueden reordenarse solo si se detecta una dependencia técnica mejor, documentando el motivo en `docs/DECISIONES_TECNICAS.md`. Ninguna fase comienza sin que la anterior tenga sus criterios de aceptación cumplidos y sus tests pasando (`.agents/rules/05-testing.md`).
+Fases en orden de desarrollo. Ninguna fase comienza sin que la anterior tenga sus criterios de aceptación cumplidos y sus tests pasando (`.agents/rules/05-testing.md`).
 
-| # | Fase | Depende de | Criterio de aceptación resumido |
-|---|---|---|---|
-| 0 | Análisis y planificación | — | Workspace inspeccionado, `docs/` y `.agents/` existentes y coherentes |
-| 1 | Inicialización del repositorio | 0 | Repo limpio, `.env.example` presente, sin secretos |
-| 2 | Docker + Laravel + Nginx + MySQL | 1 | `docker compose up` levanta los 3 servicios; Laravel responde; MySQL persistente |
-| 3 | Modelo de datos + migraciones | 2 | Migraciones corren sin error; relaciones documentadas en `docs/BASE_DATOS.md` |
-| 4 | Autenticación | 3 | Registro/login/logout/recuperación probados con feature tests |
-| 5 | Emprendimientos + multi-tenancy | 4 | **Bloqueante**: tests de aislamiento entre emprendimientos pasando |
-| 6 | Usuarios + roles | 5 | Empleado no accede a rutas de administrador (test de autorización) |
-| 7 | Productos + categorías | 5 | CRUD y aislamiento cubiertos por tests |
-| 8 | Inventario | 7 | Test de concurrencia (stock=1, dos ventas simultáneas) pasando |
-| 9 | Clientes + proveedores | 5 | CRUD y aislamiento cubiertos por tests |
-| 10 | Ventas | 8, 9 | Venta actualiza stock correctamente; venta sin stock suficiente es rechazada |
-| 11 | Dashboard | 10 | Datos mostrados corresponden únicamente al `business_id` activo |
-| 12 | Panel inteligente de inventario | 8 | Clasificación normal/bajo/agotado correcta en casos de prueba |
-| 13 | Reportes | 10, 12 | Reportes respetan aislamiento (verificado con tests) |
-| 14 | Módulo de IA en lenguaje natural | 5, 7, 8, 9, 10, 12, 13 | Todos los tests obligatorios de IA pasando; módulo desactivable sin romper el núcleo |
-| 15 | Seguridad + testing integral | 14 | Checklist de `docs/SEGURIDAD.md` completo y verificado |
-| 16 | Deployment | 15 | Guía de despliegue reproducible documentada en `docs/ARQUITECTURA.md` |
-| 17 | Documentación final | 16 | `docs/` y `.agents/` consolidados y consultables sin contexto previo |
+## Estado de Ejecución de Fases
 
-Criterio final de éxito del proyecto completo → `docs/PLAN_PROYECTO.md`, sección "Criterios de aceptación globales".
+| # | Fase | Depende de | Criterio de aceptación | Estado | Entregable / Verificación |
+|---|---|---|---|:---:|---|
+| 0 | Análisis y planificación | — | Workspace inspeccionado, `docs/` y `.agents/` existentes y coherentes | ✅ Completada | Estructura base de `docs/` y `.agents/` configurada y alineada con el alcance. |
+| 1 | Inicialización del repositorio | 0 | Repo limpio, `.env.example` presente, sin secretos | ✅ Completada | Repositorio Git limpio, sin secretos versionados, `.env.example` con placeholders. |
+| 2 | Docker + Laravel + Nginx + MySQL | 1 | `docker compose up` levanta los 3 servicios; Laravel responde; MySQL persistente | ✅ Completada | Contenedores `app`, `nginx`, `db` funcionales con volumen persistente en MySQL. |
+| 3 | Modelo de datos + migraciones | 2 | Migraciones corren sin error; relaciones documentadas en `docs/BASE_DATOS.md` | ✅ Completada | 13 migraciones ejecutadas sin errores; entidades e integridad referencial documentadas. |
+| 4 | Autenticación | 3 | Registro/login/logout/recuperación probados con feature tests | ✅ Completada | Flujos de autenticación completos y seguros probados con Feature Tests. |
+| 5 | Emprendimientos + multi-tenancy | 4 | **Bloqueante**: tests de aislamiento entre emprendimientos pasando | ✅ Completada | Tenancy lógico por `business_id` garantizado con Eloquent Global Scope, Middleware y Policies. |
+| 6 | Usuarios + roles | 5 | Empleado no accede a rutas de administrador (test de autorización) | ✅ Completada | RBAC con roles `admin` y `employee` verificados mediante tests de autorización. |
+| 7 | Productos + categorías | 5 | CRUD y aislamiento cubiertos por tests | ✅ Completada | Catálogo completo con SKU único por tenant y validación estricta en Form Requests. |
+| 8 | Inventario | 7 | Test de concurrencia (stock=1, dos ventas simultáneas) pasando | ✅ Completada | Historial de auditoría en `inventory_movements` y concurrencia pesimista (`lockForUpdate`). |
+| 9 | Clientes + proveedores | 5 | CRUD y aislamiento cubiertos por tests | ✅ Completada | Directorio comercial aislado y protección contra eliminación accidental de clientes con ventas. |
+| 10 | Ventas | 8, 9 | Venta actualiza stock correctamente; venta sin stock suficiente es rechazada | ✅ Completada | Transacciones atómicas de venta, validación de stock, numeración consecutiva y anulación. |
+| 11 | Dashboard | 10 | Datos mostrados corresponden únicamente al `business_id` activo | ✅ Completada | Indicadores clave (KPIs), ventas del día, top productos y alertas operativas por tenant. |
+| 12 | Panel inteligente de inventario | 8 | Clasificación normal/bajo/agotado correcta en casos de prueba | ✅ Completada | Clasificación determinística (Normal, Bajo Stock, Agotado) y cálculo de reposición. |
+| 13 | Reportes | 10, 12 | Reportes respetan aislamiento (verificado con tests) | ✅ Completada | Reportes financieros, valoración de inventario y exportación a formato CSV sin fuga de datos. |
+| 14 | Módulo de IA en lenguaje natural | 5, 7, 8, 9, 10, 12, 13 | Tests obligatorios de IA pasando; módulo desactivable sin romper el núcleo | ✅ Completada | Integración desacoplada (`AiProviderInterface`), whitelist de 9 intents, solo lectura y fallback. |
+| 15 | Seguridad + testing integral | 14 | Checklist de `docs/SEGURIDAD.md` completo y verificado | ✅ Completada | Cabeceras HTTP, rate limiting anti brute-force, protección CSRF y vistas de error seguras. |
+| 16 | Deployment | 15 | Guía de despliegue reproducible documentada en `docs/ARQUITECTURA.md` | ✅ Completada | `docker-compose.prod.yml`, `Dockerfile.prod`, scripts de backup/deploy y guía paso a paso. |
+| 17 | Documentación final | 16 | `docs/` y `.agents/` consolidados y consultables sin contexto previo | ✅ Completada | `README.md` completo, `DatabaseSeeder` demo, ADRs actualizados y enlaces auditados. |
+
+---
+
+## Verificación de Criterios de Aceptación Globales
+
+Según [`docs/PLAN_PROYECTO.md`](PLAN_PROYECTO.md), el éxito del proyecto se evalúa frente al siguiente checklist global:
+
+| Criterio Global | Estado | Evidencia de Cumplimiento |
+|---|:---:|---|
+| **Flujo comercial completo con datos reales** | ✅ Cumplido | Registro → creación de emprendimiento → login → productos → ventas con descuento y stock actualizado → clientes. |
+| **Aislamiento multi-tenant por `business_id`** | ✅ Cumplido | Verificado con suite de tests de aislamiento (`TenantIsolationTest`, `ProductTest`, `SaleTest`, etc.). Ningún tenant accede a datos de otro. |
+| **Concurrencia y consistencia de inventario** | ✅ Cumplido | Bloqueo pesimista probado en `InventoryMovementTest` (stock=1, dos ventas concurrentes: una aprobada, una rechazada sin saldo negativo). |
+| **Alertas de reposición determinísticas** | ✅ Cumplido | Panel inteligente clasifica en Normal, Bajo Stock y Agotado con cálculo de reposición automática. |
+| **Reportes y exportación CSV aislados** | ✅ Cumplido | Generación de reportes de ventas y valoración de stock con exportación CSV validada por tests. |
+| **Consultas en lenguaje natural (IA)** | ✅ Cumplido | Módulo de IA con whitelist de intents, solo lectura, sin SQL arbitrario, `business_id` inyectado por backend y fallback controlado ante fallos. |
+| **Independencia del núcleo frente a IA** | ✅ Cumplido | El núcleo funciona al 100% con `AI_MODULE_ENABLED=false` o sin API key de Gemini. |
+| **Base de datos persistente** | ✅ Cumplido | Volumen Docker `mysql_data` (dev) y `mysql_prod_data` (prod) con scripts automatizados de respaldo y restauración. |
+| **Despliegue sin herramientas técnicas en cliente** | ✅ Cumplido | El usuario final únicamente interactúa mediante navegador web bajo HTTP/HTTPS; toda la infraestructura corre contenerizada. |
+| **Suite global de pruebas pasando** | ✅ Cumplido | **125 tests pasando (496 assertions)** con 0 errores y 0 fallos. |

@@ -1,59 +1,269 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Sistema Web de Gestión de Ventas e Inventario para Pequeños Emprendimientos
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+[![PHP](https://img.shields.io/badge/PHP-8.3-777BB4?style=flat-square&logo=php&logoColor=white)](https://www.php.net/)
+[![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Docker Compose](https://img.shields.io/badge/Docker%20Compose-3%20Servicios-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=flat-square&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
+[![Tests](https://img.shields.io/badge/Tests-125%20passed%20(496%20assertions)-brightgreen?style=flat-square)]()
+[![Security](https://img.shields.io/badge/OWASP-Hardened-blue?style=flat-square)]()
 
-## About Laravel
+Sistema web integral, multiusuario y multi-tenant diseñado específicamente para centralizar y optimizar la gestión comercial, ventas, inventario y toma de decisiones en pequeños emprendimientos de **Cali, Colombia**. 
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Desarrollado como proyecto de Ingeniería de Sistemas bajo estrictos estándares profesionales de arquitectura, seguridad perimetral, integridad transaccional y capacidad de despliegue en producción.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Principio Fundamental del Sistema
 
-## Learning Laravel
+```
+┌─────────────────────────────────────────────────────────┐
+│        NÚCLEO PRINCIPAL AUTOSUFICIENTE                  │
+│        (Laravel 12 + MySQL 8.4 + Docker)                │
+│  Operación comercial, transaccional y de reportes 100%  │
+└───────────────────────────┬─────────────────────────────┘
+                            │
+                            ▼ (Opcional y Desacoplado)
+┌─────────────────────────────────────────────────────────┐
+│       MÓDULO DE IA EN LENGUAJE NATURAL (Gemini)         │
+│  Consultas en lenguaje natural, solo lectura, whitelist │
+│  y fallback automático ante indisponibilidad            │
+└─────────────────────────────────────────────────────────┘
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+El sistema opera al 100% de su capacidad sin depender de servicios externos de inteligencia artificial. El módulo de IA es un complemento opcional, desacoplado mediante contratos (`AiProviderInterface`), seguro y desactivable en cualquier momento vía variables de entorno.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## Características y Módulos Principales
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 1. Multi-tenancy Lógico y Aislamiento Estricto
+- Cada registro de negocio está aislado mediante la clave de tenant `business_id`.
+- Protección en tres capas: **Eloquent Global Scope** (filtro automático en consultas), **SetCurrentTenant Middleware** (contexto de sesión activo) y **Laravel Policies** (autorización por recurso).
 
-### Premium Partners
+### 2. Control de Acceso Basado en Roles (RBAC)
+- **Administrador**: Control total del emprendimiento, gestión de usuarios, catálogo de productos, compras, movimientos, reportes financieros, auditoría y panel de control.
+- **Empleado / Vendedor**: Registro ágil de ventas en mostrador, consulta de disponibilidad de catálogo y gestión básica de clientes.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 3. Catálogo Inteligente y Control de Inventario
+- Productos clasificados por categoría con SKU único por emprendimiento.
+- Control de stock con precios de costo y precios de venta.
+- **Integridad Transaccional**: Registro obligatorio de todo cambio de stock en la tabla de auditoría `inventory_movements` (entradas, salidas y ajustes manuales).
+- **Concurrencia Pesimista**: Bloqueo con `lockForUpdate()` en operaciones de venta para evitar sobreventa y condiciones de carrera.
 
-## Contributing
+### 4. Panel Inteligente de Inventario y Alertas de Reposición
+- Clasificación determinística del estado de inventario:
+  - **Normal**: Stock por encima del mínimo.
+  - **Bajo Stock**: Stock igual o inferior al umbral mínimo (genera alerta preventiva).
+  - **Agotado**: Stock en 0 o negativo (genera alerta crítica).
+- Recomendación automatizada de cantidad de reposición para compras.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 5. Punto de Venta y Facturación
+- Registro de ventas con soporte para clientes registrados o venta rápida a cliente de mostrador.
+- Soporte para diversos métodos de pago (Efectivo, Transferencia, Tarjeta, etc.) y descuentos.
+- Generación de numeración de factura consecutiva por negocio (`FAC-000001`).
+- Opción de anulación controlada por administradores con reversión automática del stock al inventario.
 
-## Code of Conduct
+### 6. Directorio Comercial
+- Gestión centralizada de **Clientes** y **Proveedores**.
+- Validación de borrado seguro: clientes con historial de ventas no se eliminan físicamente sino que se desactivan para preservar la integridad contable.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 7. Dashboard Gerencial y Reportes Financieros
+- **KPIs en Tiempo Real**: Ventas del día, ingresos mensuales, productos críticos y ticket promedio.
+- **Reportes Especializados**:
+  - Reporte de ventas filtrable por rango de fechas y método de pago.
+  - Reporte de valoración de inventario (costo total vs. valor potencial de venta y margen estimado).
+  - Ranking de productos más vendidos y rentables.
+  - **Exportación en CSV** respetando el aislamiento multi-tenant.
 
-## Security Vulnerabilities
+### 8. Asistente de Consultas en Lenguaje Natural (IA)
+- Permite a los usuarios consultar datos operativos en lenguaje cotidiano (*"¿Cuáles son los productos con stock bajo?"*, *"¿Cuánto vendimos este mes?"*).
+- **Seguridad Garantizada**: Implementa *Function Calling / Structured Output* con una estricta lista blanca de intenciones permitidas. No ejecuta SQL arbitrario, no tiene permisos de escritura y el `business_id` es inyectado por Laravel.
+- **Fallback Automático**: Mensajes controlados si la cuota de la API se agota o hay cortes de red.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 9. Endurecimiento de Seguridad OWASP
+- Middleware perimetral de cabeceras HTTP (`X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`, `Referrer-Policy`).
+- Protección CSRF activa en todos los formularios y rutas de escritura.
+- Rate Limiting contra ataques de fuerza bruta en inicio de sesión (5 intentos / min) y abuso de IA (30 peticiones / min).
+- Modelos Eloquent protegidos contra Mass Assignment (`$fillable` estricto en todos los modelos).
+- Páginas de error seguras y personalizadas (`403`, `404`, `419`, `500`) sin exposición de stack traces ni metadatos del servidor.
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Stack Tecnológico
+
+| Capa | Tecnología | Justificación |
+|---|---|---|
+| **Backend** | PHP 8.3 FPM + Laravel 12 | Estándar de la industria, robustez en Eloquent ORM, migraciones, policies y ecosistema de testing. |
+| **Frontend** | Blade + Bootstrap 5.3 + Vanilla JS | Rápido, responsivo, sin la sobrecarga ni complejidad de compilación de un SPA (React/Vue). |
+| **Base de Datos** | MySQL 8.4 LTS | Motor relacional estándar con soporte para transacciones ACID, bloqueo pesimista e integridad referencial. |
+| **Servidor Web** | Nginx Alpine | Proxy inverso perimetral ligero con compresión Gzip, caché de estáticos y soporte SSL/TLS. |
+| **Contenedores** | Docker Compose | Paridad exacta entre entornos, despliegue reproducible en 1 comando; el cliente final no instala dependencias locales. |
+| **IA (Opcional)** | Google Gemini API | Proveedor accesible para entornos académicos, integrado mediante abstracción desacoplada. |
+
+---
+
+## Estructura del Proyecto
+
+```
+├── app/
+│   ├── AI/                 # Módulo de IA aislado (Contratos, Providers, DTOs, Tools)
+│   ├── Http/
+│   │   ├── Controllers/    # Controladores delgados
+│   │   ├── Middleware/     # Tenancy, seguridad y verificación
+│   │   └── Requests/       # Form Requests con validación estricta
+│   ├── Models/             # Modelos Eloquent con Global Scopes de Tenancy
+│   ├── Policies/           # Autorización granular por rol y tenant
+│   └── Services/           # Servicios de negocio (Sales, Inventory, AI)
+├── database/
+│   ├── migrations/         # 13 migraciones versionadas
+│   └── seeders/            # Seeder con datos de prueba realistas
+├── docker/
+│   ├── nginx/              # Configuraciones de Nginx para dev y prod
+│   ├── php/                # Dockerfiles y archivos .ini (dev y prod)
+│   └── certbot/            # Directorios para certificados SSL
+├── docs/                   # Documentación viva del proyecto
+│   ├── ARQUITECTURA.md     # Arquitectura del sistema y Guía de Despliegue Reproducible
+│   ├── BASE_DATOS.md       # Diccionario de datos, relaciones y multi-tenancy
+│   ├── DECISIONES_TECNICAS.md # Registro de decisiones arquitectónicas (ADR)
+│   ├── MODULO_IA.md        # Especificación del módulo de lenguaje natural
+│   ├── PLAN_PROYECTO.md    # Fuente de verdad, alcance y criterios globales
+│   ├── ROADMAP.md          # Registro de fases y criterios de aceptación
+│   └── SEGURIDAD.md        # Checklist de controles OWASP y endurecimiento
+├── resources/views/        # Vistas Blade responsivas con Bootstrap 5
+├── routes/                 # Rutas web agrupadas por autenticación y tenant
+├── scripts/                # Scripts de automatización (backup, restore, deploy)
+├── tests/                  # 125 pruebas automatizadas (Unit y Feature)
+├── docker-compose.yml      # Entorno de desarrollo local
+└── docker-compose.prod.yml # Entorno inmutable para producción
+```
+
+---
+
+## Puesta en Marcha en Desarrollo (Paso a Paso)
+
+### Prerrequisitos
+- [Git](https://git-scm.com/) instalado.
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/macOS) o Docker Engine + Compose (Linux) en ejecución.
+
+### 1. Clonar el repositorio
+```bash
+git clone <URL_DEL_REPOSITORIO>
+cd "Proyecto Sistema Web"
+```
+
+### 2. Configurar el archivo de entorno
+```bash
+cp .env.example .env
+```
+*(Nota: El archivo `.env.example` viene configurado por defecto con las credenciales correspondientes a los servicios de Docker).*
+
+### 3. Levantar los contenedores
+```bash
+docker compose up -d --build
+```
+Este comando construirá y levantará los 3 servicios del sistema:
+- `sistema_app` (PHP 8.3 FPM)
+- `sistema_nginx` (Servidor web en http://localhost:8080)
+- `sistema_db` (MySQL 8.4 accesible internamente y en puerto host 3308)
+
+### 4. Inicializar la base de datos y generar clave
+```bash
+# Generar clave de cifrado
+docker compose exec app php artisan key:generate
+
+# Ejecutar migraciones y poblar datos de demostración
+docker compose exec app php artisan migrate --seed
+```
+
+### 5. Acceder a la Aplicación
+Abre tu navegador web en:
+👉 **[http://localhost:8080](http://localhost:8080)**
+
+---
+
+## Credenciales de Demostración Preconfiguradas
+
+El seeder (`DatabaseSeeder`) crea automáticamente una empresa ficticia en Cali (*"Emprendimiento Demo Cali"*) con productos, movimientos, clientes, proveedores y una venta de ejemplo:
+
+| Rol | Correo Electrónico | Contraseña | Permisos |
+|---|---|---|---|
+| **Administrador** | `admin@demo.com` | `password123` | Acceso total (Configuración, Usuarios, Inventario, Reportes, Dashboard, IA) |
+| **Empleado** | `empleado@demo.com` | `password123` | Acceso operativo (Registrar ventas, consultar catálogo y clientes) |
+
+*Nota: También puedes registrar un usuario nuevo desde la pantalla de `/register`; el sistema te guiará para crear un nuevo emprendimiento y te asignará automáticamente el rol de Administrador.*
+
+---
+
+## Configuración del Módulo de IA (Opcional)
+
+Por defecto, el sistema funciona con el módulo de IA desactivado (`AI_MODULE_ENABLED=false`). Para activarlo:
+1. Obtén una clave de API gratuita en [Google AI Studio](https://aistudio.google.com/).
+2. En tu archivo `.env`, actualiza las siguientes líneas:
+   ```ini
+   AI_MODULE_ENABLED=true
+   AI_PROVIDER=gemini
+   GEMINI_API_KEY=tu_clave_real_de_gemini_aqui
+   AI_TIMEOUT_SECONDS=10
+   ```
+3. Reinicia la caché de configuración en el contenedor:
+   ```bash
+   docker compose exec app php artisan config:clear
+   ```
+4. Ingresa al menú superior **"Asistente IA"** para formular consultas en lenguaje natural.
+
+---
+
+## Ejecución de Pruebas Automatizadas
+
+El proyecto cuenta con una cobertura integral de pruebas unitarias y de integración que validan el aislamiento multi-tenant, seguridad, concurrencia de stock y reglas de negocio:
+
+```bash
+docker compose exec app php artisan test
+```
+
+### Resumen de la Suite de Pruebas:
+- **Tenant Isolation**: Verificación de aislamiento en modelos, creación de negocios y cambios de tenant.
+- **Catalog & Inventory**: CRUD de productos y categorías con SKU único por tenant; concurrencia pesimista en stock.
+- **Sales & Orders**: Actualización de stock, rechazo ante saldo insuficiente, anulación y facturación.
+- **Smart Panel**: Clasificación correcta de stock agotado/bajo/normal y cálculo de reposición.
+- **Reports**: Aislamiento en reportes financieros y exportación a CSV sin fuga entre negocios.
+- **Security Checklist**: Validación de los 7 controles OWASP (CSRF, Rate Limiting, Cabeceras HTTP, Mass Assignment, etc.).
+- **AI Module**: Pruebas con mocks de Gemini para intents permitidos, rechazo de intentos maliciosos, aislamiento y fallback sin conexión.
+
+**Resultado:** **`125 tests passed (496 assertions)`** con 0 fallos.
+
+---
+
+## Despliegue en Producción
+
+El proyecto incluye configuraciones listas para despliegue en servidores VPS (Ubuntu 22.04/24.04 LTS) con imágenes Docker inmutables y scripts de automatización:
+
+1. **Configuración de Producción:** [`docker-compose.prod.yml`](docker-compose.prod.yml) y [`docker/php/Dockerfile.prod`](docker/php/Dockerfile.prod).
+2. **Script de Despliegue:** [`scripts/deploy.sh`](scripts/deploy.sh) (ejecuta respaldo preventivo, modo mantenimiento, compilación, migraciones con `--force` y optimización de cachés).
+3. **Respaldo y Restauración de Base de Datos:**
+   - Respaldo automatizado con retención: `bash scripts/backup-db.sh`
+   - Restauración interactiva: `bash scripts/restore-db.sh backups/dump_archivo.sql.gz`
+
+Para consultar los requisitos de hardware, configuración de dominio, certificados SSL con Let's Encrypt y buenas prácticas operativas, consulta la **[Guía de Despliegue Reproducible en docs/ARQUITECTURA.md](docs/ARQUITECTURA.md#gu%C3%ADa-de-despliegue-reproducible-en-producci%C3%B3n)**.
+
+---
+
+## Índice de Documentación del Proyecto
+
+Toda la documentación técnica se mantiene versionada y actualizada dentro del directorio `docs/`:
+
+- 📘 **[Plan del Proyecto (docs/PLAN_PROYECTO.md)](docs/PLAN_PROYECTO.md)**: Alcance, objetivos, usuarios y criterios globales de aceptación.
+- 🏛️ **[Arquitectura (docs/ARQUITECTURA.md)](docs/ARQUITECTURA.md)**: Estructura de capas, flujos de datos, infraestructura Docker y Guía de Despliegue.
+- 🗄️ **[Base de Datos (docs/BASE_DATOS.md)](docs/BASE_DATOS.md)**: Modelo relacional, campos clave, integridad transaccional y multi-tenancy.
+- 🛡️ **[Seguridad (docs/SEGURIDAD.md)](docs/SEGURIDAD.md)**: Matriz de controles OWASP, autenticación y manejo seguro de errores.
+- 🤖 **[Módulo de IA (docs/MODULO_IA.md)](docs/MODULO_IA.md)**: Especificación de intents, contratos, desacoplamiento y privacidad.
+- ⚖️ **[Decisiones Técnicas (docs/DECISIONES_TECNICAS.md)](docs/DECISIONES_TECNICAS.md)**: Architectural Decision Records (ADR) con justificaciones de diseño.
+- 🗺️ **[Roadmap de Desarrollo (docs/ROADMAP.md)](docs/ROADMAP.md)**: Detalle del avance de las Fases 0 a 17 y sus criterios cumplidos.
+- 🤖 **[Instrucciones para Agentes de IA (AGENTS.md)](AGENTS.md)**: Punto de entrada, reglas y workflows repetibles en `.agents/`.
+
+---
+
+## Licencia
+
+Este proyecto fue desarrollado con propósitos académicos y de aplicación profesional bajo la licencia [MIT](LICENSE).

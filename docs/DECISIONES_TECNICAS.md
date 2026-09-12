@@ -14,5 +14,9 @@ Cada entrada documenta una decisión fundamental y su motivo. Nuevas decisiones 
 | IA en modo solo lectura | Permitir escritura vía IA desde el inicio | Reduce drásticamente la superficie de riesgo (alucinaciones, prompt injection) en la primera versión |
 | Sin Redis/colas en el MVP | Procesamiento asíncrono de IA | La llamada síncrona con timeout corto es suficiente para el volumen esperado; se evita complejidad operativa innecesaria. Reevaluar solo si el tiempo de respuesta se vuelve un problema real medido en producción |
 | Sin phpMyAdmin en el compose por defecto | Incluirlo siempre | No es necesario para el funcionamiento del sistema; puede agregarse como `docker-compose.override.yml` opcional si se requiere durante desarrollo |
+| Docker Compose inmutable en producción | Montar código fuente con bind mounts en prod | Garantiza inmutabilidad, consistencia entre réplicas, máximo rendimiento con OPcache precompilado y seguridad al no exponer el sistema de archivos del host |
+| Scripts operativos en Bash nativo | Ansible, Terraform o herramientas pesadas de CI/CD | Mantiene la infraestructura simple, autocontenida y comprensible para pequeños emprendimientos o administradores de sistemas en VPS básicos |
+| Endurecimiento de seguridad con herramientas nativas de Laravel | Paquetes de terceros de seguridad | Minimiza la superficie de ataque y dependencias externas; Laravel 12 ya provee rate limiting, protección CSRF y sanitización nativa |
 
 > Cualquier decisión que reemplace o contradiga una fila de esta tabla debe agregarse como nueva fila, explicando el motivo del cambio — nunca se borra el historial de decisiones.
+
