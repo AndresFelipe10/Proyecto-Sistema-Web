@@ -52,3 +52,13 @@ desktop.ini
 # Docker local volume data (if placed in repo)
 /docker/mysql/data
 /docker/data
+
+# Database Backups
+/backups/*
+!/backups/.gitkeep
+
+# Certbot SSL certificates
+/docker/certbot/conf/*
+!/docker/certbot/conf/.gitkeep
+/docker/certbot/www/*
+!/docker/certbot/www/.gitkeep
