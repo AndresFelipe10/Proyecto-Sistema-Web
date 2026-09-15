@@ -253,14 +253,14 @@ Para consultar los requisitos de hardware, configuración de dominio, certificad
 
 Toda la documentación técnica se mantiene versionada y actualizada dentro del directorio `docs/`:
 
-- 📘 **[Plan del Proyecto (docs/PLAN_PROYECTO.md)](docs/PLAN_PROYECTO.md)**: Alcance, objetivos, usuarios y criterios globales de aceptación.
-- 🏛️ **[Arquitectura (docs/ARQUITECTURA.md)](docs/ARQUITECTURA.md)**: Estructura de capas, flujos de datos, infraestructura Docker y Guía de Despliegue.
-- 🗄️ **[Base de Datos (docs/BASE_DATOS.md)](docs/BASE_DATOS.md)**: Modelo relacional, campos clave, integridad transaccional y multi-tenancy.
-- 🛡️ **[Seguridad (docs/SEGURIDAD.md)](docs/SEGURIDAD.md)**: Matriz de controles OWASP, autenticación y manejo seguro de errores.
-- 🤖 **[Módulo de IA (docs/MODULO_IA.md)](docs/MODULO_IA.md)**: Especificación de intents, contratos, desacoplamiento y privacidad.
-- ⚖️ **[Decisiones Técnicas (docs/DECISIONES_TECNICAS.md)](docs/DECISIONES_TECNICAS.md)**: Architectural Decision Records (ADR) con justificaciones de diseño.
-- 🗺️ **[Roadmap de Desarrollo (docs/ROADMAP.md)](docs/ROADMAP.md)**: Detalle del avance de las Fases 0 a 17 y sus criterios cumplidos.
-- 🤖 **[Instrucciones para Agentes de IA (AGENTS.md)](AGENTS.md)**: Punto de entrada, reglas y workflows repetibles en `.agents/`.
+- **[Plan del Proyecto (docs/PLAN_PROYECTO.md)](docs/PLAN_PROYECTO.md)**: Alcance, objetivos, usuarios y criterios globales de aceptación.
+- **[Arquitectura (docs/ARQUITECTURA.md)](docs/ARQUITECTURA.md)**: Estructura de capas, flujos de datos, infraestructura Docker y Guía de Despliegue.
+- **[Base de Datos (docs/BASE_DATOS.md)](docs/BASE_DATOS.md)**: Modelo relacional, campos clave, integridad transaccional y multi-tenancy.
+- **[Seguridad (docs/SEGURIDAD.md)](docs/SEGURIDAD.md)**: Matriz de controles OWASP, autenticación y manejo seguro de errores.
+- **[Módulo de IA (docs/MODULO_IA.md)](docs/MODULO_IA.md)**: Especificación de intents, contratos, desacoplamiento y privacidad.
+- **[Decisiones Técnicas (docs/DECISIONES_TECNICAS.md)](docs/DECISIONES_TECNICAS.md)**: Architectural Decision Records (ADR) con justificaciones de diseño.
+- **[Roadmap de Desarrollo (docs/ROADMAP.md)](docs/ROADMAP.md)**: Detalle del avance de las Fases 0 a 17 y sus criterios cumplidos.
+- **[Instrucciones para Agentes de IA (AGENTS.md)](AGENTS.md)**: Punto de entrada, reglas y workflows repetibles en `.agents/`.
 
 ---
 

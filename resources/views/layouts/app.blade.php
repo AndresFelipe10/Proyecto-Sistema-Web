@@ -25,6 +25,8 @@
             background-color: #ffffff;
             border-bottom: 1px solid #e2e8f0;
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+            height: 62px;
+            z-index: 1030;
         }
         .navbar-brand {
             font-weight: 700;
@@ -32,6 +34,7 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            font-size: 1.15rem;
         }
         .card-custom {
             background: #ffffff;
@@ -45,6 +48,8 @@
             border-radius: 2rem;
             font-size: 0.875rem;
             font-weight: 500;
+            display: inline-flex;
+            align-items: center;
         }
         .tenant-selector {
             border: 1px solid #cbd5e1;
@@ -58,152 +63,190 @@
             align-items: center;
             gap: 0.4rem;
         }
+
+        /* Layout con Sidebar */
+        .app-layout {
+            display: flex;
+            min-height: calc(100vh - 62px);
+        }
+
+        @media (min-width: 992px) {
+            .sidebar-desktop {
+                position: fixed;
+                top: 62px;
+                bottom: 0;
+                left: 0;
+                width: 250px;
+                background-color: #ffffff;
+                border-right: 1px solid #e2e8f0;
+                overflow-y: auto;
+                padding: 1.25rem 0.75rem;
+                z-index: 1020;
+            }
+            .main-content {
+                margin-left: 250px;
+                width: calc(100% - 250px);
+                min-height: calc(100vh - 62px);
+            }
+        }
+
+        @media (max-width: 991.98px) {
+            .sidebar-desktop {
+                display: none !important;
+            }
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+                min-height: calc(100vh - 62px);
+            }
+        }
+
+        /* Estilos del Sidebar */
+        .sidebar-nav-container .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.65rem 0.85rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            color: #64748b;
+            text-decoration: none;
+            transition: all 0.15s ease-in-out;
+        }
+
+        .sidebar-nav-container .nav-link:hover {
+            background-color: #f1f5f9;
+            color: #4f46e5 !important;
+        }
+
+        .sidebar-nav-container .nav-link.active {
+            background-color: #eef2ff;
+            color: #4f46e5 !important;
+            font-weight: 600;
+        }
+
+        .sidebar-nav-container .nav-link.active i {
+            color: #4f46e5 !important;
+        }
+
+        .sidebar-nav-container .nav-link i {
+            font-size: 1.15rem;
+            width: 1.5rem;
+            text-align: center;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
-        <div class="container-fluid px-4">
-            <a class="navbar-brand" href="{{ route('dashboard') }}">
-                <i class="bi bi-box-seam-fill"></i> {{ config('app.name') }}
-            </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+    {{-- Navbar Superior --}}
+    <nav class="navbar navbar-custom sticky-top">
+        <div class="container-fluid px-3 px-lg-4">
+            <div class="d-flex align-items-center gap-2">
+                {{-- Botón hamburguesa para móvil/tablet que abre el Offcanvas --}}
+                <button class="btn btn-outline-secondary d-lg-none p-1 border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" aria-controls="sidebarOffcanvas" aria-label="Abrir menú de navegación">
+                    <i class="bi bi-list fs-3"></i>
+                </button>
 
-            <div class="collapse navbar-collapse" id="navbarContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link fw-semibold {{ request()->routeIs('dashboard') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('dashboard') }}">
-                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link fw-semibold {{ request()->routeIs('products.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('products.index') }}">
-                            <i class="bi bi-boxes me-1"></i> Productos
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link fw-semibold {{ request()->routeIs('inventory.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('inventory.index') }}">
-                            <i class="bi bi-arrow-left-right me-1"></i> Inventario
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link fw-semibold {{ request()->routeIs('sales.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('sales.index') }}">
-                            <i class="bi bi-cart-check me-1"></i> Ventas
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link fw-semibold {{ request()->routeIs('customers.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('customers.index') }}">
-                            <i class="bi bi-people-fill me-1"></i> Clientes
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link fw-semibold {{ request()->routeIs('suppliers.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('suppliers.index') }}">
-                            <i class="bi bi-truck me-1"></i> Proveedores
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link fw-semibold {{ request()->routeIs('categories.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('categories.index') }}">
-                            <i class="bi bi-tags me-1"></i> Categorías
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link fw-semibold {{ request()->routeIs('businesses.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('businesses.index') }}">
-                            <i class="bi bi-buildings me-1"></i> Emprendimientos
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link fw-semibold {{ request()->routeIs('ai.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('ai.index') }}">
-                            <i class="bi bi-stars text-primary me-1"></i> Asistente IA
-                        </a>
-                    </li>
-                    @if (auth()->check() && auth()->user()->isCurrentAdmin())
-                        <li class="nav-item">
-                            <a class="nav-link fw-semibold {{ request()->routeIs('reports.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('reports.index') }}">
-                                <i class="bi bi-file-earmark-bar-graph me-1"></i> Reportes
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link fw-semibold {{ request()->routeIs('users.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('users.index') }}">
-                                <i class="bi bi-shield-person me-1"></i> Equipo
-                            </a>
-                        </li>
-                    @endif
-                </ul>
+                <a class="navbar-brand m-0" href="{{ route('dashboard') }}">
+                    <i class="bi bi-box-seam-fill"></i> {{ config('app.name') }}
+                </a>
+            </div>
 
-                <div class="d-flex align-items-center gap-3 flex-wrap">
-                    @if (isset($currentBusiness))
-                        <div class="dropdown">
-                            <button class="btn tenant-selector dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-shop text-primary"></i> {{ $currentBusiness->name }}
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-2">
-                                <li class="dropdown-header small text-uppercase fw-bold text-muted">Cambiar Emprendimiento</li>
-                                @if (isset($userBusinesses))
-                                    @foreach ($userBusinesses as $biz)
-                                        <li>
-                                            <form method="POST" action="{{ route('businesses.switch', $biz) }}">
-                                                @csrf
-                                                <button type="submit" class="dropdown-item d-flex justify-content-between align-items-center py-2 {{ $biz->id === $currentBusiness->id ? 'active fw-bold' : '' }}">
-                                                    <span>{{ $biz->name }}</span>
-                                                    @if ($biz->id === $currentBusiness->id)
-                                                        <i class="bi bi-check2"></i>
-                                                    @endif
-                                                </button>
-                                            </form>
-                                        </li>
-                                    @endforeach
-                                @endif
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <a class="dropdown-item small text-primary fw-semibold" href="{{ route('businesses.create') }}">
-                                        <i class="bi bi-plus-circle me-1"></i> Registrar otro negocio
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item small text-secondary" href="{{ route('businesses.index') }}">
-                                        <i class="bi bi-gear me-1"></i> Administrar todos
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    @endif
-
-                    <span class="user-pill">
-                        <i class="bi bi-person-circle me-1 text-primary"></i> {{ auth()->user()->name }}
-                    </span>
-
-                    <form method="POST" action="{{ route('logout') }}" class="d-inline">
-                        @csrf
-                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
-                            <i class="bi bi-box-arrow-right me-1"></i> Salir
+            {{-- Elementos de la derecha: Badge del emprendimiento activo, usuario y botón Salir --}}
+            <div class="d-flex align-items-center gap-2 gap-md-3">
+                @if (isset($currentBusiness))
+                    <div class="dropdown">
+                        <button class="btn tenant-selector dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-shop text-primary"></i> <span class="d-none d-sm-inline">{{ $currentBusiness->name }}</span>
                         </button>
-                    </form>
-                </div>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-2">
+                            <li class="dropdown-header small text-uppercase fw-bold text-muted">Cambiar Emprendimiento</li>
+                            @if (isset($userBusinesses))
+                                @foreach ($userBusinesses as $biz)
+                                    <li>
+                                        <form method="POST" action="{{ route('businesses.switch', $biz) }}">
+                                            @csrf
+                                            <button type="submit" class="dropdown-item d-flex justify-content-between align-items-center py-2 {{ $biz->id === $currentBusiness->id ? 'active fw-bold' : '' }}">
+                                                <span>{{ $biz->name }}</span>
+                                                @if ($biz->id === $currentBusiness->id)
+                                                    <i class="bi bi-check2"></i>
+                                                @endif
+                                            </button>
+                                        </form>
+                                    </li>
+                                @endforeach
+                            @endif
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item small text-primary fw-semibold" href="{{ route('businesses.create') }}">
+                                    <i class="bi bi-plus-circle me-1"></i> Registrar otro negocio
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item small text-secondary" href="{{ route('businesses.index') }}">
+                                    <i class="bi bi-gear me-1"></i> Administrar todos
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                @endif
+
+                <span class="user-pill">
+                    <i class="bi bi-person-circle me-1 text-primary"></i> <span class="d-none d-sm-inline">{{ auth()->user()->name }}</span>
+                </span>
+
+                <form method="POST" action="{{ route('logout') }}" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                        <i class="bi bi-box-arrow-right me-1"></i> Salir
+                    </button>
+                </form>
             </div>
         </div>
     </nav>
 
-    <main class="container py-4">
-        @if (session('status'))
-            <div class="alert alert-success alert-dismissible fade show rounded-3" role="alert">
-                <i class="bi bi-check-circle-fill me-2"></i> {{ session('status') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
+    {{-- Offcanvas para pantallas móviles y tablets (< 992px) --}}
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas" aria-labelledby="sidebarOffcanvasLabel">
+        <div class="offcanvas-header border-bottom">
+            <h5 class="offcanvas-title fw-bold text-primary d-flex align-items-center gap-2" id="sidebarOffcanvasLabel">
+                <i class="bi bi-box-seam-fill"></i> Módulos
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
+        <div class="offcanvas-body p-3" style="overflow-y: auto;">
+            @include('layouts.sidebar')
+        </div>
+    </div>
 
-        @if (session('info'))
-            <div class="alert alert-info alert-dismissible fade show rounded-3" role="alert">
-                <i class="bi bi-info-circle-fill me-2"></i> {{ session('info') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
+    {{-- Contenedor principal con Sidebar de escritorio y contenido --}}
+    <div class="app-layout">
+        {{-- Sidebar fijo para pantallas de escritorio (>= 992px) --}}
+        <aside class="sidebar-desktop d-none d-lg-block">
+            @include('layouts.sidebar')
+        </aside>
 
-        @yield('content')
-    </main>
+        {{-- Área de contenido principal --}}
+        <div class="main-content flex-grow-1">
+            <main class="container py-4">
+                @if (session('status'))
+                    <div class="alert alert-success alert-dismissible fade show rounded-3" role="alert">
+                        <i class="bi bi-check-circle-fill me-2"></i> {{ session('status') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
 
-    <!-- Bootstrap 5 JS -->
+                @if (session('info'))
+                    <div class="alert alert-info alert-dismissible fade show rounded-3" role="alert">
+                        <i class="bi bi-info-circle-fill me-2"></i> {{ session('info') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
+
+                @yield('content')
+            </main>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle (incluye Popper para dropdowns y offcanvas) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

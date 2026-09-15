@@ -39,6 +39,12 @@ Proyecto académico de Ingeniería de Sistemas, construido con estándares sufic
 - El cliente final no instala PHP, MySQL, Laravel, XAMPP, Docker ni Nginx — solo navegador e internet.
 - El núcleo debe operar al 100% con el módulo IA desactivado.
 
+## Frontend y Experiencia de Usuario (UX)
+- **Estructura de navegación**: Navbar superior (logo, emprendimiento activo, usuario y logout) + sidebar lateral izquierdo fijo con módulos según rol y scroll vertical interno (`overflow-y: auto`).
+- **Diseño responsive**: Sidebar colapsable en móvil/tablet accionado mediante botón hamburguesa en la barra superior con componente Offcanvas de Bootstrap 5.
+- **Jerarquía y legibilidad**: Tipografía moderna (Plus Jakarta Sans), paleta sobria con acento índigo (`#4f46e5`), resaltado visual del módulo activo y cards con sombras sutiles.
+
+
 ## Arquitectura general
 Resumen ejecutivo: Docker (`app` + `nginx` + `db`) en desarrollo; en producción, Internet → HTTPS → Nginx → PHP-FPM/Laravel → MySQL. Detalle completo → `docs/ARQUITECTURA.md`.
 

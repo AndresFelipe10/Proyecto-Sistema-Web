@@ -253,6 +253,20 @@ app/
     └── Exceptions/
 database/
 resources/
+├── views/
+│   ├── layouts/       (app.blade.php, sidebar.blade.php, auth.blade.php)
+│   ├── auth/
+│   ├── businesses/
+│   ├── categories/
+│   ├── customers/
+│   ├── dashboard.blade.php
+│   ├── errors/
+│   ├── inventory/
+│   ├── products/
+│   ├── reports/
+│   ├── sales/
+│   ├── suppliers/
+│   └── users/
 routes/
 tests/
 config/
