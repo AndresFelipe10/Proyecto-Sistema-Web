@@ -231,7 +231,7 @@ docker compose exec app php artisan test
 - **Security Checklist**: Validación de los 7 controles OWASP (CSRF, Rate Limiting, Cabeceras HTTP, Mass Assignment, etc.).
 - **AI Module**: Pruebas con mocks de Gemini para intents permitidos, rechazo de intentos maliciosos, aislamiento y fallback sin conexión.
 
-**Resultado:** **`125 tests passed (496 assertions)`** con 0 fallos.
+**Resultado:** **`171 tests passed (686 assertions)`** con 0 fallos.
 
 ---
 
