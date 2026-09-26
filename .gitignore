@@ -62,3 +62,6 @@ desktop.ini
 !/docker/certbot/conf/.gitkeep
 /docker/certbot/www/*
 !/docker/certbot/www/.gitkeep
+
+# Security audit artifacts
+/security-audit/

@@ -176,7 +176,7 @@
                                             @if($sale->customer)
                                                 <span class="fw-semibold text-dark">{{ $sale->customer->name }}</span>
                                             @else
-                                                <span class="text-muted fst-italic">Venta de Mostrador</span>
+                                                <span class="text-muted fst-italic">Consumidor Final</span>
                                             @endif
                                         </td>
                                         <td class="text-end fw-bold text-dark">

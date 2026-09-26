@@ -60,7 +60,11 @@ class AiQueryService
         try {
             $extractedIntent = $this->provider->extractIntent($cleanQuery);
         } catch (AiProviderException | Throwable $e) {
-            Log::warning("Falla en proveedor de IA: {$e->getMessage()}", [
+            // Sanitizar mensaje eliminando query strings, URLs y tokens
+            $sanitizedMessage = preg_replace('/(\?|&)(key|apiKey|api_key|token)=[^&\s]+/i', '$1$2=[REDACTED]', $e->getMessage());
+            $sanitizedMessage = preg_replace('/https?:\/\/[^\s]+/i', '[URL]', $sanitizedMessage);
+
+            Log::warning("Falla en proveedor de IA: {$sanitizedMessage}", [
                 'business_id' => $businessId,
                 'query' => $cleanQuery,
             ]);

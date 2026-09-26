@@ -80,6 +80,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/sales/create', [SaleController::class, 'create'])->name('sales.create');
         Route::post('/sales', [SaleController::class, 'store'])->name('sales.store');
         Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
+        Route::get('/sales/{sale}/print/invoice', [SaleController::class, 'printInvoice'])->name('sales.print.invoice');
+        Route::get('/sales/{sale}/print/receipt', [SaleController::class, 'printReceipt'])->name('sales.print.receipt');
 
         // API interna para búsqueda de productos (POS autocomplete)
         Route::get('/api/products/search', ProductSearchController::class)->name('api.products.search');

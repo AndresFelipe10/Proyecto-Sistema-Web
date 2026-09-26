@@ -20,6 +20,10 @@ class ProductPolicy
      */
     public function view(User $user, Product $product): bool
     {
+        if ((int) $product->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
         return $user->isCurrentAdmin() || $user->isCurrentEmployee();
     }
 
@@ -36,6 +40,10 @@ class ProductPolicy
      */
     public function update(User $user, Product $product): bool
     {
+        if ((int) $product->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
         return $user->isCurrentAdmin();
     }
 
@@ -44,6 +52,10 @@ class ProductPolicy
      */
     public function delete(User $user, Product $product): bool
     {
+        if ((int) $product->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
         return $user->isCurrentAdmin();
     }
 }

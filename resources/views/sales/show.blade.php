@@ -16,6 +16,14 @@
 
     <div class="d-flex align-items-center gap-2">
         @if ($sale->status === 'completed')
+            <a href="{{ route('sales.print.invoice', $sale) }}" target="_blank"
+               class="btn btn-outline-primary btn-sm rounded-pill px-3" title="Imprimir factura tamaño carta/A4">
+                <i class="bi bi-printer me-1"></i> Imprimir Factura
+            </a>
+            <a href="{{ route('sales.print.receipt', $sale) }}" target="_blank"
+               class="btn btn-outline-secondary btn-sm rounded-pill px-3" title="Imprimir ticket para impresora térmica 80mm">
+                <i class="bi bi-receipt me-1"></i> Imprimir Ticket
+            </a>
             <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">
                 <i class="bi bi-check-circle-fill me-1"></i> Completada
             </span>
@@ -54,7 +62,7 @@
                                 {{ $sale->customer->name }}
                             </a>
                         @else
-                            <span class="text-secondary">Venta al mostrador</span>
+                            <span class="text-secondary">Consumidor Final</span>
                         @endif
                     </span>
                 </div>
@@ -125,7 +133,9 @@
                     @if ($sale->discount > 0)
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Descuento</span>
-                            <span class="fw-semibold text-danger">-${{ number_format($sale->discount, 0, ',', '.') }}</span>
+                            <span class="fw-semibold text-danger">
+                                {{ number_format($sale->discount_percentage, 1) }}% (-${{ number_format($sale->discount, 0, ',', '.') }})
+                            </span>
                         </div>
                     @endif
                     <hr>

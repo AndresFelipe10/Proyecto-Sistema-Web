@@ -27,7 +27,15 @@ class UserPolicy
      */
     public function update(User $user, User $model): bool
     {
-        return $user->isCurrentAdmin();
+        if (! $user->isCurrentAdmin()) {
+            return false;
+        }
+
+        $businessId = session('current_business_id');
+
+        return $model->businesses()
+            ->where('businesses.id', $businessId)
+            ->exists();
     }
 
     /**

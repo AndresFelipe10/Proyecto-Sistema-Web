@@ -20,6 +20,10 @@ class SalePolicy
      */
     public function view(User $user, Sale $sale): bool
     {
+        if ((int) $sale->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
         return $user->isCurrentAdmin() || $user->isCurrentEmployee();
     }
 
@@ -37,6 +41,10 @@ class SalePolicy
      */
     public function delete(User $user, Sale $sale): bool
     {
+        if ((int) $sale->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
         return $user->isCurrentAdmin();
     }
 }

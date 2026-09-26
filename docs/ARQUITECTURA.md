@@ -173,6 +173,10 @@ BACKUP_RETENTION_DAYS=7
        certbot/certbot certonly --webroot -w /var/www/certbot \
        -d app.miemprendimiento.com --email admin@miemprendimiento.com --agree-tos --no-eff-email
    ```
+> [!IMPORTANT]
+> **Aprovisionamiento de SSL en Despliegue:**
+> El bloque `listen 443 ssl` en `docker/nginx/nginx.prod.conf` se encuentra estructurado como una plantilla lista para producción. No debe activarse en el código fuente de desarrollo antes de que existan el dominio público apuntando al servidor y los certificados emitidos en `/etc/letsencrypt`. El flujo de despliegue inicial arranca Nginx en puerto 80 para validar el reto ACME con Certbot; una vez emitidos los certificados, se activa el bloque 443 y la redirección HTTP->HTTPS. Esta es una tarea de aprovisionamiento del día del despliegue, no una omisión de código.
+
 4. Descomentar en `nginx.prod.conf` el bloque `listen 443 ssl` con las rutas de los certificados generados (`/etc/letsencrypt/live/.../fullchain.pem` y `privkey.pem`) y recargar Nginx:
    ```bash
    docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
@@ -290,5 +294,6 @@ Ver `docs/MODULO_IA.md` para el flujo completo con validación de intents.
 - **Controllers**: delgados, orquestan Form Request + Service + respuesta.
 - **Form Requests**: validación y autorización básica de entrada.
 - **Services**: lógica de negocio no trivial (ventas, inventario, IA). No crear Services para operaciones CRUD simples que Eloquent resuelve directamente.
-- **Policies**: autorización fina por recurso y `business_id`.
-- **Models**: relaciones Eloquent, Global Scopes de tenancy.
+- **Middleware**: fijación de contexto tenant (`App\Http\Middleware\SetCurrentTenant`) antes de la resolución de bindings, seguridad HTTP (`SecurityHeadersMiddleware`) y control de roles (`CheckRole`).
+- **Policies**: autorización fina por recurso y validación estricta de aislamiento por `business_id` (`App\Policies\*`).
+- **Models**: relaciones Eloquent, trait `App\Models\Concerns\BelongsToTenant` y Global Scope de tenancy (`App\Models\Scopes\TenantScope`).

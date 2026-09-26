@@ -24,20 +24,24 @@ class DashboardService
         $endOfMonth = Carbon::now()->endOfMonth();
 
         // 1. Métricas de Ventas de Hoy (solo completadas)
-        $todaySalesQuery = Sale::where('business_id', $businessId)
+        $todayMetrics = Sale::where('business_id', $businessId)
             ->where('status', 'completed')
-            ->whereDate('sale_date', $today);
+            ->whereDate('sale_date', $today)
+            ->selectRaw('COUNT(*) as aggregate_count, COALESCE(SUM(total), 0) as aggregate_total')
+            ->first();
 
-        $todaySalesTotal = (float) (clone $todaySalesQuery)->sum('total');
-        $todaySalesCount = (int) (clone $todaySalesQuery)->count();
+        $todaySalesTotal = (float) ($todayMetrics->aggregate_total ?? 0);
+        $todaySalesCount = (int) ($todayMetrics->aggregate_count ?? 0);
 
         // 2. Métricas de Ventas del Mes (solo completadas)
-        $monthSalesQuery = Sale::where('business_id', $businessId)
+        $monthMetrics = Sale::where('business_id', $businessId)
             ->where('status', 'completed')
-            ->whereBetween('sale_date', [$startOfMonth, $endOfMonth]);
+            ->whereBetween('sale_date', [$startOfMonth, $endOfMonth])
+            ->selectRaw('COUNT(*) as aggregate_count, COALESCE(SUM(total), 0) as aggregate_total')
+            ->first();
 
-        $monthSalesTotal = (float) (clone $monthSalesQuery)->sum('total');
-        $monthSalesCount = (int) (clone $monthSalesQuery)->count();
+        $monthSalesTotal = (float) ($monthMetrics->aggregate_total ?? 0);
+        $monthSalesCount = (int) ($monthMetrics->aggregate_count ?? 0);
 
         // 3. Métricas de Catálogo y Clientes
         $totalProducts = Product::where('business_id', $businessId)

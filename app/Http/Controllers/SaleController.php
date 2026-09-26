@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\InsufficientStockException;
+use App\Exceptions\Sales\InvalidSaleItemException;
 use App\Http\Requests\Sale\StoreSaleRequest;
+use App\Models\Business;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Sale;
@@ -98,7 +100,7 @@ class SaleController extends Controller
 
             return redirect()->route('sales.show', $sale)
                 ->with('status', "Venta {$sale->invoice_number} registrada exitosamente.");
-        } catch (InsufficientStockException $e) {
+        } catch (InsufficientStockException|InvalidSaleItemException $e) {
             return redirect()->back()
                 ->withInput()
                 ->withErrors(['items' => $e->getMessage()]);
@@ -116,6 +118,40 @@ class SaleController extends Controller
 
         return view('sales.show', [
             'sale' => $sale,
+        ]);
+    }
+
+    /**
+     * Print invoice format (Letter/A4).
+     */
+    public function printInvoice(Sale $sale): View
+    {
+        Gate::authorize('view', $sale);
+        abort_if($sale->business_id !== (int) session('current_business_id'), 403);
+
+        $sale->load(['details.product', 'customer', 'user']);
+        $business = Business::findOrFail(session('current_business_id'));
+
+        return view('sales.print-invoice', [
+            'sale' => $sale,
+            'business' => $business,
+        ]);
+    }
+
+    /**
+     * Print receipt format (thermal 80mm).
+     */
+    public function printReceipt(Sale $sale): View
+    {
+        Gate::authorize('view', $sale);
+        abort_if($sale->business_id !== (int) session('current_business_id'), 403);
+
+        $sale->load(['details.product', 'customer', 'user']);
+        $business = Business::findOrFail(session('current_business_id'));
+
+        return view('sales.print-receipt', [
+            'sale' => $sale,
+            'business' => $business,
         ]);
     }
 

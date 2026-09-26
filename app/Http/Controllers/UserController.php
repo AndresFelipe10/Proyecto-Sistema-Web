@@ -102,7 +102,30 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
+        Gate::authorize('update', $user);
+
         $currentBusiness = app(TenantManager::class)->get();
+        $adminRole = Role::where('slug', Role::ROLE_ADMIN)->first();
+        $newRoleId = (int) $request->role_id;
+
+        // Prevent sole active admin demotion
+        if ($adminRole && $newRoleId !== $adminRole->id) {
+            $isSoleAdmin = $currentBusiness->users()
+                ->wherePivot('role_id', $adminRole->id)
+                ->wherePivot('is_active', true)
+                ->where('users.id', $user->id)
+                ->exists()
+                && $currentBusiness->users()
+                    ->wherePivot('role_id', $adminRole->id)
+                    ->wherePivot('is_active', true)
+                    ->count() <= 1;
+
+            if ($isSoleAdmin) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['role_id' => 'No puedes remover el único administrador del negocio.']);
+            }
+        }
 
         $currentBusiness->users()->updateExistingPivot($user->id, [
             'role_id' => $request->role_id,

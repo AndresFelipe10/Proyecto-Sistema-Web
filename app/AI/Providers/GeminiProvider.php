@@ -41,7 +41,7 @@ class GeminiProvider implements AiProviderInterface
             throw new AiProviderException("La API Key de Gemini no está configurada en las variables de entorno.");
         }
 
-        $url = "{$this->baseUrl}/models/{$this->model}:generateContent?key={$this->apiKey}";
+        $url = "{$this->baseUrl}/models/{$this->model}:generateContent";
 
         $payload = [
             'contents' => [
@@ -73,7 +73,10 @@ class GeminiProvider implements AiProviderInterface
 
         try {
             $response = Http::timeout($this->timeout)
-                ->withHeaders(['Content-Type' => 'application/json'])
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'x-goog-api-key' => $this->apiKey,
+                ])
                 ->post($url, $payload);
 
             if (!$response->successful()) {
@@ -111,7 +114,7 @@ class GeminiProvider implements AiProviderInterface
         } catch (AiProviderException $e) {
             throw $e;
         } catch (Throwable $e) {
-            throw new AiProviderException("Falla en la comunicación con el proveedor de IA: {$e->getMessage()}", 0, $e);
+            throw new AiProviderException("Falla en la comunicación con el proveedor de IA", 0, $e);
         }
     }
 }

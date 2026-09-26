@@ -20,6 +20,18 @@ class LoginRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('remember')) {
+            $this->merge([
+                'remember' => $this->boolean('remember'),
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>

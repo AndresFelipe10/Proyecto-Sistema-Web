@@ -32,7 +32,7 @@ class StoreSaleRequest extends FormRequest
                 'nullable',
                 Rule::exists('customers', 'id')->where('business_id', $businessId),
             ],
-            'discount' => ['nullable', 'numeric', 'min:0'],
+            'discount_percentage' => ['required', 'numeric', 'between:0,100'],
             'payment_method' => ['required', Rule::in(['cash', 'transfer', 'card', 'other'])],
             'notes' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array', 'min:1'],
@@ -40,8 +40,8 @@ class StoreSaleRequest extends FormRequest
                 'required',
                 Rule::exists('products', 'id')->where('business_id', $businessId),
             ],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
-            'items.*.unit_price' => ['required', 'numeric', 'min:0'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:99999'],
+            'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 
@@ -53,7 +53,7 @@ class StoreSaleRequest extends FormRequest
         return [
             'sale_date' => 'fecha de venta',
             'customer_id' => 'cliente',
-            'discount' => 'descuento',
+            'discount_percentage' => 'porcentaje de descuento',
             'payment_method' => 'método de pago',
             'notes' => 'notas',
             'items' => 'productos',
@@ -73,6 +73,7 @@ class StoreSaleRequest extends FormRequest
             'items.min' => 'Debe agregar al menos un producto a la venta.',
             'items.*.product_id.exists' => 'El producto seleccionado no existe o no pertenece a este negocio.',
             'items.*.quantity.min' => 'La cantidad mínima por producto es 1.',
+            'items.*.quantity.max' => 'La cantidad máxima por producto es 99999.',
         ];
     }
 }

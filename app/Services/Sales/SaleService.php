@@ -3,7 +3,9 @@
 namespace App\Services\Sales;
 
 use App\Exceptions\InsufficientStockException;
+use App\Exceptions\Sales\InvalidSaleItemException;
 use App\Models\InventoryMovement;
+use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleDetail;
 use App\Services\Inventory\InventoryService;
@@ -18,9 +20,11 @@ class SaleService
     /**
      * Process a complete sale within a single database transaction.
      *
+     * Resolves authoritative prices directly from products.sale_price under
+     * pessimistic locking (lockForUpdate). Client-sent unit prices are strictly ignored.
      * Creates the sale header, detail lines, and decrements stock for each product
-     * via InventoryService (pessimistic locking). If any product lacks stock,
-     * InsufficientStockException propagates and the entire transaction rolls back.
+     * via InventoryService. If any product lacks stock, InsufficientStockException
+     * propagates and the entire transaction rolls back.
      *
      * @param  array  $data       Validated request data
      * @param  int    $businessId Active tenant ID
@@ -28,17 +32,43 @@ class SaleService
      * @return Sale               The created sale with details loaded
      *
      * @throws InsufficientStockException
+     * @throws InvalidSaleItemException
      */
     public function processSale(array $data, int $businessId, int $userId): Sale
     {
         return DB::transaction(function () use ($data, $businessId, $userId) {
-            // Calculate subtotal from line items
             $subtotal = 0;
+            $resolvedItems = [];
+
+            // Lock products and resolve authoritative pricing from the database
             foreach ($data['items'] as $item) {
-                $subtotal += $item['quantity'] * $item['unit_price'];
+                $product = Product::withoutGlobalScopes()
+                    ->where('business_id', $businessId)
+                    ->lockForUpdate()
+                    ->find($item['product_id']);
+
+                if ($product === null) {
+                    throw new InvalidSaleItemException(
+                        'El producto seleccionado no está disponible en este negocio o ya no existe.'
+                    );
+                }
+
+                $unitPrice = (float) $product->sale_price;
+                $quantity = (int) $item['quantity'];
+                $lineSubtotal = $quantity * $unitPrice;
+                $subtotal += $lineSubtotal;
+
+                $resolvedItems[] = [
+                    'product' => $product,
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'subtotal' => $lineSubtotal,
+                ];
             }
 
-            $discount = (float) ($data['discount'] ?? 0);
+            // Calculate discount from percentage (never trust client-sent monetary values)
+            $discountPercentage = (float) ($data['discount_percentage'] ?? 0);
+            $discount = round($subtotal * ($discountPercentage / 100), 2);
             $total = $subtotal - $discount;
 
             // Generate unique invoice number for this business
@@ -53,6 +83,7 @@ class SaleService
                 'sale_date' => $data['sale_date'],
                 'subtotal' => $subtotal,
                 'discount' => $discount,
+                'discount_percentage' => $discountPercentage,
                 'total' => $total,
                 'payment_method' => $data['payment_method'],
                 'status' => 'completed',
@@ -60,22 +91,20 @@ class SaleService
             ]);
 
             // Create detail lines and decrement stock
-            foreach ($data['items'] as $item) {
-                $lineSubtotal = $item['quantity'] * $item['unit_price'];
-
+            foreach ($resolvedItems as $resolved) {
                 SaleDetail::create([
                     'sale_id' => $sale->id,
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                    'subtotal' => $lineSubtotal,
+                    'product_id' => $resolved['product']->id,
+                    'quantity' => $resolved['quantity'],
+                    'unit_price' => $resolved['unit_price'],
+                    'subtotal' => $resolved['subtotal'],
                 ]);
 
                 // Decrement stock via InventoryService (pessimistic locking)
                 $this->inventoryService->registerMovement(
-                    product: (int) $item['product_id'],
+                    product: $resolved['product'],
                     type: InventoryMovement::TYPE_EXIT,
-                    quantity: (int) $item['quantity'],
+                    quantity: $resolved['quantity'],
                     reason: "Venta #{$invoiceNumber}",
                     userId: $userId,
                     saleId: $sale->id,
@@ -128,6 +157,7 @@ class SaleService
             ->where('business_id', $businessId)
             ->where('invoice_number', 'like', $prefix . '%')
             ->orderByDesc('invoice_number')
+            ->lockForUpdate()
             ->first();
 
         if ($lastSale) {

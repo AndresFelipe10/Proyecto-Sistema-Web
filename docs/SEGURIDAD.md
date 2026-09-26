@@ -18,6 +18,14 @@
 | Logs | Sin contraseñas, tokens, ni datos sensibles en logs |
 | Fuerza bruta | Rate limiting en login |
 
+## Integridad financiera y cálculos autoritativos en backend
+Los siguientes valores críticos NUNCA se confían al cliente y se calculan o resuelven exclusivamente en backend:
+- **Precio unitario de productos**: El precio de cada línea de venta se obtiene directamente de `products.sale_price` en base de datos mediante bloqueo pesimista (`lockForUpdate`). Los inputs enviados por el navegador (`unit_price`) son ignorados en el cálculo.
+- **Subtotales y Total de venta**: Calculados estrictamente en el servicio (`SaleService`) como `cantidad × precio_autoritativo`, sin aceptar valores derivados enviados desde el frontend.
+- **Descuentos monetarios**: Se valida el porcentaje de descuento en rango (0-100) y se deriva el monto monetario en backend (`subtotal * (porcentaje / 100)`).
+- **Descuento y verificación de Stock**: Validado bajo transacción con bloqueo pesimista (`lockForUpdate`) en `InventoryService`; se rechaza la transacción completa si el stock disponible es insuficiente.
+- **Rango de cantidades**: La cantidad por ítem en venta está acotada numéricamente (`min: 1`, `max: 99999`) para prevenir desbordamientos o valores atípicos.
+
 ## Aislamiento entre emprendimientos
 Ver `.agents/rules/02-database.md`. Debe estar cubierto por tests desde la Fase 5 del roadmap (`.agents/rules/05-testing.md`).
 

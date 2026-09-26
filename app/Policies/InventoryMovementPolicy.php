@@ -20,6 +20,10 @@ class InventoryMovementPolicy
      */
     public function view(User $user, InventoryMovement $movement): bool
     {
+        if ((int) $movement->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
         return $user->isCurrentAdmin() || $user->isCurrentEmployee();
     }
 

@@ -18,6 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
             SecurityHeadersMiddleware::class,
         ]);
 
+        $middleware->prependToPriorityList(
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            SetCurrentTenant::class
+        );
+
         $middleware->alias([
             'tenant' => SetCurrentTenant::class,
             'role' => CheckRole::class,

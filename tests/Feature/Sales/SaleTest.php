@@ -89,7 +89,7 @@ class SaleTest extends TestCase
         return array_merge([
             'sale_date' => now()->format('Y-m-d H:i:s'),
             'customer_id' => null,
-            'discount' => 0,
+            'discount_percentage' => 0,
             'payment_method' => 'cash',
             'notes' => null,
             'items' => $items,
@@ -324,7 +324,7 @@ class SaleTest extends TestCase
         $payload = $this->salePayload([
             ['product_id' => $this->productA->id, 'quantity' => 3, 'unit_price' => 35000],
             ['product_id' => $this->productB->id, 'quantity' => 2, 'unit_price' => 55000],
-        ], ['discount' => 5000]);
+        ], ['discount_percentage' => 10]);
 
         $this->actingAs($this->adminUser)
             ->withSession(['current_business_id' => $this->businessA->id])
@@ -334,9 +334,11 @@ class SaleTest extends TestCase
 
         // subtotal = (3*35000) + (2*55000) = 105000 + 110000 = 215000
         $this->assertEquals(215000.00, (float) $sale->subtotal);
-        $this->assertEquals(5000.00, (float) $sale->discount);
-        // total = 215000 - 5000 = 210000
-        $this->assertEquals(210000.00, (float) $sale->total);
+        // discount = 215000 * 10% = 21500
+        $this->assertEquals(21500.00, (float) $sale->discount);
+        $this->assertEquals(10.00, (float) $sale->discount_percentage);
+        // total = 215000 - 21500 = 193500
+        $this->assertEquals(193500.00, (float) $sale->total);
 
         // Line subtotals
         $details = $sale->details()->orderBy('id')->get();

@@ -76,7 +76,7 @@
         @if (auth()->check() && auth()->user()->isCurrentAdmin())
             <li class="nav-item">
                 <a class="nav-link fw-semibold {{ request()->routeIs('users.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('users.index') }}">
-                    <i class="bi bi-shield-person me-2"></i> Equipo
+                    <i class="bi bi-person-badge me-2"></i> Equipo
                 </a>
             </li>
         @endif

@@ -20,6 +20,10 @@ class SupplierPolicy
      */
     public function view(User $user, Supplier $supplier): bool
     {
+        if ((int) $supplier->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
         return $user->isCurrentAdmin() || $user->isCurrentEmployee();
     }
 
@@ -36,6 +40,10 @@ class SupplierPolicy
      */
     public function update(User $user, Supplier $supplier): bool
     {
+        if ((int) $supplier->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
         return $user->isCurrentAdmin();
     }
 
@@ -44,6 +52,10 @@ class SupplierPolicy
      */
     public function delete(User $user, Supplier $supplier): bool
     {
+        if ((int) $supplier->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
         return $user->isCurrentAdmin();
     }
 }

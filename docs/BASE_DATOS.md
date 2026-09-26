@@ -22,12 +22,17 @@ Agregar tablas nuevas solo si son estrictamente necesarias, justificándolo en `
 
 ## Campos clave por tabla (mínimos)
 - **products**: nombre, descripción, SKU/código (único por `business_id`), categoría, precio de compra, precio de venta, stock actual, stock mínimo, estado, `business_id`.
-- **sales**: usuario, `business_id`, cliente, fecha, subtotal, descuento, total, método de pago.
+- **sales**: usuario, `business_id`, cliente, fecha, subtotal, descuento (`discount` en pesos, `discount_percentage` en porcentaje 0-100 con CHECK constraint), total, método de pago.
 - **sale_details**: venta, producto, cantidad, precio unitario, subtotal.
 - **inventory_movements**: producto, tipo (entrada/salida/ajuste), cantidad, motivo, usuario, fecha, referencia a venta (si aplica).
 
 ## Estrategia multi-tenant
-Multi-tenancy **lógico** mediante columna `business_id` en toda tabla tenant-aware, sobre una única base compartida. Reglas de aplicación (Global Scope + Middleware + Policy) → `.agents/rules/02-database.md`.
+Multi-tenancy **lógico** mediante columna `business_id` en toda tabla tenant-aware, sobre una única base compartida.
+Componentes de implementación canónicos en el código:
+- **Global Scope**: `App\Models\Scopes\TenantScope` (asociado mediante el trait `App\Models\Concerns\BelongsToTenant`).
+- **Middleware**: `App\Http\Middleware\SetCurrentTenant` (administra el contexto mediante `App\Services\Tenant\TenantManager`).
+- **Policies**: Verificación explícita de `business_id` y rol en `App\Policies\*`.
+Reglas de aplicación (Global Scope + Middleware + Policy) → `.agents/rules/02-database.md`.
 
 ## Reglas de inventario y consistencia
 - Toda modificación de inventario pasa por `inventory_movements` (trazabilidad).

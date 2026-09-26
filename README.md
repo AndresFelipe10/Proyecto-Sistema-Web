@@ -5,7 +5,7 @@
 [![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![Docker Compose](https://img.shields.io/badge/Docker%20Compose-3%20Servicios-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=flat-square&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
-[![Tests](https://img.shields.io/badge/Tests-125%20passed%20(496%20assertions)-brightgreen?style=flat-square)]()
+[![Tests](https://img.shields.io/badge/Tests-171%20passed%20(686%20assertions)-brightgreen?style=flat-square)]()
 [![Security](https://img.shields.io/badge/OWASP-Hardened-blue?style=flat-square)]()
 
 Sistema web integral, multiusuario y multi-tenant diseñado específicamente para centralizar y optimizar la gestión comercial, ventas, inventario y toma de decisiones en pequeños emprendimientos de **Cali, Colombia**. 

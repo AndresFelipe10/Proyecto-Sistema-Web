@@ -53,3 +53,10 @@ Fases 0 a 17, con dependencias y criterios de aceptación → `docs/ROADMAP.md`.
 
 ## Criterios de aceptación globales
 El proyecto se considera exitoso cuando, con datos reales de prueba, se puede demostrar el flujo completo: registro → creación de emprendimiento → login → gestión de productos e inventario → ventas que actualizan stock correctamente → gestión de clientes → dashboard funcional → alertas de stock con recomendación de reposición → reportes → consultas en lenguaje natural resueltas en modo solo lectura y con aislamiento por `business_id` garantizado → sistema operando íntegramente aunque el proveedor de IA no esté disponible → base de datos persistente → sistema desplegable sin herramientas técnicas del lado del cliente → proveedor de IA reemplazable sin reescribir el núcleo.
+
+## Correcciones pre-despliegue (posteriores a Fase 17)
+Ajustes de UX y negocio detectados en la validación final, previos al despliegue a producción:
+
+1. **Descuento en porcentaje**: Columna aditiva `sales.discount_percentage` con CHECK constraint MySQL (0-100). El formulario POS recibe porcentaje en vez de monto, el backend calcula el valor monetario. Ambos datos (% y $) visibles en todas las vistas.
+2. **Etiqueta "Consumidor Final"**: Reemplazo del texto "Venta al mostrador" / "Mostrador" por "Consumidor Final" en todas las vistas, reportes, CSV y módulo IA. El mecanismo subyacente (`customer_id = null`) no se modifica.
+3. **Impresión de comprobantes**: Dos vistas dedicadas (`print-invoice` para carta/A4 y `print-receipt` para ticket térmico 80mm) con CSS `@media print` y `window.print()`, sin librería PDF. Protegidas por `SalePolicy::view()`.

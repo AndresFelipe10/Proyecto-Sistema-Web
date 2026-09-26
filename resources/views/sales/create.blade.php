@@ -82,7 +82,7 @@
                 <div class="mb-3">
                     <label for="customer_id" class="form-label small fw-semibold text-muted">Cliente (opcional)</label>
                     <select id="customer_id" name="customer_id" class="form-select">
-                        <option value="">— Venta al mostrador —</option>
+                        <option value="">— Consumidor Final —</option>
                         @foreach ($customers as $customer)
                             <option value="{{ $customer->id }}" {{ old('customer_id') == $customer->id ? 'selected' : '' }}>
                                 {{ $customer->name }} {{ $customer->identification_number ? '(' . $customer->identification_number . ')' : '' }}
@@ -102,9 +102,15 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="discount" class="form-label small fw-semibold text-muted">Descuento ($)</label>
-                    <input type="number" id="discount" name="discount" class="form-control"
-                           value="{{ old('discount', 0) }}" min="0" step="any">
+                    <label for="discount_percentage" class="form-label small fw-semibold text-muted">Descuento (%)</label>
+                    <div class="input-group">
+                        <input type="number" id="discount_percentage" name="discount_percentage" class="form-control"
+                               value="{{ old('discount_percentage', 0) }}" min="0" max="100" step="any">
+                        <span class="input-group-text bg-light">%</span>
+                    </div>
+                    <div id="discountFeedback" class="form-text text-info mt-1" style="display:none;">
+                        <i class="bi bi-info-circle me-1"></i>Equivale a <strong id="discountMoneyPreview">$0</strong> de descuento
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -144,7 +150,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchResults = document.getElementById('searchResults');
     const cartBody = document.getElementById('cartBody');
     const emptyCartRow = document.getElementById('emptyCartRow');
-    const discountInput = document.getElementById('discount');
+    const discountInput = document.getElementById('discount_percentage');
+    const discountFeedback = document.getElementById('discountFeedback');
+    const discountMoneyPreview = document.getElementById('discountMoneyPreview');
     const btnSubmit = document.getElementById('btnSubmitSale');
 
     let cart = [];
@@ -287,19 +295,28 @@ document.addEventListener('DOMContentLoaded', function () {
         updateTotals();
     }
 
-    // ── Totals calculation ──
+    // ── Totals calculation (percentage-based discount) ──
     function updateTotals() {
         let subtotal = 0;
         cart.forEach(item => {
             subtotal += item.quantity * item.unit_price;
         });
 
-        const discount = parseFloat(discountInput.value) || 0;
-        const total = Math.max(subtotal - discount, 0);
+        const pct = parseFloat(discountInput.value) || 0;
+        const discountMoney = Math.round(subtotal * (pct / 100));
+        const total = Math.max(subtotal - discountMoney, 0);
 
         document.getElementById('displaySubtotal').textContent = '$' + formatNumber(subtotal);
-        document.getElementById('displayDiscount').textContent = '-$' + formatNumber(discount);
+        document.getElementById('displayDiscount').textContent = '-$' + formatNumber(discountMoney);
         document.getElementById('displayTotal').textContent = '$' + formatNumber(total);
+
+        // Show/hide peso equivalent feedback
+        if (pct > 0 && subtotal > 0) {
+            discountMoneyPreview.textContent = '$' + formatNumber(discountMoney);
+            discountFeedback.style.display = 'block';
+        } else {
+            discountFeedback.style.display = 'none';
+        }
     }
 
     discountInput.addEventListener('input', updateTotals);

@@ -20,6 +20,10 @@ class CategoryPolicy
      */
     public function view(User $user, Category $category): bool
     {
+        if ((int) $category->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
         return $user->isCurrentAdmin() || $user->isCurrentEmployee();
     }
 
@@ -36,6 +40,10 @@ class CategoryPolicy
      */
     public function update(User $user, Category $category): bool
     {
+        if ((int) $category->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
         return $user->isCurrentAdmin();
     }
 
@@ -44,6 +52,10 @@ class CategoryPolicy
      */
     public function delete(User $user, Category $category): bool
     {
+        if ((int) $category->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
         return $user->isCurrentAdmin();
     }
 }

@@ -22,6 +22,7 @@ class Sale extends Model
         'sale_date',
         'subtotal',
         'discount',
+        'discount_percentage',
         'total',
         'payment_method',
         'status',
@@ -34,6 +35,7 @@ class Sale extends Model
             'sale_date' => 'datetime',
             'subtotal' => 'decimal:2',
             'discount' => 'decimal:2',
+            'discount_percentage' => 'decimal:2',
             'total' => 'decimal:2',
         ];
     }

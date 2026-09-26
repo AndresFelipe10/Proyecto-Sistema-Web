@@ -248,6 +248,7 @@ class DatabaseSeeder extends Seeder
                 'sale_date' => Carbon::now()->subDays(1),
                 'subtotal' => 180000.00 + (48000.00 * 2), // 276000
                 'discount' => 6000.00,
+                'discount_percentage' => 2.17, // 6000 / 276000 * 100 ≈ 2.17%
                 'total' => 270000.00,
                 'payment_method' => 'cash',
                 'status' => 'completed',

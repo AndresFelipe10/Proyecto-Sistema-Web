@@ -88,7 +88,7 @@
                             <span class="font-monospace fw-semibold text-primary">{{ $sale->invoice_number }}</span>
                         </td>
                         <td>{{ $sale->sale_date->format('d/m/Y H:i') }}</td>
-                        <td>{{ $sale->customer ? $sale->customer->name : 'Mostrador' }}</td>
+                        <td>{{ $sale->customer ? $sale->customer->name : 'Consumidor Final' }}</td>
                         <td>{{ $sale->user->name }}</td>
                         <td class="text-center">
                             @switch($sale->payment_method)

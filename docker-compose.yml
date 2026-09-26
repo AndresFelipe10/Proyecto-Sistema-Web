@@ -8,6 +8,7 @@ services:
     working_dir: /var/www/html
     volumes:
       - .:/var/www/html
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini:ro
     networks:
       - sistema_network
     depends_on:

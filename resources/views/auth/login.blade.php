@@ -42,7 +42,7 @@
     </div>
 
     <div class="mb-4 form-check">
-        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+        <input type="checkbox" class="form-check-input" id="remember" name="remember" value="1">
         <label class="form-check-label small text-secondary" for="remember">Recordar mi sesión en este equipo</label>
     </div>
 

@@ -249,16 +249,17 @@ class ReportService
         ]);
 
         foreach ($data['sales'] as $sale) {
-            fputcsv($handle, [
+            $row = [
                 $sale->invoice_number,
                 $sale->sale_date->format('Y-m-d H:i'),
-                $sale->customer ? $sale->customer->name : 'Venta de Mostrador',
+                $sale->customer ? $sale->customer->name : 'Consumidor Final',
                 $sale->user ? $sale->user->name : 'N/A',
                 $sale->payment_method,
                 $sale->subtotal,
                 $sale->discount,
                 $sale->total,
-            ]);
+            ];
+            fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], $row));
         }
 
         rewind($handle);
@@ -298,7 +299,7 @@ class ReportService
         ]);
 
         foreach ($data['products'] as $prod) {
-            fputcsv($handle, [
+            $row = [
                 $prod->sku,
                 $prod->name,
                 $prod->category ? $prod->category->name : 'Sin categoría',
@@ -310,7 +311,8 @@ class ReportService
                 $prod->retail_valuation,
                 $prod->potential_profit,
                 $prod->margin_percent . '%',
-            ]);
+            ];
+            fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], $row));
         }
 
         rewind($handle);
@@ -318,5 +320,17 @@ class ReportService
         fclose($handle);
 
         return $csv;
+    }
+
+    /**
+     * Sanitize cell value to prevent CSV formula injection (CWE-1236).
+     */
+    private function sanitizeCsvCell(mixed $value): mixed
+    {
+        if (is_string($value) && preg_match('/^[=+\-@\t\r]/', $value)) {
+            return "'" . $value;
+        }
+
+        return $value;
     }
 }

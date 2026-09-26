@@ -145,7 +145,7 @@
                             @if($sale->customer)
                                 <span class="fw-semibold text-dark">{{ $sale->customer->name }}</span>
                             @else
-                                <span class="text-muted fst-italic">Venta de Mostrador</span>
+                                <span class="text-muted fst-italic">Consumidor Final</span>
                             @endif
                         </td>
                         <td class="text-muted small">{{ $sale->user ? $sale->user->name : 'N/A' }}</td>
@@ -158,7 +158,13 @@
                             </span>
                         </td>
                         <td class="text-end text-muted">${{ number_format($sale->subtotal, 0, ',', '.') }}</td>
-                        <td class="text-end text-muted">${{ number_format($sale->discount, 0, ',', '.') }}</td>
+                        <td class="text-end text-muted">
+                            @if($sale->discount > 0)
+                                {{ number_format($sale->discount_percentage, 1) }}% (${{ number_format($sale->discount, 0, ',', '.') }})
+                            @else
+                                $0
+                            @endif
+                        </td>
                         <td class="text-end pe-4 fw-bold text-dark">${{ number_format($sale->total, 0, ',', '.') }}</td>
                     </tr>
                 @empty
