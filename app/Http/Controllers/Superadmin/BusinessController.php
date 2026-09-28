@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Business;
 use App\Models\Role;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -85,6 +86,8 @@ class BusinessController extends Controller
         $superadminId = auth()->id();
 
         $business = DB::transaction(function () use ($validated, $plainPassword, $superadminId) {
+            $nowBogota = Carbon::now('America/Bogota');
+
             $business = new Business();
             $business->name = $validated['name'];
             $business->nit = $validated['nit'] ?? null;
@@ -93,6 +96,8 @@ class BusinessController extends Controller
             $business->address = $validated['address'] ?? null;
             $business->status = 'active';
             $business->is_active = true;
+            $business->subscription_starts_at = $nowBogota;
+            $business->subscription_ends_at = $nowBogota->copy()->addDays(30);
             $business->save();
 
             $admin = new User();
@@ -182,6 +187,35 @@ class BusinessController extends Controller
         Log::info("Negocio #{$business->id} ({$business->name}) reactivado por el superadministrador #{$superadminId}.");
 
         return back()->with('status', "Negocio '{$business->name}' reactivado exitosamente.");
+    }
+
+    /**
+     * Renew the business monthly subscription by adding 30 calendar days.
+     */
+    public function renewSubscription(Business $business): RedirectResponse
+    {
+        $superadminId = auth()->id();
+        $nowBogota = Carbon::now('America/Bogota');
+
+        $currentEnd = $business->subscription_ends_at
+            ? $business->subscription_ends_at->copy()->timezone('America/Bogota')
+            : null;
+
+        if (! $currentEnd || $currentEnd->isPast()) {
+            $newStartsAt = $nowBogota;
+            $newEndsAt = $nowBogota->copy()->addDays(30);
+        } else {
+            $newStartsAt = $business->subscription_starts_at ?? $nowBogota;
+            $newEndsAt = $currentEnd->copy()->addDays(30);
+        }
+
+        $business->subscription_starts_at = $newStartsAt;
+        $business->subscription_ends_at = $newEndsAt;
+        $business->save();
+
+        Log::info("Suscripción del negocio #{$business->id} ({$business->name}) renovada por 30 días hasta {$newEndsAt->format('Y-m-d H:i:s')} por el superadministrador #{$superadminId}.");
+
+        return back()->with('status', "Suscripción del negocio '{$business->name}' renovada por 30 días (vence el {$newEndsAt->format('d/m/Y')}).");
     }
 
     /**

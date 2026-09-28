@@ -47,6 +47,7 @@
                     <th>NIT / Identificación</th>
                     <th>Contacto</th>
                     <th>Administrador</th>
+                    <th>Vencimiento Mensualidad</th>
                     <th>Estado</th>
                     <th class="text-end">Acciones</th>
                 </tr>
@@ -81,6 +82,39 @@
                             @endif
                         </td>
                         <td>
+                            @if ($biz->subscription_ends_at)
+                                <div class="fw-semibold text-light mb-1">
+                                    {{ $biz->subscription_ends_at->timezone('America/Bogota')->format('d M, Y') }}
+                                </div>
+                                @php
+                                    $daysLeft = $biz->daysUntilExpiration();
+                                @endphp
+                                @if ($daysLeft < 0)
+                                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25">
+                                        <i class="bi bi-x-circle me-1"></i>Vencida ({{ abs($daysLeft) }}d)
+                                    </span>
+                                @elseif ($daysLeft === 0)
+                                    <span class="badge bg-danger text-white">
+                                        <i class="bi bi-alarm me-1"></i>Vence hoy
+                                    </span>
+                                @elseif ($daysLeft === 1)
+                                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25">
+                                        <i class="bi bi-clock me-1"></i>1 día restante
+                                    </span>
+                                @elseif ($daysLeft <= 3)
+                                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25">
+                                        <i class="bi bi-clock me-1"></i>{{ $daysLeft }} días restantes
+                                    </span>
+                                @else
+                                    <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25">
+                                        <i class="bi bi-calendar-check me-1"></i>{{ $daysLeft }} días restantes
+                                    </span>
+                                @endif
+                            @else
+                                <span class="text-muted small">Sin fecha</span>
+                            @endif
+                        </td>
+                        <td>
                             @if ($biz->status === 'active')
                                 <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25">
                                     <i class="bi bi-check-circle me-1"></i>Activo
@@ -99,6 +133,13 @@
                                 <a href="{{ route('superadmin.businesses.users', $biz) }}" class="btn btn-outline-info" title="Ver usuarios">
                                     <i class="bi bi-people"></i>
                                 </a>
+                                <form method="POST" action="{{ route('superadmin.businesses.renewSubscription', $biz) }}" class="d-inline"
+                                      onsubmit="return confirm('¿Renovar 30 días calendario la suscripción de {{ $biz->name }}?');">
+                                    @csrf
+                                    <button type="submit" class="btn btn-outline-success" title="Renovar 30 días">
+                                        <i class="bi bi-arrow-repeat"></i>
+                                    </button>
+                                </form>
                                 <form method="POST" action="{{ route('superadmin.businesses.resetPassword', $biz) }}" class="d-inline"
                                       onsubmit="return confirm('¿Restablecer la contraseña del administrador de {{ $biz->name }}? Se generará una clave temporal.');">
                                     @csrf
@@ -124,7 +165,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-secondary">
+                        <td colspan="7" class="text-center py-4 text-secondary">
                             <i class="bi bi-inbox fs-3 d-block mb-2 opacity-50"></i>
                             No se encontraron negocios registrados.
                         </td>

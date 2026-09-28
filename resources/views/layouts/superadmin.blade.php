@@ -92,6 +92,39 @@
         .table-dark-custom td {
             border-color: #334155;
         }
+
+        /* Alertas de Alto Contraste para el tema oscuro de Superadmin */
+        .main-content .alert {
+            border-radius: 0.75rem;
+            font-size: 0.95rem;
+        }
+        .main-content .alert-success {
+            background-color: #064e3b !important;
+            border: 1px solid #10b981 !important;
+            color: #ffffff !important;
+        }
+        .main-content .alert-danger {
+            background-color: #7f1d1d !important;
+            border: 1px solid #ef4444 !important;
+            color: #ffffff !important;
+        }
+        .main-content .alert-warning {
+            background-color: #78350f !important;
+            border: 1px solid #f59e0b !important;
+            color: #ffffff !important;
+        }
+        .main-content .alert-info {
+            background-color: #1e3a8a !important;
+            border: 1px solid #3b82f6 !important;
+            color: #ffffff !important;
+        }
+        .main-content .alert .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+            opacity: 0.85;
+        }
+        .main-content .alert .btn-close:hover {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -99,7 +132,7 @@
         <div class="container-fluid px-3 px-lg-4">
             <div class="d-flex align-items-center gap-3">
                 <a class="navbar-brand m-0 text-decoration-none" href="{{ route('superadmin.dashboard') }}">
-                    <x-brand size="sm" />
+                    <x-brand size="sm" light />
                 </a>
                 <span class="superadmin-badge"><i class="bi bi-shield-lock-fill me-1"></i> Plataforma</span>
             </div>
@@ -135,20 +168,46 @@
         </aside>
 
         <main class="main-content">
-            @if (session('status'))
-                <div class="alert alert-success alert-dismissible fade show border-0 bg-success bg-opacity-25 text-success-emphasis mb-4" role="alert">
-                    <i class="bi bi-check-circle-fill me-2"></i> {{ session('status') }}
+            @if (session('status') || session('success'))
+                <div class="alert alert-success alert-dismissible fade show mb-4 d-flex align-items-center justify-content-between" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+                        <span>{{ session('status') ?? session('success') }}</span>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="alert alert-danger alert-dismissible fade show mb-4 d-flex align-items-center justify-content-between" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-octagon-fill me-2 fs-5"></i>
+                        <span>{{ session('error') }}</span>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
+            @if (session('info'))
+                <div class="alert alert-info alert-dismissible fade show mb-4 d-flex align-items-center justify-content-between" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                        <span>{{ session('info') }}</span>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
 
             @if (session('generated_password') || session('temp_password'))
-                <div class="alert alert-warning border-0 bg-warning bg-opacity-25 text-warning-emphasis mb-4" role="alert">
-                    <h5 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i> Contraseña generada (se muestra UNA sola vez):</h5>
-                    <div class="p-2 bg-dark rounded font-monospace fs-5 text-warning select-all mt-2 user-select-all">
+                <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h5 class="fw-bold mb-0 text-white"><i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i> Contraseña generada (se muestra UNA sola vez):</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    <div class="p-2 bg-dark rounded font-monospace fs-5 text-warning select-all mt-2 user-select-all border border-secondary">
                         {{ session('generated_password') ?? session('temp_password') }}
                     </div>
-                    <p class="small text-muted mb-0 mt-2">Copia y entrega esta clave segura al usuario. Se le pedirá cambiarla al iniciar sesión.</p>
+                    <p class="small text-light text-opacity-75 mb-0 mt-2">Copia y entrega esta clave segura al usuario. Se le pedirá cambiarla al iniciar sesión.</p>
                 </div>
             @endif
 

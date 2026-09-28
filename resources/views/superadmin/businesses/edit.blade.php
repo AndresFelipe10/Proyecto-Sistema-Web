@@ -27,6 +27,53 @@
                 </div>
             @endif
 
+            {{-- Estado de Suscripción y Renovación --}}
+            <div class="card card-dark p-3 mb-4 border border-secondary border-opacity-50 bg-secondary bg-opacity-10">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <div class="text-secondary small fw-medium">Vencimiento Mensualidad</div>
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            <span class="fs-5 fw-bold text-white">
+                                {{ $business->subscription_ends_at ? $business->subscription_ends_at->timezone('America/Bogota')->format('d M, Y') : 'Sin fecha asignada' }}
+                            </span>
+                            @if ($business->subscription_ends_at)
+                                @php
+                                    $daysLeft = $business->daysUntilExpiration();
+                                @endphp
+                                @if ($daysLeft < 0)
+                                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25">
+                                        <i class="bi bi-x-circle me-1"></i>Vencida ({{ abs($daysLeft) }}d)
+                                    </span>
+                                @elseif ($daysLeft === 0)
+                                    <span class="badge bg-danger text-white">
+                                        <i class="bi bi-alarm me-1"></i>Vence hoy
+                                    </span>
+                                @elseif ($daysLeft === 1)
+                                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25">
+                                        <i class="bi bi-clock me-1"></i>1 día restante
+                                    </span>
+                                @elseif ($daysLeft <= 3)
+                                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25">
+                                        <i class="bi bi-clock me-1"></i>{{ $daysLeft }} días restantes
+                                    </span>
+                                @else
+                                    <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25">
+                                        <i class="bi bi-calendar-check me-1"></i>{{ $daysLeft }} días restantes
+                                    </span>
+                                @endif
+                            @endif
+                        </div>
+                    </div>
+                    <form method="POST" action="{{ route('superadmin.businesses.renewSubscription', $business) }}"
+                          onsubmit="return confirm('¿Renovar 30 días calendario la suscripción de {{ $business->name }}?');">
+                        @csrf
+                        <button type="submit" class="btn btn-success btn-sm px-3 fw-semibold">
+                            <i class="bi bi-arrow-repeat me-1"></i> Renovar 30 días
+                        </button>
+                    </form>
+                </div>
+            </div>
+
             <form method="POST" action="{{ route('superadmin.businesses.update', $business) }}" novalidate>
                 @csrf
                 @method('PUT')

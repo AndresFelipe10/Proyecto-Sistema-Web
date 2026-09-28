@@ -62,6 +62,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/businesses/{business}', [SuperadminBusinessController::class, 'update'])->name('businesses.update');
         Route::post('/businesses/{business}/toggle-status', [SuperadminBusinessController::class, 'toggleStatus'])->name('businesses.toggleStatus');
         Route::post('/businesses/{business}/reset-password', [SuperadminBusinessController::class, 'resetAdminPassword'])->name('businesses.resetPassword');
+        Route::post('/businesses/{business}/renew-subscription', [SuperadminBusinessController::class, 'renewSubscription'])->name('businesses.renewSubscription');
         Route::get('/businesses/{business}/users', [SuperadminBusinessController::class, 'users'])->name('businesses.users');
         Route::post('/businesses/{business}/users/{user}/toggle-status', [SuperadminBusinessController::class, 'toggleUserStatus'])->name('businesses.toggleUserStatus');
     });

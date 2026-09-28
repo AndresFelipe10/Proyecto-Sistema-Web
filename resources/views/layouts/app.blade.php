@@ -135,6 +135,23 @@
             text-align: center;
             flex-shrink: 0;
         }
+
+        /* Banner no invasivo de vencimiento de suscripción */
+        .subscription-banner {
+            position: relative;
+            z-index: 1010;
+            font-size: 0.875rem;
+        }
+        .subscription-banner-warning {
+            background-color: #fffbeb;
+            border-bottom: 1px solid #fde68a !important;
+            color: #92400e;
+        }
+        .subscription-banner-danger {
+            background-color: #fef2f2;
+            border-bottom: 1px solid #fecaca !important;
+            color: #991b1b;
+        }
     </style>
 </head>
 <body>
@@ -196,6 +213,55 @@
 
         {{-- Área de contenido principal --}}
         <div class="main-content flex-grow-1">
+            @if (isset($currentBusiness) && $currentBusiness->subscription_ends_at)
+                @php
+                    $subDays = $currentBusiness->daysUntilExpiration();
+                    $subExpDate = $currentBusiness->subscription_ends_at->timezone('America/Bogota')->format('d M, Y');
+                    $supportPhone = config('app.support_whatsapp', '573163765939');
+                @endphp
+
+                @if ($currentBusiness->isCriticalExpiring())
+                    {{-- Caso 1 día antes o día de vencimiento (Falta 1 día o vence hoy) --}}
+                    @php
+                        $whenText = $subDays === 0 ? 'hoy' : 'mañana';
+                        $waCriticalMsg = "Hola, deseo renovar la mensualidad de mi negocio {$currentBusiness->name}.";
+                    @endphp
+                    <div class="subscription-banner subscription-banner-danger px-3 py-2 d-flex align-items-center justify-content-between flex-wrap gap-2" role="alert">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-exclamation-octagon-fill text-danger fs-5 flex-shrink-0"></i>
+                            <span class="fw-medium">
+                                ¡Atención! Tu mensualidad vence {{ $whenText }} ({{ $subExpDate }}). Por favor realiza tu pago para evitar la suspensión del servicio.
+                            </span>
+                        </div>
+                        <a href="https://wa.me/{{ $supportPhone }}?text={{ rawurlencode($waCriticalMsg) }}" 
+                           target="_blank" 
+                           rel="noopener noreferrer" 
+                           class="btn btn-danger btn-sm rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1">
+                            <i class="bi bi-whatsapp"></i> Reportar Pago
+                        </a>
+                    </div>
+                @elseif ($currentBusiness->isExpiringSoon())
+                    {{-- Caso 3 días antes (Faltan 3 o 2 días) --}}
+                    @php
+                        $waWarningMsg = "Hola, deseo renovar la mensualidad de mi negocio {$currentBusiness->name}.";
+                    @endphp
+                    <div class="subscription-banner subscription-banner-warning px-3 py-2 d-flex align-items-center justify-content-between flex-wrap gap-2" role="alert">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-exclamation-triangle-fill text-warning fs-5 flex-shrink-0"></i>
+                            <span class="fw-medium">
+                                Recordatorio: Tu mensualidad vence en {{ $subDays }} días ({{ $subExpDate }}). Comunícate con soporte para renovar tu suscripción.
+                            </span>
+                        </div>
+                        <a href="https://wa.me/{{ $supportPhone }}?text={{ rawurlencode($waWarningMsg) }}" 
+                           target="_blank" 
+                           rel="noopener noreferrer" 
+                           class="btn btn-warning btn-sm rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1 text-dark">
+                            <i class="bi bi-whatsapp"></i> Renovar por WhatsApp
+                        </a>
+                    </div>
+                @endif
+            @endif
+
             <main class="container py-4">
                 @if (session('status'))
                     <div class="alert alert-success alert-dismissible fade show rounded-3" role="alert">

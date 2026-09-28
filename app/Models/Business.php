@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -19,13 +20,53 @@ class Business extends Model
         'phone',
         'email',
         'address',
+        'subscription_starts_at',
+        'subscription_ends_at',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'subscription_starts_at' => 'datetime',
+            'subscription_ends_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the integer number of calendar days until subscription expiration
+     * computed against America/Bogota timezone.
+     */
+    public function daysUntilExpiration(): ?int
+    {
+        if (! $this->subscription_ends_at) {
+            return null;
+        }
+
+        $now = Carbon::now('America/Bogota')->startOfDay();
+        $endsAt = $this->subscription_ends_at->copy()->timezone('America/Bogota')->startOfDay();
+
+        return (int) $now->diffInDays($endsAt, false);
+    }
+
+    /**
+     * Check if subscription expires in 3 or 2 days.
+     */
+    public function isExpiringSoon(): bool
+    {
+        $days = $this->daysUntilExpiration();
+
+        return $days !== null && $days <= 3 && $days > 1;
+    }
+
+    /**
+     * Check if subscription expires tomorrow or today.
+     */
+    public function isCriticalExpiring(): bool
+    {
+        $days = $this->daysUntilExpiration();
+
+        return $days !== null && $days <= 1 && $days >= 0;
     }
 
     public function isActive(): bool

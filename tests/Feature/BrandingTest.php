@@ -74,5 +74,6 @@ class BrandingTest extends TestCase
         $this->assertFileExists(public_path('favicon-32x32.png'));
         $this->assertFileExists(public_path('apple-touch-icon.png'));
         $this->assertFileExists(public_path('images/brand/logo-mark.svg'));
+        $this->assertFileExists(public_path('images/brand/logo-mark-white.svg'));
     }
 }

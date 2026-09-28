@@ -24,7 +24,7 @@ Agregar tablas nuevas solo si son estrictamente necesarias, justificándolo en `
 
 ## Campos clave por tabla (mínimos)
 - **users**: nombre, correo, contraseña, `is_superadmin` (boolean, default false, flag de plataforma), `must_change_password` (boolean, default false, forzado de actualización).
-- **businesses**: nombre, nit, teléfono, dirección, `status` (varchar 20, default 'active': 'active' / 'inactive').
+- **businesses**: nombre, nit, teléfono, dirección, `status` (varchar 20, default 'active': 'active' / 'inactive'), `subscription_starts_at` (dateTime nullable), `subscription_ends_at` (dateTime nullable, index).
 - **business_user**: `user_id`, `business_id`, `role_id`, `is_active`. Restricción `UNIQUE(user_id)` que asegura que un usuario pertenece a un único negocio.
 - **products**: nombre, descripción, SKU/código (único por `business_id`), categoría, precio de compra, precio de venta, stock actual, stock mínimo, estado, `business_id`.
 - **customers**: `business_id`, nombre, `document` (varchar 30, normalizado sin espacios/puntos, único por tenant), `identification_number` (alias retrocompatible), email, teléfono, dirección, `is_active`.
