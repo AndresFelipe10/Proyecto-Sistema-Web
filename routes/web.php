@@ -81,6 +81,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
 
         // Directorio de Clientes (Lectura y creación para Administrador y Empleado)
+        Route::get('/customers/search', [CustomerController::class, 'search'])->middleware('throttle:60,1')->name('customers.search');
         Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
         Route::get('/customers/create', [CustomerController::class, 'create'])->name('customers.create');
         Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');

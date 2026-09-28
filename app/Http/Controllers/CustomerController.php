@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Customer\StoreCustomerRequest;
 use App\Http\Requests\Customer\UpdateCustomerRequest;
 use App\Models\Customer;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -12,6 +13,40 @@ use Illuminate\View\View;
 
 class CustomerController extends Controller
 {
+    /**
+     * Search customers for POS autocomplete (min 3 chars, max 10 results).
+     */
+    public function search(Request $request): JsonResponse
+    {
+        Gate::authorize('viewAny', Customer::class);
+
+        $q = trim((string) $request->input('q', ''));
+
+        if (mb_strlen($q) < 3) {
+            return response()->json([]);
+        }
+
+        $escaped = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $q);
+
+        $customers = Customer::query()
+            ->where('is_active', true)
+            ->where(function ($query) use ($escaped) {
+                $query->whereRaw("document LIKE ? ESCAPE '!'", ["{$escaped}%"])
+                      ->orWhereRaw("identification_number LIKE ? ESCAPE '!'", ["{$escaped}%"])
+                      ->orWhereRaw("name LIKE ? ESCAPE '!'", ["%{$escaped}%"]);
+            })
+            ->orderByRaw("CASE 
+                WHEN document LIKE ? ESCAPE '!' THEN 1 
+                WHEN identification_number LIKE ? ESCAPE '!' THEN 2 
+                ELSE 3 
+            END", ["{$escaped}%", "{$escaped}%"])
+            ->orderBy('name')
+            ->limit(10)
+            ->get(['id', 'name', 'document', 'phone']);
+
+        return response()->json($customers);
+    }
+
     /**
      * Display a listing of the customers.
      */
@@ -24,6 +59,7 @@ class CustomerController extends Controller
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('document', 'like', "%{$search}%")
                   ->orWhere('identification_number', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%");
@@ -56,9 +92,19 @@ class CustomerController extends Controller
     /**
      * Store a newly created customer in storage.
      */
-    public function store(StoreCustomerRequest $request): RedirectResponse
+    public function store(StoreCustomerRequest $request): RedirectResponse|JsonResponse
     {
         $customer = Customer::create($request->validated());
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'id' => $customer->id,
+                'name' => $customer->name,
+                'document' => $customer->document,
+                'phone' => $customer->phone,
+                'message' => "Cliente '{$customer->name}' registrado exitosamente.",
+            ], 201);
+        }
 
         return redirect()->route('customers.index')
             ->with('status', "Cliente '{$customer->name}' registrado exitosamente.");
