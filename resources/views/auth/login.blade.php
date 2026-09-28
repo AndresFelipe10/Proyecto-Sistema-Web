@@ -27,7 +27,15 @@
     <div class="mb-3">
         <div class="d-flex justify-content-between align-items-center mb-1">
             <label for="password" class="form-label small fw-semibold text-secondary mb-0">Contraseña</label>
-            <a href="{{ route('password.request') }}" class="small text-decoration-none text-primary fw-medium">¿Olvidaste tu clave?</a>
+            @if (in_array(config('mail.default'), ['log', 'array']))
+                <a href="https://wa.me/{{ config('app.support_whatsapp', '573163765939') }}?text={{ urlencode('Hola, olvidé mi clave de PuntoStock') }}" 
+                   target="_blank" rel="noopener noreferrer" 
+                   class="small text-decoration-none text-primary fw-medium">
+                    <i class="bi bi-whatsapp me-1"></i>Contacta a soporte
+                </a>
+            @else
+                <a href="{{ route('password.request') }}" class="small text-decoration-none text-primary fw-medium">¿Olvidaste tu clave?</a>
+            @endif
         </div>
         <div class="input-group">
             <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-muted"></i></span>
@@ -53,6 +61,10 @@
 @endsection
 
 @section('footer')
-    ¿No tienes una cuenta aún? 
-    <a href="{{ route('register') }}" class="text-primary text-decoration-none fw-semibold">Crear cuenta</a>
+    ¿Quieres PuntoStock para tu negocio? 
+    <a href="https://wa.me/{{ config('app.support_whatsapp', '573163765939') }}?text={{ urlencode('Hola, quiero información sobre PuntoStock para mi negocio.') }}" 
+       target="_blank" rel="noopener noreferrer" 
+       class="text-primary text-decoration-none fw-semibold">
+        <i class="bi bi-whatsapp me-1"></i>Escríbenos
+    </a>
 @endsection

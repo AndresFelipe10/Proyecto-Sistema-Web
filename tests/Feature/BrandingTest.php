@@ -36,7 +36,6 @@ class BrandingTest extends TestCase
     {
         $guestRoutes = [
             '/login',
-            '/register',
             '/forgot-password',
         ];
 
