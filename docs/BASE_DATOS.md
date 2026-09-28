@@ -16,6 +16,7 @@ MySQL 8+, con integridad referencial, índices, constraints, transacciones y nor
 | `suppliers` | Proveedores, por `business_id` |
 | `sales` | Cabecera de venta, por `business_id` |
 | `sale_details` | Detalle de venta (líneas) |
+| `sale_payments` | Métodos de pago y vueltos aplicados a la venta, por `business_id` |
 | `inventory_movements` | Historial de movimientos de stock (entradas/salidas/ajustes) |
 
 Agregar tablas nuevas solo si son estrictamente necesarias, justificándolo en `docs/DECISIONES_TECNICAS.md`.
@@ -26,8 +27,9 @@ Agregar tablas nuevas solo si son estrictamente necesarias, justificándolo en `
 - **business_user**: `user_id`, `business_id`, `role_id`, `is_active`. Restricción `UNIQUE(user_id)` que asegura que un usuario pertenece a un único negocio.
 - **products**: nombre, descripción, SKU/código (único por `business_id`), categoría, precio de compra, precio de venta, stock actual, stock mínimo, estado, `business_id`.
 - **customers**: `business_id`, nombre, `document` (varchar 30, normalizado sin espacios/puntos, único por tenant), `identification_number` (alias retrocompatible), email, teléfono, dirección, `is_active`.
-- **sales**: usuario, `business_id`, `customer_id` (nullable, `NULL` para ventas a consumidor final), `customer_name` (varchar 150, snapshot inmutable del comprador), `customer_document` (varchar 30, snapshot inmutable del comprador), fecha, subtotal, descuento (`discount` en pesos, `discount_percentage` en porcentaje 0-100 con CHECK constraint), total, método de pago.
+- **sales**: usuario, `business_id`, `customer_id` (nullable, `NULL` para ventas a consumidor final), `customer_name` (varchar 150, snapshot inmutable del comprador), `customer_document` (varchar 30, snapshot inmutable del comprador), fecha, subtotal, descuento (`discount` en pesos, `discount_percentage` en porcentaje 0-100 con CHECK constraint), total, método de pago (`cash`, `card`, `transfer`, `other`, `mixed`), status, notas.
 - **sale_details**: venta, producto, cantidad, precio unitario, subtotal.
+- **sale_payments**: `business_id` (FK), `sale_id` (FK cascade), `method` (`PaymentMethod`: `cash`, `card`, `transfer`, `other`), `amount` (decimal 12,2 con CHECK `amount > 0`), `reference` (varchar 60 nullable), `cash_received` (decimal 12,2 nullable), `change_given` (decimal 12,2 nullable, CHECK `cash_received IS NULL OR cash_received >= amount`).
 - **inventory_movements**: producto, tipo (entrada/salida/ajuste), cantidad, motivo, usuario, fecha, referencia a venta (si aplica).
 
 ## Estrategia multi-tenant
@@ -46,6 +48,8 @@ Reglas de aplicación (Global Scope + Middleware + Policy) → `.agents/rules/02
 
 ## Índices y constraints mínimos
 - FK con `ON DELETE RESTRICT` o `CASCADE` según corresponda (nunca eliminar en cascada datos financieros como `sales`).
+- Índices en `sale_payments`: `(sale_id)`, `(business_id)`, y compuesto `(business_id, method)`.
+- CHECK constraints en `sale_payments`: `amount > 0` y `cash_received IS NULL OR cash_received >= amount`.
 - Índice compuesto único en (`business_id`, `sku`) para productos.
 - Índice compuesto único en (`business_id`, `document`) para clientes.
 - Índice en `business_id` en toda tabla tenant-aware, dado que es el filtro más frecuente.

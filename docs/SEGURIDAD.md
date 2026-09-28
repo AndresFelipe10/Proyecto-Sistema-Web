@@ -25,6 +25,19 @@
 | XSS en autocomplete y modal POS | Renderizado estricto mediante `textContent` en Vanilla JS; prohibido `innerHTML` con datos del usuario |
 | Alteración de histórico de ventas | Snapshot inmutable en `sales` (`customer_name`, `customer_document`); edición de cliente no afecta ventas |
 | Abuso y DoS en búsqueda de clientes | Rate limiting `throttle:60,1`, longitud mínima de 3 caracteres y escape de comodines SQL (`!`, `%`, `_`) |
+| Discrepancia en suma de pagos | Validación autoritativa en centavos enteros (`round($amount * 100) === round($total * 100)`) en `SaleService` |
+| Inyección de cambio o vueltos | Cálculo autoritativo en backend (`change_given = cash_received - amount`); el cliente solo sugiere |
+| Duplicación de efectivo | Máximo una sola línea en efectivo (`cash`) permitida por venta |
+| XSS en referencia de pago | Sanitización con `strip_tags()` y acotado a 60 caracteres en backend |
+| Distorsión de ingresos | Ingresos calculados exclusivamente como `SUM(sale_payments.amount)` (nunca sumando `cash_received`) |
+| Inconsistencia de pago/stock | Transaccionalidad estricta (`DB::transaction`): falla en pago revierte venta, ítems y stock |
+
+## Integridad de Pagos Mixtos y Vueltos (Bloque C)
+- **Comparación en Centavos Enteros**: Para prevenir vulnerabilidades derivadas de la imprecisión de coma flotante IEEE 754, la suma de los montos de pago (`amount`) se compara contra el total de la venta convirtiendo ambos a centavos enteros: `(int) round($amt * 100)`.
+- **Cálculo Autoritativo de Vueltos**: El cliente jamás determina el vuelto. Si se envía `cash_received`, se valida que sea mayor o igual al monto en efectivo asignado y el backend calcula `change_given = cash_received - amount`. Si no se envía `cash_received`, se asume igual al monto (`change_given = 0.00`).
+- **Regla Estricta de Efectivo Único**: Se permite un máximo de 5 líneas de pago, pero estrictamente un máximo de una sola línea con método `cash` para evitar complejidades y ambigüedades en el arqueo de caja y cálculo de cambio.
+- **Sanitización de Referencias**: El campo `reference` (código de voucher, ID de transferencia o Nequi) se limpia con `strip_tags()` tanto en `prepareForValidation` como en `SaleService`, acotado a 60 caracteres.
+- **Reportes Contables Reales**: Todos los reportes, resúmenes y exportaciones CSV calculan los ingresos por método de pago a partir del monto real aplicado (`sale_payments.amount`), ignorando por completo el efectivo recibido (`cash_received`), el cual incluye el vuelto devuelto al comprador.
 
 ## Integridad de Clientes, Snapshot Histórico y Consumidor Final (DIAN)
 - **Consumidor Final Seguro**: Las ventas a consumidor final mantienen `customer_id = NULL` sin crear registros ficticios en la tabla `customers`. El snapshot registra `CONSUMIDOR FINAL` y `222222222222` según `config/sales.php`.

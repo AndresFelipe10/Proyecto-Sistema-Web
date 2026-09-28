@@ -13,12 +13,16 @@
    - Si el cliente no existe aún, haz clic en el botón **"+"** para abrir el modal de creación rápida, completa los datos y se vinculará automáticamente.
    - Para volver a Consumidor Final, haz clic en el botón **"X"** del chip del cliente.
 5. Si aplica un descuento, ingresa el **porcentaje (%)** en el campo "Descuento" — el sistema calcula automáticamente el monto en pesos y lo muestra debajo del campo.
-6. Selecciona el **método de pago** (efectivo, transferencia, tarjeta u otro).
-7. Haz clic en **Registrar Venta**. El sistema descuenta automáticamente el stock y guarda una copia histórica inalterable de los datos del cliente.
+6. **Métodos de pago y cálculo de vuelto**:
+   - **Pago simple en efectivo (1 clic)**: Por defecto, el sistema asigna el total completo a la línea de Efectivo.
+   - **Cálculo de vuelto / cambio**: En la línea de efectivo, ingresa el monto entregado por el cliente en el campo "Paga con / Recibido" o utiliza los botones de atajo rápido (**Exacto**, **$10.000**, **$20.000**, **$50.000**, **$100.000**). El sistema mostrará un indicador dinámico en verde con el vuelto a entregar o en rojo si el dinero es insuficiente.
+   - **Pagos mixtos (múltiples formas de pago)**: Haz clic en **"+ Agregar método de pago"** para registrar combinaciones (por ejemplo, $30.000 por Transferencia/Nequi con su respectivo código de comprobante y $15.000 en Efectivo). Puedes registrar hasta 5 líneas de pago distintas.
+   - El sistema valida en tiempo real que la suma de todos los montos cubra el 100% exacto del total de la venta; el botón **Registrar Venta** se habilitará únicamente cuando el monto esté totalmente cubierto.
+7. Haz clic en **Registrar Venta**. El sistema descuenta automáticamente el stock, guarda una copia histórica inalterable de los datos del cliente y genera los registros de pago correspondientes.
 
 ## Imprimir comprobante de venta
 
-Después de registrar una venta (o desde el detalle de cualquier venta completada), puedes imprimir un comprobante en **dos formatos** (ambos incluyen la leyenda legal obligatoria: *"Comprobante interno de venta. No reemplaza la factura electrónica de venta ante la DIAN."*):
+Después de registrar una venta (o desde el detalle de cualquier venta completada), puedes imprimir un comprobante en **dos formatos** (ambos desglosan los métodos de pago aplicados, efectivo recibido y vueltos, e incluyen la leyenda legal obligatoria: *"Comprobante interno de venta. No reemplaza la factura electrónica de venta ante la DIAN."*):
 
 ### 🖨️ Comprobante de venta (tamaño carta / A4)
 - Haz clic en el botón **"Imprimir comprobante (carta)"** (ícono de impresora).
