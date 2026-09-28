@@ -43,6 +43,7 @@
                     <option value="transfer" {{ ($selectedPaymentMethod ?? '') === 'transfer' ? 'selected' : '' }}>Transferencia</option>
                     <option value="card" {{ ($selectedPaymentMethod ?? '') === 'card' ? 'selected' : '' }}>Tarjeta</option>
                     <option value="other" {{ ($selectedPaymentMethod ?? '') === 'other' ? 'selected' : '' }}>Otro</option>
+                    <option value="mixed" {{ ($selectedPaymentMethod ?? '') === 'mixed' ? 'selected' : '' }}>Mixto</option>
                 </select>
             </div>
             <div class="col-md-1">
@@ -105,6 +106,11 @@
                                 @case('card')
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">
                                         <i class="bi bi-credit-card me-1"></i> Tarjeta
+                                    </span>
+                                    @break
+                                @case('mixed')
+                                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill">
+                                        <i class="bi bi-wallet2 me-1"></i> Mixto
                                     </span>
                                     @break
                                 @default

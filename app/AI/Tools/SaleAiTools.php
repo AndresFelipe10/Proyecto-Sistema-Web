@@ -76,8 +76,8 @@ class SaleAiTools
         $data = $sales->map(fn($s) => [
             'invoice' => $s->invoice_number,
             'date' => $s->sale_date->format('d/m/Y H:i'),
-            'customer' => $s->customer ? $s->customer->name : 'Consumidor Final',
-            'payment_method' => $s->payment_method,
+            'customer' => $s->customer_name ?? ($s->customer ? $s->customer->name : config('sales.default_customer_name', 'CONSUMIDOR FINAL')),
+            'payment_method' => $s->payment_method_label,
             'total' => '$' . number_format($s->total, 0, ',', '.'),
         ])->toArray();
 

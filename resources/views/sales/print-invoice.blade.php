@@ -151,6 +151,7 @@
                         @case('cash') Efectivo @break
                         @case('transfer') Transferencia @break
                         @case('card') Tarjeta @break
+                        @case('mixed') Pago mixto @break
                         @default Otro
                     @endswitch
                 </p>
@@ -187,8 +188,41 @@
             </tbody>
         </table>
 
-        {{-- Totals --}}
-        <div class="totals-section">
+        {{-- Totals & Payments --}}
+        <div class="totals-section" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px;">
+            <div style="flex: 1; max-width: 420px; padding-right: 20px;">
+                @if($sale->payments && $sale->payments->count() > 0)
+                    <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 8px;">Detalle de Pago</h3>
+                    <table style="width: 100%; margin-bottom: 0; font-size: 12px; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
+                        <thead>
+                            <tr style="background: #f1f5f9; color: #334155;">
+                                <th style="padding: 6px 8px; font-size: 11px;">Método</th>
+                                <th style="padding: 6px 8px; font-size: 11px;">Ref.</th>
+                                <th style="padding: 6px 8px; font-size: 11px; text-align: right;">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($sale->payments as $payment)
+                                <tr>
+                                    <td style="padding: 6px 8px;">{{ $payment->method_label }}</td>
+                                    <td style="padding: 6px 8px; font-family: monospace; font-size: 11px; color: #64748b;">{{ $payment->reference ?? '-' }}</td>
+                                    <td style="padding: 6px 8px; text-align: right; font-weight: 600;">${{ number_format($payment->amount, 0, ',', '.') }}</td>
+                                </tr>
+                                @if($payment->cash_received !== null)
+                                    <tr style="background: #f8fafc; font-size: 11px; color: #64748b;">
+                                        <td colspan="2" style="padding: 4px 8px; border-bottom: none;">
+                                            <em>Recibido: ${{ number_format($payment->cash_received, 0, ',', '.') }}</em>
+                                        </td>
+                                        <td style="padding: 4px 8px; text-align: right; border-bottom: none; color: #16a34a; font-weight: 600;">
+                                            <em>Cambio: ${{ number_format($payment->change_given ?? 0, 0, ',', '.') }}</em>
+                                        </td>
+                                    </tr>
+                                @endif
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            </div>
             <div class="totals-box">
                 <div class="totals-row">
                     <span>Subtotal</span>

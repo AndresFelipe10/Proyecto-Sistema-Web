@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PaymentMethod;
 use App\Exceptions\InsufficientStockException;
 use App\Exceptions\Sales\InvalidSaleItemException;
+use App\Exceptions\Sales\InvalidSalePaymentException;
 use App\Http\Requests\Sale\StoreSaleRequest;
 use App\Models\Business;
 use App\Models\Customer;
@@ -86,6 +88,7 @@ class SaleController extends Controller
             'defaultCustomerName' => config('sales.default_customer_name', 'CONSUMIDOR FINAL'),
             'defaultCustomerDocument' => config('sales.default_customer_document', '222222222222'),
             'selectedCustomer' => $selectedCustomer,
+            'paymentMethods' => PaymentMethod::cases(),
         ]);
     }
 
@@ -107,6 +110,10 @@ class SaleController extends Controller
             return redirect()->back()
                 ->withInput()
                 ->withErrors(['items' => $e->getMessage()]);
+        } catch (InvalidSalePaymentException $e) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['payments' => $e->getMessage()]);
         }
     }
 
@@ -117,7 +124,7 @@ class SaleController extends Controller
     {
         Gate::authorize('view', $sale);
 
-        $sale->load(['details.product', 'customer', 'user']);
+        $sale->load(['details.product', 'customer', 'user', 'payments']);
 
         return view('sales.show', [
             'sale' => $sale,
@@ -132,7 +139,7 @@ class SaleController extends Controller
         Gate::authorize('view', $sale);
         abort_if($sale->business_id !== (int) session('current_business_id'), 403);
 
-        $sale->load(['details.product', 'customer', 'user']);
+        $sale->load(['details.product', 'customer', 'user', 'payments']);
         $business = Business::findOrFail(session('current_business_id'));
 
         return view('sales.print-invoice', [
@@ -149,7 +156,7 @@ class SaleController extends Controller
         Gate::authorize('view', $sale);
         abort_if($sale->business_id !== (int) session('current_business_id'), 403);
 
-        $sale->load(['details.product', 'customer', 'user']);
+        $sale->load(['details.product', 'customer', 'user', 'payments']);
         $business = Business::findOrFail(session('current_business_id'));
 
         return view('sales.print-receipt', [

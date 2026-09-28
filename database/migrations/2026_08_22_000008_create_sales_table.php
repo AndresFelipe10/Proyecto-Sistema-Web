@@ -21,7 +21,7 @@ return new class extends Migration
             $table->decimal('subtotal', 12, 2)->default(0.00);
             $table->decimal('discount', 12, 2)->default(0.00);
             $table->decimal('total', 12, 2)->default(0.00);
-            $table->enum('payment_method', ['cash', 'transfer', 'card', 'other'])->default('cash');
+            $table->enum('payment_method', ['cash', 'transfer', 'card', 'other', 'mixed'])->default('cash');
             $table->enum('status', ['completed', 'cancelled'])->default('completed');
             $table->text('notes')->nullable();
             $table->timestamps();

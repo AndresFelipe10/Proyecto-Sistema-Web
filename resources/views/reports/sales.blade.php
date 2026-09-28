@@ -90,6 +90,7 @@
                 <option value="transfer" {{ $selected_payment_method === 'transfer' ? 'selected' : '' }}>Transferencia</option>
                 <option value="card" {{ $selected_payment_method === 'card' ? 'selected' : '' }}>Tarjeta</option>
                 <option value="other" {{ $selected_payment_method === 'other' ? 'selected' : '' }}>Otro</option>
+                <option value="mixed" {{ $selected_payment_method === 'mixed' ? 'selected' : '' }}>Mixto</option>
             </select>
         </div>
         <div class="col-md-2">
@@ -151,7 +152,7 @@
                         <td class="text-muted small">{{ $sale->user ? $sale->user->name : 'N/A' }}</td>
                         <td class="text-center">
                             @php
-                                $methods = ['cash' => 'Efectivo', 'transfer' => 'Transf.', 'card' => 'Tarjeta', 'other' => 'Otro'];
+                                $methods = ['cash' => 'Efectivo', 'transfer' => 'Transf.', 'card' => 'Tarjeta', 'other' => 'Otro', 'mixed' => 'Mixto'];
                             @endphp
                             <span class="badge bg-light text-dark border">
                                 {{ $methods[$sale->payment_method] ?? $sale->payment_method }}

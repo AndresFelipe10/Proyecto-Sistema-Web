@@ -123,14 +123,30 @@
                     </div>
                 </div>
 
+                {{-- Métodos de Pago y Pagos Mixtos --}}
                 <div class="mb-3">
-                    <label for="payment_method" class="form-label small fw-semibold text-muted">Método de Pago</label>
-                    <select id="payment_method" name="payment_method" class="form-select" required>
-                        <option value="cash" {{ old('payment_method', 'cash') === 'cash' ? 'selected' : '' }}>Efectivo</option>
-                        <option value="transfer" {{ old('payment_method') === 'transfer' ? 'selected' : '' }}>Transferencia</option>
-                        <option value="card" {{ old('payment_method') === 'card' ? 'selected' : '' }}>Tarjeta</option>
-                        <option value="other" {{ old('payment_method') === 'other' ? 'selected' : '' }}>Otro</option>
-                    </select>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label small fw-semibold text-muted mb-0">
+                            <i class="bi bi-wallet2 me-1"></i>Métodos de Pago
+                        </label>
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill py-0 px-2" id="btnAddPaymentLine" title="Agregar método de pago">
+                            <i class="bi bi-plus-circle me-1"></i>Agregar método
+                        </button>
+                    </div>
+
+                    {{-- Contenedor dinámico de líneas de pago --}}
+                    <div id="payment_lines_container" class="d-flex flex-column gap-2 mb-2"></div>
+
+                    {{-- Indicador dinámico de saldo / balance --}}
+                    <div id="payment_balance_feedback" class="small p-2 rounded-3 text-center fw-semibold mb-2"></div>
+
+                    {{-- Contenedor de inputs ocultos para submit --}}
+                    <div id="hidden_payments_inputs"></div>
+                    <input type="hidden" name="payment_method" id="hidden_payment_method" value="cash">
+
+                    @error('payments')
+                        <div class="alert alert-danger small py-1 px-2 mt-1 mb-0">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <div class="mb-3">
@@ -393,9 +409,384 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             discountFeedback.style.display = 'none';
         }
+
+        // Sincronizar pago por defecto en efectivo y renderizar
+        syncDefaultCashPayment(total);
+        renderPaymentLines();
+        updatePaymentsFeedback();
     }
 
     discountInput.addEventListener('input', updateTotals);
+
+    // ── Estado y Manejo de Pagos Mixtos y Vueltos ──
+    let payments = [
+        { method: 'cash', amount: 0, reference: '', cash_received: 0, change_given: 0 }
+    ];
+    let userModifiedPayments = false;
+
+    function getCurrentTotal() {
+        let subtotal = 0;
+        cart.forEach(item => {
+            subtotal += item.quantity * item.unit_price;
+        });
+        const pct = parseFloat(discountInput.value) || 0;
+        const discountMoney = Math.round(subtotal * (pct / 100));
+        return Math.max(subtotal - discountMoney, 0);
+    }
+
+    function syncDefaultCashPayment(total) {
+        if (!userModifiedPayments && payments.length === 1 && payments[0].method === 'cash') {
+            payments[0].amount = total;
+            payments[0].cash_received = total;
+            payments[0].change_given = 0;
+        }
+    }
+
+    function renderPaymentLines() {
+        const container = document.getElementById('payment_lines_container');
+        if (!container) return;
+        container.innerHTML = '';
+        const total = getCurrentTotal();
+        const hasCashSelected = payments.some(item => item.method === 'cash');
+
+        payments.forEach((p, idx) => {
+            const card = document.createElement('div');
+            card.className = 'card p-2 bg-light border-0 rounded-3 shadow-none';
+
+            // Fila principal: Selector de método, input de monto y botón de eliminar
+            const row = document.createElement('div');
+            row.className = 'row g-2 align-items-center';
+
+            // Columna selector de método
+            const colMethod = document.createElement('div');
+            colMethod.className = 'col-sm-5';
+            const select = document.createElement('select');
+            select.className = 'form-select form-select-sm';
+
+            const options = [
+                { val: 'cash', text: '💵 Efectivo' },
+                { val: 'transfer', text: '📲 Transferencia / Nequi' },
+                { val: 'card', text: '💳 Tarjeta' },
+                { val: 'other', text: '✨ Otro' }
+            ];
+
+            options.forEach(opt => {
+                const optEl = document.createElement('option');
+                optEl.value = opt.val;
+                optEl.textContent = opt.text;
+                if (p.method === opt.val) {
+                    optEl.selected = true;
+                } else if (opt.val === 'cash' && hasCashSelected) {
+                    optEl.disabled = true;
+                }
+                select.appendChild(optEl);
+            });
+
+            select.addEventListener('change', function() {
+                userModifiedPayments = true;
+                p.method = this.value;
+                if (p.method === 'cash') {
+                    p.cash_received = p.amount;
+                    p.change_given = 0;
+                } else {
+                    p.cash_received = null;
+                    p.change_given = null;
+                }
+                renderPaymentLines();
+                updatePaymentsFeedback();
+            });
+            colMethod.appendChild(select);
+            row.appendChild(colMethod);
+
+            // Columna de monto
+            const colAmount = document.createElement('div');
+            colAmount.className = 'col-sm-5';
+            const inputGroup = document.createElement('div');
+            inputGroup.className = 'input-group input-group-sm';
+            const spanPrefix = document.createElement('span');
+            spanPrefix.className = 'input-group-text';
+            spanPrefix.textContent = '$';
+            const inputAmount = document.createElement('input');
+            inputAmount.type = 'number';
+            inputAmount.className = 'form-control text-end fw-semibold';
+            inputAmount.min = '0';
+            inputAmount.step = 'any';
+            inputAmount.value = p.amount > 0 ? p.amount : (payments.length === 1 && total > 0 ? total : '');
+            inputAmount.placeholder = '0';
+
+            inputAmount.addEventListener('input', function() {
+                userModifiedPayments = true;
+                p.amount = parseFloat(this.value) || 0;
+                if (p.method === 'cash') {
+                    if (p.cash_received === undefined || p.cash_received === null || p.cash_received < p.amount) {
+                        p.cash_received = p.amount;
+                    }
+                    p.change_given = Math.max(0, p.cash_received - p.amount);
+                }
+                updatePaymentsFeedback();
+
+                const changeBadge = card.querySelector('.cash-change-badge');
+                if (changeBadge) {
+                    const diff = (p.cash_received || 0) - p.amount;
+                    if (diff >= 0) {
+                        changeBadge.className = 'badge bg-success font-monospace cash-change-badge';
+                        changeBadge.textContent = 'Vuelto: $' + formatNumber(diff);
+                    } else {
+                        changeBadge.className = 'badge bg-danger font-monospace cash-change-badge';
+                        changeBadge.textContent = 'Falta $' + formatNumber(Math.abs(diff));
+                    }
+                }
+            });
+            inputGroup.appendChild(spanPrefix);
+            inputGroup.appendChild(inputAmount);
+            colAmount.appendChild(inputGroup);
+            row.appendChild(colAmount);
+
+            // Columna de eliminar línea (si hay más de 1)
+            const colDelete = document.createElement('div');
+            colDelete.className = 'col-sm-2 text-end';
+            if (payments.length > 1) {
+                const btnDel = document.createElement('button');
+                btnDel.type = 'button';
+                btnDel.className = 'btn btn-sm btn-outline-danger border-0';
+                btnDel.title = 'Eliminar método';
+                btnDel.innerHTML = '<i class="bi bi-trash3"></i>';
+                btnDel.addEventListener('click', function() {
+                    payments.splice(idx, 1);
+                    userModifiedPayments = true;
+                    renderPaymentLines();
+                    updatePaymentsFeedback();
+                });
+                colDelete.appendChild(btnDel);
+            }
+            row.appendChild(colDelete);
+            card.appendChild(row);
+
+            // Sección específica para Efectivo (Paga con, Atajos y Vueltos)
+            if (p.method === 'cash') {
+                const cashSection = document.createElement('div');
+                cashSection.className = 'mt-2 pt-2 border-top';
+
+                const receivedRow = document.createElement('div');
+                receivedRow.className = 'row g-2 align-items-center mb-1';
+                const labelCol = document.createElement('div');
+                labelCol.className = 'col-auto';
+                labelCol.innerHTML = '<span class="small text-muted fw-semibold">Paga con / Recibido:</span>';
+                receivedRow.appendChild(labelCol);
+
+                const recInputCol = document.createElement('div');
+                recInputCol.className = 'col';
+                const recGroup = document.createElement('div');
+                recGroup.className = 'input-group input-group-sm';
+                const recPrefix = document.createElement('span');
+                recPrefix.className = 'input-group-text';
+                recPrefix.textContent = '$';
+                const recInput = document.createElement('input');
+                recInput.type = 'number';
+                recInput.className = 'form-control text-end font-monospace fw-semibold';
+                recInput.min = '0';
+                recInput.step = 'any';
+                recInput.value = p.cash_received !== undefined && p.cash_received !== null ? p.cash_received : p.amount;
+
+                recGroup.appendChild(recPrefix);
+                recGroup.appendChild(recInput);
+                recInputCol.appendChild(recGroup);
+                receivedRow.appendChild(recInputCol);
+                cashSection.appendChild(receivedRow);
+
+                // Botones de atajos rápidos
+                const shortcutsRow = document.createElement('div');
+                shortcutsRow.className = 'd-flex flex-wrap gap-1 mb-2';
+
+                const shortcuts = [
+                    { label: 'Exacto', val: 'exact' },
+                    { label: '$10.000', val: 10000 },
+                    { label: '$20.000', val: 20000 },
+                    { label: '$50.000', val: 50000 },
+                    { label: '$100.000', val: 100000 }
+                ];
+
+                shortcuts.forEach(sc => {
+                    const btnSc = document.createElement('button');
+                    btnSc.type = 'button';
+                    btnSc.className = 'btn btn-outline-secondary btn-sm py-0 px-2 rounded-pill';
+                    btnSc.style.fontSize = '0.75rem';
+                    btnSc.textContent = sc.label;
+                    btnSc.addEventListener('click', function() {
+                        const targetVal = sc.val === 'exact' ? p.amount : sc.val;
+                        recInput.value = targetVal;
+                        p.cash_received = targetVal;
+                        p.change_given = Math.max(0, targetVal - p.amount);
+                        updateChangeDisplay();
+                        updatePaymentsFeedback();
+                    });
+                    shortcutsRow.appendChild(btnSc);
+                });
+                cashSection.appendChild(shortcutsRow);
+
+                // Fila de Vuelto / Cambio
+                const changeRow = document.createElement('div');
+                changeRow.className = 'd-flex justify-content-between align-items-center';
+                changeRow.innerHTML = '<span class="small text-muted">Vuelto / Cambio:</span>';
+                const changeBadge = document.createElement('span');
+                changeBadge.className = 'badge cash-change-badge font-monospace';
+
+                function updateChangeDisplay() {
+                    const diff = (p.cash_received || 0) - p.amount;
+                    if (diff >= 0) {
+                        changeBadge.className = 'badge bg-success font-monospace cash-change-badge';
+                        changeBadge.textContent = 'Vuelto: $' + formatNumber(diff);
+                    } else {
+                        changeBadge.className = 'badge bg-danger font-monospace cash-change-badge';
+                        changeBadge.textContent = 'Falta $' + formatNumber(Math.abs(diff));
+                    }
+                }
+                updateChangeDisplay();
+
+                recInput.addEventListener('input', function() {
+                    p.cash_received = parseFloat(this.value) || 0;
+                    p.change_given = Math.max(0, p.cash_received - p.amount);
+                    updateChangeDisplay();
+                    updatePaymentsFeedback();
+                });
+
+                changeRow.appendChild(changeBadge);
+                cashSection.appendChild(changeRow);
+                card.appendChild(cashSection);
+            } else {
+                // Input de referencia para transferencias/tarjetas/otros
+                const refSection = document.createElement('div');
+                refSection.className = 'mt-2 pt-2 border-top';
+                const refInput = document.createElement('input');
+                refInput.type = 'text';
+                refInput.className = 'form-control form-control-sm';
+                refInput.maxLength = 60;
+                refInput.placeholder = 'Referencia / # aprobación / Nequi (opcional)';
+                refInput.value = p.reference || '';
+                refInput.addEventListener('input', function() {
+                    p.reference = this.value;
+                    syncHiddenPaymentInputs();
+                });
+                refSection.appendChild(refInput);
+                card.appendChild(refSection);
+            }
+
+            container.appendChild(card);
+        });
+
+        // Deshabilitar botón de agregar si ya hay 5 líneas
+        const btnAdd = document.getElementById('btnAddPaymentLine');
+        if (btnAdd) {
+            btnAdd.disabled = payments.length >= 5;
+        }
+    }
+
+    function updatePaymentsFeedback() {
+        const feedback = document.getElementById('payment_balance_feedback');
+        if (!feedback) return;
+        const total = getCurrentTotal();
+        let sum = 0;
+        let cashValid = true;
+
+        payments.forEach(p => {
+            sum += (p.amount || 0);
+            if (p.method === 'cash') {
+                const rec = p.cash_received !== undefined && p.cash_received !== null ? p.cash_received : p.amount;
+                if (rec < p.amount) {
+                    cashValid = false;
+                }
+            }
+        });
+
+        const diff = Math.round(total * 100) - Math.round(sum * 100);
+
+        if (total === 0) {
+            feedback.className = 'small p-2 rounded-3 text-center fw-semibold bg-light text-muted';
+            feedback.textContent = 'Venta con 100% de descuento ($0)';
+        } else if (diff > 0) {
+            feedback.className = 'small p-2 rounded-3 text-center fw-semibold bg-danger-subtle text-danger border border-danger-subtle';
+            feedback.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i>Falta por cubrir: <strong>$${formatNumber(diff / 100)}</strong>`;
+        } else if (diff < 0) {
+            feedback.className = 'small p-2 rounded-3 text-center fw-semibold bg-warning-subtle text-warning-emphasis border border-warning-subtle';
+            feedback.innerHTML = `<i class="bi bi-exclamation-circle-fill me-1"></i>Sobra asignado: <strong>$${formatNumber(Math.abs(diff) / 100)}</strong>`;
+        } else {
+            feedback.className = 'small p-2 rounded-3 text-center fw-semibold bg-success-subtle text-success border border-success-subtle';
+            feedback.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i>Monto exacto cubierto ($${formatNumber(total)})`;
+        }
+
+        // Estado del botón submit
+        const isCartValid = cart.length > 0;
+        const isAmountCovered = total === 0 || diff === 0;
+        const allAmountsPositive = total === 0 || payments.every(p => p.amount > 0);
+
+        if (isCartValid && isAmountCovered && allAmountsPositive && cashValid) {
+            btnSubmit.disabled = false;
+        } else {
+            btnSubmit.disabled = true;
+        }
+
+        syncHiddenPaymentInputs();
+    }
+
+    function syncHiddenPaymentInputs() {
+        const hiddenContainer = document.getElementById('hidden_payments_inputs');
+        if (!hiddenContainer) return;
+        hiddenContainer.innerHTML = '';
+
+        const hiddenPaymentMethod = document.getElementById('hidden_payment_method');
+        if (hiddenPaymentMethod) {
+            hiddenPaymentMethod.value = payments.length === 1 ? payments[0].method : 'mixed';
+        }
+
+        payments.forEach((p, idx) => {
+            const isCash = p.method === 'cash';
+            const cashRec = isCash ? (p.cash_received !== undefined && p.cash_received !== null ? p.cash_received : p.amount) : '';
+            const change = isCash ? Math.max(0, (p.cash_received || p.amount) - p.amount) : '';
+
+            hiddenContainer.innerHTML += `
+                <input type="hidden" name="payments[${idx}][method]" value="${escapeHtml(p.method)}">
+                <input type="hidden" name="payments[${idx}][amount]" value="${p.amount}">
+                <input type="hidden" name="payments[${idx}][reference]" value="${escapeHtml(p.reference || '')}">
+                <input type="hidden" name="payments[${idx}][cash_received]" value="${cashRec}">
+                <input type="hidden" name="payments[${idx}][change_given]" value="${change}">
+            `;
+        });
+    }
+
+    // Botón agregar método de pago
+    const btnAddLine = document.getElementById('btnAddPaymentLine');
+    if (btnAddLine) {
+        btnAddLine.addEventListener('click', function() {
+            if (payments.length >= 5) return;
+            userModifiedPayments = true;
+
+            const hasCash = payments.some(p => p.method === 'cash');
+            const newMethod = hasCash ? 'transfer' : 'cash';
+
+            let sum = 0;
+            payments.forEach(p => sum += (p.amount || 0));
+            const total = getCurrentTotal();
+            const remaining = Math.max(0, total - sum);
+
+            payments.push({
+                method: newMethod,
+                amount: remaining,
+                reference: '',
+                cash_received: newMethod === 'cash' ? remaining : null,
+                change_given: newMethod === 'cash' ? 0 : null
+            });
+
+            renderPaymentLines();
+            updatePaymentsFeedback();
+        });
+    }
+
+    const saleForm = document.getElementById('saleForm');
+    if (saleForm) {
+        saleForm.addEventListener('submit', function() {
+            syncHiddenPaymentInputs();
+        });
+    }
 
     // ── Búsqueda y Selección de Cliente (POS) ──
     const customerIdInput = document.getElementById('customer_id');

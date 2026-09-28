@@ -27,10 +27,20 @@ class ReportService
         $query = Sale::where('business_id', $businessId)
             ->where('status', 'completed')
             ->whereBetween('sale_date', [$dateFrom, $dateTo])
-            ->with(['customer', 'user']);
+            ->with(['customer', 'user', 'payments']);
 
         if (!empty($filters['payment_method'])) {
-            $query->where('payment_method', $filters['payment_method']);
+            $methodFilter = $filters['payment_method'];
+            if ($methodFilter === 'mixed') {
+                $query->where('payment_method', 'mixed');
+            } else {
+                $query->where(function ($q) use ($methodFilter) {
+                    $q->where('payment_method', $methodFilter)
+                      ->orWhereHas('payments', function ($sub) use ($methodFilter) {
+                          $sub->where('method', $methodFilter);
+                      });
+                });
+            }
         }
 
         if (!empty($filters['customer_id'])) {
@@ -44,11 +54,35 @@ class ReportService
         $averageTicket = $salesCount > 0 ? round($totalRevenue / $salesCount, 2) : 0.0;
         $totalDiscounts = (float) $sales->sum('discount');
 
-        $byPaymentMethod = $sales->groupBy('payment_method')->map(function ($group, $method) {
+        $methodTotals = [];
+        foreach ($sales as $sale) {
+            if ($sale->payments->isNotEmpty()) {
+                foreach ($sale->payments as $payment) {
+                    $m = $payment->method instanceof \App\Enums\PaymentMethod ? $payment->method->value : (string) $payment->method;
+                    if (!isset($methodTotals[$m])) {
+                        $methodTotals[$m] = ['method' => $m, 'count' => 0, 'total' => 0.0, 'sale_ids' => []];
+                    }
+                    $methodTotals[$m]['total'] += (float) $payment->amount;
+                    if (!in_array($sale->id, $methodTotals[$m]['sale_ids'])) {
+                        $methodTotals[$m]['sale_ids'][] = $sale->id;
+                        $methodTotals[$m]['count']++;
+                    }
+                }
+            } else {
+                $m = (string) $sale->payment_method;
+                if (!isset($methodTotals[$m])) {
+                    $methodTotals[$m] = ['method' => $m, 'count' => 0, 'total' => 0.0, 'sale_ids' => []];
+                }
+                $methodTotals[$m]['total'] += (float) $sale->total;
+                $methodTotals[$m]['count']++;
+            }
+        }
+
+        $byPaymentMethod = collect($methodTotals)->map(function ($item) {
             return [
-                'method' => $method,
-                'count' => $group->count(),
-                'total' => (float) $group->sum('total'),
+                'method' => $item['method'],
+                'count' => $item['count'],
+                'total' => round($item['total'], 2),
             ];
         });
 
@@ -252,9 +286,9 @@ class ReportService
             $row = [
                 $sale->invoice_number,
                 $sale->sale_date->format('Y-m-d H:i'),
-                $sale->customer ? $sale->customer->name : 'Consumidor Final',
+                $sale->customer_name ?? ($sale->customer ? $sale->customer->name : config('sales.default_customer_name', 'CONSUMIDOR FINAL')),
                 $sale->user ? $sale->user->name : 'N/A',
-                $sale->payment_method,
+                $sale->payment_method_label ?? $sale->payment_method,
                 $sale->subtotal,
                 $sale->discount,
                 $sale->total,

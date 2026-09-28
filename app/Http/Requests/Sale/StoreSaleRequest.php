@@ -33,7 +33,7 @@ class StoreSaleRequest extends FormRequest
                 Rule::exists('customers', 'id')->where('business_id', $businessId),
             ],
             'discount_percentage' => ['required', 'numeric', 'between:0,100'],
-            'payment_method' => ['required', Rule::in(['cash', 'transfer', 'card', 'other'])],
+            'payment_method' => ['nullable', Rule::in(['cash', 'transfer', 'card', 'other', 'mixed'])],
             'notes' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => [
@@ -42,6 +42,14 @@ class StoreSaleRequest extends FormRequest
             ],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:99999'],
             'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
+
+            // Validación de pagos mixtos
+            'payments' => ['nullable', 'array', 'min:1', 'max:5'],
+            'payments.*.method' => ['required_with:payments', Rule::in(\App\Enums\PaymentMethod::values())],
+            'payments.*.amount' => ['required_with:payments', 'numeric', 'gt:0'],
+            'payments.*.reference' => ['nullable', 'string', 'max:60'],
+            'payments.*.cash_received' => ['nullable', 'numeric', 'min:0'],
+            'payments.*.change_given' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 
@@ -53,6 +61,52 @@ class StoreSaleRequest extends FormRequest
         if ($this->has('customer_id') && ($this->input('customer_id') === '' || $this->input('customer_id') === 'null')) {
             $this->merge(['customer_id' => null]);
         }
+
+        // Sanitizar referencias en payments si existen
+        if ($this->has('payments') && is_array($this->input('payments'))) {
+            $cleanedPayments = [];
+            foreach ($this->input('payments') as $p) {
+                if (isset($p['reference'])) {
+                    $p['reference'] = strip_tags(trim((string)$p['reference']));
+                }
+                $cleanedPayments[] = $p;
+            }
+            $this->merge(['payments' => $cleanedPayments]);
+        }
+    }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $payments = $this->input('payments');
+
+            if (is_array($payments) && count($payments) > 0) {
+                $cashCount = 0;
+                foreach ($payments as $index => $payment) {
+                    $method = $payment['method'] ?? '';
+                    $amount = (float) ($payment['amount'] ?? 0);
+
+                    if ($method === 'cash') {
+                        $cashCount++;
+                        if (isset($payment['cash_received']) && $payment['cash_received'] !== '' && $payment['cash_received'] !== null) {
+                            $cashReceived = (float) $payment['cash_received'];
+                            if ($cashReceived < $amount) {
+                                $validator->errors()->add("payments.{$index}.cash_received", 'El efectivo recibido debe ser mayor o igual al monto asignado en efectivo.');
+                            }
+                        }
+                    }
+                }
+
+                if ($cashCount > 1) {
+                    $validator->errors()->add('payments', 'Solo se permite una línea de pago con método Efectivo.');
+                }
+            } elseif (!$this->has('payment_method')) {
+                $validator->errors()->add('payment_method', 'Debe especificar el método de pago o la lista de pagos.');
+            }
+        });
     }
 
     /**

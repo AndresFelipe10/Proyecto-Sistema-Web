@@ -4,10 +4,12 @@ namespace App\Services\Sales;
 
 use App\Exceptions\InsufficientStockException;
 use App\Exceptions\Sales\InvalidSaleItemException;
+use App\Exceptions\Sales\InvalidSalePaymentException;
 use App\Models\InventoryMovement;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleDetail;
+use App\Models\SalePayment;
 use App\Services\Inventory\InventoryService;
 use Illuminate\Support\Facades\DB;
 
@@ -92,6 +94,80 @@ class SaleService
                 }
             }
 
+            // Normalize payments (support both 'payments' array and legacy 'payment_method')
+            $payments = [];
+            if (!empty($data['payments']) && is_array($data['payments'])) {
+                $payments = array_values($data['payments']);
+            } elseif (!empty($data['payment_method'])) {
+                $payments = [
+                    [
+                        'method' => $data['payment_method'],
+                        'amount' => $total,
+                        'reference' => null,
+                        'cash_received' => $data['payment_method'] === 'cash' ? $total : null,
+                        'change_given' => $data['payment_method'] === 'cash' ? 0.00 : null,
+                    ],
+                ];
+            } else {
+                $payments = [
+                    [
+                        'method' => 'cash',
+                        'amount' => $total,
+                        'reference' => null,
+                        'cash_received' => $total,
+                        'change_given' => 0.00,
+                    ],
+                ];
+            }
+
+            // Authoritative payments validation when total > 0
+            if ($total > 0) {
+                if (count($payments) < 1 || count($payments) > 5) {
+                    throw new InvalidSalePaymentException('Debe especificar entre 1 y 5 líneas de pago.');
+                }
+
+                $cashLines = array_filter($payments, fn($p) => ($p['method'] ?? '') === 'cash');
+                if (count($cashLines) > 1) {
+                    throw new InvalidSalePaymentException('Solo se permite una línea de pago en efectivo.');
+                }
+
+                $totalCents = (int) round($total * 100);
+                $paymentsCents = 0;
+
+                foreach ($payments as $p) {
+                    $amt = (float) ($p['amount'] ?? 0);
+                    if ($amt <= 0) {
+                        throw new InvalidSalePaymentException('Cada línea de pago debe tener un monto mayor a cero.');
+                    }
+                    if (!in_array($p['method'] ?? '', ['cash', 'card', 'transfer', 'other'])) {
+                        throw new InvalidSalePaymentException("El método de pago '{$p['method']}' es inválido.");
+                    }
+                    $paymentsCents += (int) round($amt * 100);
+                }
+
+                if ($paymentsCents !== $totalCents) {
+                    throw new InvalidSalePaymentException('La suma de los métodos de pago no coincide con el total de la venta.');
+                }
+
+                // Validar efectivo recibido
+                foreach ($cashLines as $cashP) {
+                    $cashAmt = (float) $cashP['amount'];
+                    if (isset($cashP['cash_received']) && $cashP['cash_received'] !== '' && $cashP['cash_received'] !== null) {
+                        $cashRec = (float) $cashP['cash_received'];
+                        if ($cashRec < $cashAmt) {
+                            throw new InvalidSalePaymentException('El efectivo recibido no puede ser menor al monto asignado en efectivo.');
+                        }
+                    }
+                }
+            }
+
+            // Derivar payment_method para la cabecera de la venta
+            if (count($payments) === 1) {
+                $derivedPaymentMethod = $payments[0]['method'];
+            } else {
+                $derivedPaymentMethod = 'mixed';
+            }
+
             // Create sale header
             $sale = Sale::create([
                 'business_id' => $businessId,
@@ -105,10 +181,44 @@ class SaleService
                 'discount' => $discount,
                 'discount_percentage' => $discountPercentage,
                 'total' => $total,
-                'payment_method' => $data['payment_method'],
+                'payment_method' => $derivedPaymentMethod,
                 'status' => 'completed',
                 'notes' => $data['notes'] ?? null,
             ]);
+
+            // Create sale_payments rows
+            if ($total > 0) {
+                foreach ($payments as $p) {
+                    $method = $p['method'];
+                    $amount = round((float) $p['amount'], 2);
+                    $isCash = ($method === 'cash');
+
+                    if ($isCash) {
+                        $cashReceived = (isset($p['cash_received']) && $p['cash_received'] !== '' && $p['cash_received'] !== null)
+                            ? round((float) $p['cash_received'], 2)
+                            : $amount;
+                        $changeGiven = round($cashReceived - $amount, 2);
+                    } else {
+                        $cashReceived = null;
+                        $changeGiven = null;
+                    }
+
+                    $cleanRef = !empty($p['reference']) ? strip_tags(trim((string)$p['reference'])) : null;
+                    if ($cleanRef !== null && mb_strlen($cleanRef) > 60) {
+                        $cleanRef = mb_substr($cleanRef, 0, 60);
+                    }
+
+                    SalePayment::create([
+                        'business_id' => $businessId,
+                        'sale_id' => $sale->id,
+                        'method' => $method,
+                        'amount' => $amount,
+                        'reference' => $cleanRef,
+                        'cash_received' => $cashReceived,
+                        'change_given' => $changeGiven,
+                    ]);
+                }
+            }
 
             // Create detail lines and decrement stock
             foreach ($resolvedItems as $resolved) {
@@ -131,7 +241,7 @@ class SaleService
                 );
             }
 
-            return $sale->load('details.product', 'customer', 'user');
+            return $sale->load('details.product', 'customer', 'user', 'payments');
         });
     }
 

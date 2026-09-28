@@ -57,8 +57,25 @@ class Sale extends Model
         return $this->hasMany(SaleDetail::class);
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(SalePayment::class);
+    }
+
     public function inventoryMovements(): HasMany
     {
         return $this->hasMany(InventoryMovement::class);
+    }
+
+    /**
+     * Get human-readable label for the sale's payment method.
+     */
+    public function getPaymentMethodLabelAttribute(): string
+    {
+        if ($this->payment_method === 'mixed') {
+            return 'Pago mixto';
+        }
+
+        return \App\Enums\PaymentMethod::tryFrom((string) $this->payment_method)?->label() ?? (string) $this->payment_method;
     }
 }

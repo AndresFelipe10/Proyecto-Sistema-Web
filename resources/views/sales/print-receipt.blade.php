@@ -193,6 +193,7 @@
                     @case('cash') Efectivo @break
                     @case('transfer') Transferencia @break
                     @case('card') Tarjeta @break
+                    @case('mixed') Mixto @break
                     @default Otro
                 @endswitch
             </span>
@@ -232,6 +233,31 @@
             <span>${{ number_format($sale->total, 0, ',', '.') }}</span>
         </div>
     </div>
+
+    {{-- Formas de pago aplicadas --}}
+    @if($sale->payments->isNotEmpty())
+        <div class="totals" style="border-top: 1px dashed #333; margin-top: 6px; padding-top: 4px;">
+            <div style="font-weight: bold; font-size: 11px; margin-bottom: 3px; text-transform: uppercase;">Formas de pago:</div>
+            @foreach($sale->payments as $payment)
+                <div class="row">
+                    <span>{{ $payment->method_label }}{{ $payment->reference ? ' (' . $payment->reference . ')' : '' }}:</span>
+                    <span>${{ number_format($payment->amount, 0, ',', '.') }}</span>
+                </div>
+                @if(($payment->method instanceof \App\Enums\PaymentMethod ? $payment->method->value : $payment->method) === 'cash')
+                    @if($payment->cash_received !== null)
+                        <div class="row" style="color: #444; font-size: 10px;">
+                            <span>  Efectivo recibido:</span>
+                            <span>${{ number_format($payment->cash_received, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="row" style="color: #444; font-size: 10px;">
+                            <span>  Vueltos:</span>
+                            <span>${{ number_format($payment->change_given, 0, ',', '.') }}</span>
+                        </div>
+                    @endif
+                @endif
+            @endforeach
+        </div>
+    @endif
 
     {{-- Footer --}}
     <div class="receipt-footer">

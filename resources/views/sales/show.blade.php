@@ -80,6 +80,7 @@
                             @case('cash') <i class="bi bi-cash text-success me-1"></i> Efectivo @break
                             @case('transfer') <i class="bi bi-bank text-info me-1"></i> Transferencia @break
                             @case('card') <i class="bi bi-credit-card text-primary me-1"></i> Tarjeta @break
+                            @case('mixed') <i class="bi bi-wallet2 text-warning me-1"></i> Pago Mixto @break
                             @default <i class="bi bi-three-dots text-secondary me-1"></i> Otro
                         @endswitch
                     </span>
@@ -124,6 +125,52 @@
                 </table>
             </div>
         </div>
+
+        {{-- Métodos de Pago Aplicados --}}
+        @if ($sale->payments->isNotEmpty())
+            <div class="card card-custom p-4 mb-4">
+                <h6 class="fw-bold mb-3"><i class="bi bi-wallet2 text-primary me-2"></i>Distribución de Pagos</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-3">Método</th>
+                                <th>Referencia</th>
+                                <th class="text-end">Monto Aplicado</th>
+                                <th class="text-end">Efectivo Recibido</th>
+                                <th class="text-end pe-3">Vuelto / Cambio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($sale->payments as $payment)
+                                <tr>
+                                    <td class="ps-3">
+                                        <span class="fw-semibold">
+                                            @switch($payment->method instanceof \App\Enums\PaymentMethod ? $payment->method->value : $payment->method)
+                                                @case('cash') <i class="bi bi-cash text-success me-1"></i> Efectivo @break
+                                                @case('transfer') <i class="bi bi-bank text-info me-1"></i> Transferencia @break
+                                                @case('card') <i class="bi bi-credit-card text-primary me-1"></i> Tarjeta @break
+                                                @default <i class="bi bi-three-dots text-secondary me-1"></i> Otro
+                                            @endswitch
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted small">{{ $payment->reference ?: '—' }}</span>
+                                    </td>
+                                    <td class="text-end fw-semibold">${{ number_format($payment->amount, 0, ',', '.') }}</td>
+                                    <td class="text-end text-muted">
+                                        {{ $payment->cash_received !== null ? '$' . number_format($payment->cash_received, 0, ',', '.') : '—' }}
+                                    </td>
+                                    <td class="text-end pe-3 text-muted">
+                                        {{ $payment->change_given !== null ? '$' . number_format($payment->change_given, 0, ',', '.') : '—' }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @endif
 
         {{-- Totales --}}
         <div class="card card-custom p-4">
