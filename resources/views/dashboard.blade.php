@@ -33,79 +33,191 @@
     </div>
 
     {{-- Tarjetas KPI --}}
-    <div class="col-sm-6 col-xl-3">
-        <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <span class="text-muted small fw-semibold text-uppercase">Ventas Hoy</span>
-                    <h3 class="fw-bold mb-0 mt-1 text-success">
-                        ${{ number_format($today_sales_total, 0, ',', '.') }}
-                    </h3>
-                    <small class="text-muted">{{ $today_sales_count }} {{ $today_sales_count === 1 ? 'venta realizada' : 'ventas realizadas' }}</small>
-                </div>
-                <div class="bg-success-subtle text-success p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-                    <i class="bi bi-cash-stack fs-4"></i>
+    @if(!empty($isAdmin))
+        {{-- Tarjetas Financieras (Exclusivo Administrador) --}}
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Ventas Hoy</span>
+                        <h3 class="fw-bold mb-0 mt-1 text-success">
+                            ${{ number_format($today_sales_total ?? 0, 0, ',', '.') }}
+                        </h3>
+                        <small class="text-muted">{{ $today_sales_count }} {{ $today_sales_count === 1 ? 'venta realizada' : 'ventas realizadas' }}</small>
+                    </div>
+                    <div class="bg-success-subtle text-success p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-cash-stack fs-4"></i>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-sm-6 col-xl-3">
-        <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <span class="text-muted small fw-semibold text-uppercase">Ventas del Mes</span>
-                    <h3 class="fw-bold mb-0 mt-1 text-primary">
-                        ${{ number_format($month_sales_total, 0, ',', '.') }}
-                    </h3>
-                    <small class="text-muted">{{ $month_sales_count }} {{ $month_sales_count === 1 ? 'transacción' : 'transacciones' }}</small>
-                </div>
-                <div class="bg-primary-subtle text-primary p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-                    <i class="bi bi-graph-up-arrow fs-4"></i>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Ventas del Mes</span>
+                        <h3 class="fw-bold mb-0 mt-1 text-primary">
+                            ${{ number_format($month_sales_total ?? 0, 0, ',', '.') }}
+                        </h3>
+                        <small class="text-muted">{{ $month_sales_count }} {{ $month_sales_count === 1 ? 'transacción' : 'transacciones' }}</small>
+                    </div>
+                    <div class="bg-primary-subtle text-primary p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-graph-up-arrow fs-4"></i>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-sm-6 col-xl-3">
-        <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <span class="text-muted small fw-semibold text-uppercase">Stock Crítico</span>
-                    <h3 class="fw-bold mb-0 mt-1 {{ $low_stock_count > 0 ? 'text-danger' : 'text-secondary' }}">
-                        {{ $low_stock_count }}
-                    </h3>
-                    <small class="text-muted">
-                        @if($out_of_stock_count > 0)
-                            <span class="text-danger fw-semibold">{{ $out_of_stock_count }} agotados</span>
-                        @else
-                            {{ $low_stock_count > 0 ? 'requieren reposición' : 'sin alertas de stock' }}
-                        @endif
-                    </small>
-                </div>
-                <div class="{{ $low_stock_count > 0 ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary' }} p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-                    <i class="bi bi-exclamation-triangle fs-4"></i>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Gastos / Compras del mes</span>
+                        <h3 class="fw-bold mb-0 mt-1 text-danger">
+                            ${{ number_format($month_expenses_total ?? 0, 0, ',', '.') }}
+                        </h3>
+                        <small class="text-muted">de los cuales ${{ number_format($month_expenses_pending ?? 0, 0, ',', '.') }} pendientes</small>
+                    </div>
+                    <div class="bg-danger-subtle text-danger p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-wallet2 fs-4"></i>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="col-sm-6 col-xl-3">
-        <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
-            <div class="d-flex align-items-center justify-content-between">
-                <div>
-                    <span class="text-muted small fw-semibold text-uppercase">Catálogo y Clientes</span>
-                    <h3 class="fw-bold mb-0 mt-1 text-dark">
-                        {{ $total_products }}
-                    </h3>
-                    <small class="text-muted">{{ $total_customers }} clientes activos</small>
-                </div>
-                <div class="bg-info-subtle text-info p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-                    <i class="bi bi-boxes fs-4"></i>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm {{ ($estimated_net_profit ?? 0) < 0 ? 'border border-danger' : '' }}">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Utilidad neta estimada</span>
+                        <h3 class="fw-bold mb-0 mt-1 {{ ($estimated_net_profit ?? 0) < 0 ? 'text-danger' : 'text-success' }}">
+                            ${{ number_format($estimated_net_profit ?? 0, 0, ',', '.') }}
+                        </h3>
+                        <small class="text-muted">Margen operativo (estimada)</small>
+                    </div>
+                    <div class="{{ ($estimated_net_profit ?? 0) < 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success' }} p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-calculator fs-4"></i>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+
+        <div class="col-sm-6">
+            <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Stock Crítico</span>
+                        <h3 class="fw-bold mb-0 mt-1 {{ $low_stock_count > 0 ? 'text-danger' : 'text-secondary' }}">
+                            {{ $low_stock_count }}
+                        </h3>
+                        <small class="text-muted">
+                            @if($out_of_stock_count > 0)
+                                <span class="text-danger fw-semibold">{{ $out_of_stock_count }} agotados</span>
+                            @else
+                                {{ $low_stock_count > 0 ? 'requieren reposición' : 'sin alertas de stock' }}
+                            @endif
+                        </small>
+                    </div>
+                    <div class="{{ $low_stock_count > 0 ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary' }} p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-exclamation-triangle fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6">
+            <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Catálogo y Clientes</span>
+                        <h3 class="fw-bold mb-0 mt-1 text-dark">
+                            {{ $total_products }}
+                        </h3>
+                        <small class="text-muted">{{ $total_customers }} clientes activos</small>
+                    </div>
+                    <div class="bg-info-subtle text-info p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-boxes fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @else
+        {{-- Tarjetas Operativas (Vendedores / Colaboradores) --}}
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Ventas Hoy</span>
+                        <h3 class="fw-bold mb-0 mt-1 text-primary">
+                            {{ $today_sales_count }}
+                        </h3>
+                        <small class="text-muted">{{ $today_sales_count === 1 ? 'venta realizada' : 'ventas realizadas' }}</small>
+                    </div>
+                    <div class="bg-primary-subtle text-primary p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-cart-check fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Ventas del Mes</span>
+                        <h3 class="fw-bold mb-0 mt-1 text-primary">
+                            {{ $month_sales_count }}
+                        </h3>
+                        <small class="text-muted">{{ $month_sales_count === 1 ? 'transacción' : 'transacciones' }}</small>
+                    </div>
+                    <div class="bg-primary-subtle text-primary p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-graph-up fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Stock Crítico</span>
+                        <h3 class="fw-bold mb-0 mt-1 {{ $low_stock_count > 0 ? 'text-danger' : 'text-secondary' }}">
+                            {{ $low_stock_count }}
+                        </h3>
+                        <small class="text-muted">
+                            @if($out_of_stock_count > 0)
+                                <span class="text-danger fw-semibold">{{ $out_of_stock_count }} agotados</span>
+                            @else
+                                {{ $low_stock_count > 0 ? 'requieren reposición' : 'sin alertas de stock' }}
+                            @endif
+                        </small>
+                    </div>
+                    <div class="{{ $low_stock_count > 0 ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary' }} p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-exclamation-triangle fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Catálogo y Clientes</span>
+                        <h3 class="fw-bold mb-0 mt-1 text-dark">
+                            {{ $total_products }}
+                        </h3>
+                        <small class="text-muted">{{ $total_customers }} clientes activos</small>
+                    </div>
+                    <div class="bg-info-subtle text-info p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-boxes fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 
     {{-- Accesos Rápidos --}}
     <div class="col-12">
@@ -125,6 +237,11 @@
                     <a href="{{ route('customers.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
                         <i class="bi bi-people me-1"></i> Clientes
                     </a>
+                    @if(!empty($isAdmin))
+                        <a href="{{ route('expenses.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                            <i class="bi bi-wallet2 me-1"></i> Gastos
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -157,7 +274,9 @@
                                 <tr>
                                     <th class="small text-muted fw-semibold">Factura</th>
                                     <th class="small text-muted fw-semibold">Cliente</th>
-                                    <th class="small text-muted fw-semibold text-end">Total</th>
+                                    @if(!empty($isAdmin))
+                                        <th class="small text-muted fw-semibold text-end">Total</th>
+                                    @endif
                                     <th class="small text-muted fw-semibold text-center">Método</th>
                                     <th class="small text-muted fw-semibold text-center">Estado</th>
                                     <th class="small text-muted fw-semibold text-end">Acción</th>
@@ -179,9 +298,11 @@
                                                 <span class="text-muted fst-italic">Consumidor Final</span>
                                             @endif
                                         </td>
-                                        <td class="text-end fw-bold text-dark">
-                                            ${{ number_format($sale->total, 0, ',', '.') }}
-                                        </td>
+                                        @if(!empty($isAdmin))
+                                            <td class="text-end fw-bold text-dark">
+                                                ${{ number_format($sale->total, 0, ',', '.') }}
+                                            </td>
+                                        @endif
                                         <td class="text-center">
                                             @php
                                                 $methodLabels = [
@@ -278,9 +399,11 @@
                                         <small class="text-muted">{{ $item->total_sold_quantity }} unid. vendidas</small>
                                     </div>
                                 </div>
-                                <div class="text-end fw-bold text-dark">
-                                    ${{ number_format($item->total_sold_revenue, 0, ',', '.') }}
-                                </div>
+                                @if(!empty($isAdmin))
+                                    <div class="text-end fw-bold text-dark">
+                                        ${{ number_format($item->total_sold_revenue, 0, ',', '.') }}
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>

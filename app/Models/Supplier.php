@@ -29,4 +29,12 @@ class Supplier extends Model
             'is_active' => 'boolean',
         ];
     }
+
+    /**
+     * Gastos y facturas de compra asociadas al proveedor.
+     */
+    public function expenses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
 }

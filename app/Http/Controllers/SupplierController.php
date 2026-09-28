@@ -72,8 +72,21 @@ class SupplierController extends Controller
     {
         Gate::authorize('view', $supplier);
 
+        $pendingAmount = 0.0;
+        $totalExpensesAmount = 0.0;
+
+        if (auth()->check() && auth()->user()->isCurrentAdmin()) {
+            $supplier->load(['expenses' => function ($q) {
+                $q->latest('issue_date')->latest('id');
+            }]);
+            $pendingAmount = (float) $supplier->expenses->where('status', 'pending')->sum('amount');
+            $totalExpensesAmount = (float) $supplier->expenses->sum('amount');
+        }
+
         return view('suppliers.show', [
             'supplier' => $supplier,
+            'pendingAmount' => $pendingAmount,
+            'totalExpensesAmount' => $totalExpensesAmount,
         ]);
     }
 

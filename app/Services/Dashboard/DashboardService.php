@@ -3,6 +3,7 @@
 namespace App\Services\Dashboard;
 
 use App\Models\Customer;
+use App\Models\Expense;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleDetail;
@@ -13,20 +14,23 @@ class DashboardService
 {
     /**
      * Get operational and financial metrics strictly scoped to the specified tenant.
+     * Uses America/Bogota timezone for accurate date boundaries.
      *
      * @param int $businessId
+     * @param bool $isAdmin
      * @return array
      */
-    public function getMetrics(int $businessId): array
+    public function getMetrics(int $businessId, bool $isAdmin = false): array
     {
-        $today = Carbon::today();
-        $startOfMonth = Carbon::now()->startOfMonth();
-        $endOfMonth = Carbon::now()->endOfMonth();
+        $nowBogota = Carbon::now('America/Bogota');
+        $today = $nowBogota->copy()->startOfDay();
+        $startOfMonth = $nowBogota->copy()->startOfMonth();
+        $endOfMonth = $nowBogota->copy()->endOfMonth();
 
         // 1. Métricas de Ventas de Hoy (solo completadas)
         $todayMetrics = Sale::where('business_id', $businessId)
             ->where('status', 'completed')
-            ->whereDate('sale_date', $today)
+            ->whereDate('sale_date', $today->toDateString())
             ->selectRaw('COUNT(*) as aggregate_count, COALESCE(SUM(total), 0) as aggregate_total')
             ->first();
 
@@ -95,10 +99,8 @@ class DashboardService
             ->limit(5)
             ->get();
 
-        return [
-            'today_sales_total' => $todaySalesTotal,
+        $baseMetrics = [
             'today_sales_count' => $todaySalesCount,
-            'month_sales_total' => $monthSalesTotal,
             'month_sales_count' => $monthSalesCount,
             'total_products' => $totalProducts,
             'total_customers' => $totalCustomers,
@@ -108,5 +110,26 @@ class DashboardService
             'recent_sales' => $recentSales,
             'top_products' => $topProducts,
         ];
+
+        // Métricas Financieras: Exclusivas para Administradores
+        if ($isAdmin) {
+            $monthExpenses = Expense::where('business_id', $businessId)
+                ->whereBetween('issue_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+                ->get();
+
+            $monthExpensesTotal = (float) $monthExpenses->sum('amount');
+            $monthExpensesPending = (float) $monthExpenses->where('status', 'pending')->sum('amount');
+            $estimatedNetProfit = round($monthSalesTotal - $monthExpensesTotal, 2);
+
+            return array_merge($baseMetrics, [
+                'today_sales_total' => $todaySalesTotal,
+                'month_sales_total' => $monthSalesTotal,
+                'month_expenses_total' => $monthExpensesTotal,
+                'month_expenses_pending' => $monthExpensesPending,
+                'estimated_net_profit' => $estimatedNetProfit,
+            ]);
+        }
+
+        return $baseMetrics;
     }
 }

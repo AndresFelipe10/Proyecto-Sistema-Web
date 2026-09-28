@@ -9,6 +9,7 @@ use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InventoryAlertController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
@@ -68,6 +69,7 @@ Route::middleware('auth')->group(function () {
     // Rutas que requieren tenant activo (negocio)
     Route::middleware('tenant')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/api/dashboard', [DashboardController::class, 'api'])->name('api.dashboard');
 
         // Catálogo (Lectura para Administrador y Empleado)
         Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
@@ -145,6 +147,17 @@ Route::middleware('auth')->group(function () {
             Route::get('/suppliers/{supplier}/edit', [SupplierController::class, 'edit'])->name('suppliers.edit');
             Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
             Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
+
+            // Gestión de Gastos y Facturas de Compra (Exclusivo Administrador)
+            Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+            Route::get('/expenses/create', [ExpenseController::class, 'create'])->name('expenses.create');
+            Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+            Route::get('/expenses/{expense}', [ExpenseController::class, 'show'])->name('expenses.show');
+            Route::get('/expenses/{expense}/edit', [ExpenseController::class, 'edit'])->name('expenses.edit');
+            Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');
+            Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
+            Route::post('/expenses/{expense}/pay', [ExpenseController::class, 'markAsPaid'])->name('expenses.pay');
+            Route::get('/expenses/{expense}/attachment', [ExpenseController::class, 'downloadAttachment'])->name('expenses.attachment');
 
             // Anulación de Ventas (Solo Administrador)
             Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])->name('sales.destroy');

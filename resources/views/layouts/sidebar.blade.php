@@ -49,7 +49,16 @@
             </a>
         </li>
 
-        {{-- 8. Reportes (Solo Administrador) --}}
+        {{-- 8. Gastos (Solo Administrador) --}}
+        @if (auth()->check() && auth()->user()->isCurrentAdmin())
+            <li class="nav-item">
+                <a class="nav-link fw-semibold {{ request()->routeIs('expenses.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('expenses.index') }}">
+                    <i class="bi bi-receipt-cutoff me-2"></i> Gastos
+                </a>
+            </li>
+        @endif
+
+        {{-- 9. Reportes (Solo Administrador) --}}
         @if (auth()->check() && auth()->user()->isCurrentAdmin())
             <li class="nav-item">
                 <a class="nav-link fw-semibold {{ request()->routeIs('reports.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('reports.index') }}">
