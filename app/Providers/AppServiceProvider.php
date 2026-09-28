@@ -33,6 +33,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \Illuminate\Support\Facades\Gate::define('manage-platform', function (\App\Models\User $user) {
+            return (bool) $user->is_superadmin;
+        });
     }
 }

@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\AiAssistantController;
 use App\Http\Controllers\Api\ProductSearchController;
+use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
-use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\BusinessController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
@@ -14,21 +14,26 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\Superadmin\BusinessController as SuperadminBusinessController;
+use App\Http\Controllers\Superadmin\DashboardController as SuperadminDashboardController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
+    if (auth()->check()) {
+        return auth()->user()->is_superadmin
+            ? redirect()->route('superadmin.dashboard')
+            : redirect()->route('dashboard');
+    }
+
+    return redirect()->route('login');
 });
 
 // Rutas de invitados (no autenticados)
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store']);
-
-    Route::get('/register', [RegisterController::class, 'create'])->name('register');
-    Route::post('/register', [RegisterController::class, 'store']);
 
     Route::get('/forgot-password', [PasswordResetController::class, 'createForgot'])->name('password.request');
     Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email');
@@ -41,18 +46,28 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
-    // Rutas de creación de emprendimiento (accesibles aunque el usuario aún no tenga un tenant)
-    Route::get('/businesses/create', [BusinessController::class, 'create'])->name('businesses.create');
-    Route::post('/businesses', [BusinessController::class, 'store'])->name('businesses.store');
+    // Cambio obligatorio de contraseña
+    Route::get('/password/change', [ChangePasswordController::class, 'show'])->name('password.change');
+    Route::post('/password/change', [ChangePasswordController::class, 'update'])->name('password.change.update');
 
-    // Rutas que requieren tenant activo
+    // Módulo Superadministrador de Plataforma
+    Route::middleware('superadmin')->prefix('superadmin')->name('superadmin.')->group(function () {
+        Route::get('/', [SuperadminDashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/businesses', [SuperadminBusinessController::class, 'index'])->name('businesses.index');
+        Route::get('/businesses/create', [SuperadminBusinessController::class, 'create'])->name('businesses.create');
+        Route::post('/businesses', [SuperadminBusinessController::class, 'store'])->name('businesses.store');
+        Route::get('/businesses/{business}/edit', [SuperadminBusinessController::class, 'edit'])->name('businesses.edit');
+        Route::put('/businesses/{business}', [SuperadminBusinessController::class, 'update'])->name('businesses.update');
+        Route::post('/businesses/{business}/toggle-status', [SuperadminBusinessController::class, 'toggleStatus'])->name('businesses.toggleStatus');
+        Route::post('/businesses/{business}/reset-password', [SuperadminBusinessController::class, 'resetAdminPassword'])->name('businesses.resetPassword');
+        Route::get('/businesses/{business}/users', [SuperadminBusinessController::class, 'users'])->name('businesses.users');
+        Route::post('/businesses/{business}/users/{user}/toggle-status', [SuperadminBusinessController::class, 'toggleUserStatus'])->name('businesses.toggleUserStatus');
+    });
+
+    // Rutas que requieren tenant activo (negocio)
     Route::middleware('tenant')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-        Route::get('/businesses', [BusinessController::class, 'index'])->name('businesses.index');
-        Route::get('/businesses/{business}/edit', [BusinessController::class, 'edit'])->name('businesses.edit');
-        Route::put('/businesses/{business}', [BusinessController::class, 'update'])->name('businesses.update');
-        Route::post('/businesses/{business}/switch', [BusinessController::class, 'switch'])->name('businesses.switch');
 
         // Catálogo (Lectura para Administrador y Empleado)
         Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
@@ -92,6 +107,10 @@ Route::middleware('auth')->group(function () {
 
         // Rutas exclusivas para el rol Administrador del emprendimiento
         Route::middleware('role:admin')->group(function () {
+            // Mi Negocio (Edición exclusiva de su propio negocio)
+            Route::get('/my-business', [BusinessController::class, 'edit'])->name('businesses.edit');
+            Route::put('/my-business', [BusinessController::class, 'update'])->name('businesses.update');
+
             // Gestión de Colaboradores
             Route::get('/users', [UserController::class, 'index'])->name('users.index');
             Route::get('/users/invite', [UserController::class, 'create'])->name('users.create');
