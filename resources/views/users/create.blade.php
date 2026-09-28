@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Vincular Colaborador')
+@section('title', 'Nuevo Colaborador')
 
 @section('content')
 <div class="row justify-content-center">
@@ -8,8 +8,8 @@
         <div class="card card-custom p-4 p-md-5 bg-white">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h3 class="fw-bold mb-1">Vincular Colaborador</h3>
-                    <p class="text-muted small mb-0">Agrega un usuario registrado en la plataforma a tu emprendimiento.</p>
+                    <h3 class="fw-bold mb-1">Nuevo Colaborador</h3>
+                    <p class="text-muted small mb-0">Registra un nuevo miembro para el equipo de tu negocio.</p>
                 </div>
                 <a href="{{ route('users.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
                     <i class="bi bi-arrow-left me-1"></i> Volver
@@ -31,7 +31,22 @@
                 @csrf
 
                 <div class="mb-3">
-                    <label for="email" class="form-label small fw-semibold text-secondary">Correo electrónico del usuario <span class="text-danger">*</span></label>
+                    <label for="name" class="form-label small fw-semibold text-secondary">Nombre completo <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light text-muted"><i class="bi bi-person"></i></span>
+                        <input type="text" 
+                               class="form-control @error('name') is-invalid @enderror" 
+                               id="name" 
+                               name="name" 
+                               value="{{ old('name') }}" 
+                               placeholder="Nombre del colaborador" 
+                               required 
+                               autofocus>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="email" class="form-label small fw-semibold text-secondary">Correo electrónico <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <span class="input-group-text bg-light text-muted"><i class="bi bi-envelope"></i></span>
                         <input type="email" 
@@ -40,10 +55,21 @@
                                name="email" 
                                value="{{ old('email') }}" 
                                placeholder="colaborador@correo.com" 
-                               required 
-                               autofocus>
+                               required>
                     </div>
-                    <div class="form-text small">El usuario debe haberse registrado previamente en el sistema.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label small fw-semibold text-secondary">Contraseña inicial (mínimo 8 caracteres) <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light text-muted"><i class="bi bi-lock"></i></span>
+                        <input type="password" 
+                               class="form-control @error('password') is-invalid @enderror" 
+                               id="password" 
+                               name="password" 
+                               placeholder="••••••••" 
+                               required>
+                    </div>
                 </div>
 
                 <div class="mb-4">
@@ -61,7 +87,7 @@
                 <div class="d-flex justify-content-end gap-2">
                     <a href="{{ route('users.index') }}" class="btn btn-outline-secondary px-4 rounded-3">Cancelar</a>
                     <button type="submit" class="btn btn-primary px-4 rounded-3 fw-semibold">
-                        <i class="bi bi-check-circle-fill me-1"></i> Vincular al Equipo
+                        <i class="bi bi-check-circle-fill me-1"></i> Registrar Colaborador
                     </button>
                 </div>
             </form>

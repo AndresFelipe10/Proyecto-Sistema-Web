@@ -80,7 +80,9 @@ class DashboardTest extends TestCase
 
         $response = $this->actingAs($userWithoutTenant)->get('/dashboard');
 
-        $response->assertRedirect('/businesses/create');
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('error', 'Tu cuenta no está activa. Contacta a soporte.');
+        $this->assertGuest();
     }
 
     public function test_dashboard_metrics_reflect_only_active_tenant_data(): void

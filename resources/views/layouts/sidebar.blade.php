@@ -65,12 +65,14 @@
             </a>
         </li>
 
-        {{-- 10. Emprendimientos --}}
-        <li class="nav-item">
-            <a class="nav-link fw-semibold {{ request()->routeIs('businesses.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('businesses.index') }}">
-                <i class="bi bi-buildings me-2"></i> Emprendimientos
-            </a>
-        </li>
+        {{-- 10. Mi Negocio (Solo Administrador) --}}
+        @if (auth()->check() && auth()->user()->isCurrentAdmin())
+            <li class="nav-item">
+                <a class="nav-link fw-semibold {{ request()->routeIs('businesses.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('businesses.edit') }}">
+                    <i class="bi bi-buildings me-2"></i> Mi negocio
+                </a>
+            </li>
+        @endif
 
         {{-- 11. Equipo (Solo Administrador) --}}
         @if (auth()->check() && auth()->user()->isCurrentAdmin())

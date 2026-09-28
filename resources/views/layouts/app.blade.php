@@ -155,40 +155,9 @@
             {{-- Elementos de la derecha: Badge del emprendimiento activo, usuario y botón Salir --}}
             <div class="d-flex align-items-center gap-2 gap-md-3">
                 @if (isset($currentBusiness))
-                    <div class="dropdown">
-                        <button class="btn tenant-selector dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-shop text-primary"></i> <span class="d-none d-sm-inline">{{ $currentBusiness->name }}</span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-2">
-                            <li class="dropdown-header small text-uppercase fw-bold text-muted">Cambiar Emprendimiento</li>
-                            @if (isset($userBusinesses))
-                                @foreach ($userBusinesses as $biz)
-                                    <li>
-                                        <form method="POST" action="{{ route('businesses.switch', $biz) }}">
-                                            @csrf
-                                            <button type="submit" class="dropdown-item d-flex justify-content-between align-items-center py-2 {{ $biz->id === $currentBusiness->id ? 'active fw-bold' : '' }}">
-                                                <span>{{ $biz->name }}</span>
-                                                @if ($biz->id === $currentBusiness->id)
-                                                    <i class="bi bi-check2"></i>
-                                                @endif
-                                            </button>
-                                        </form>
-                                    </li>
-                                @endforeach
-                            @endif
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item small text-primary fw-semibold" href="{{ route('businesses.create') }}">
-                                    <i class="bi bi-plus-circle me-1"></i> Registrar otro negocio
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item small text-secondary" href="{{ route('businesses.index') }}">
-                                    <i class="bi bi-gear me-1"></i> Administrar todos
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+                    <span class="tenant-selector">
+                        <i class="bi bi-shop text-primary"></i> <span class="d-none d-sm-inline">{{ $currentBusiness->name }}</span>
+                    </span>
                 @endif
 
                 <span class="user-pill">

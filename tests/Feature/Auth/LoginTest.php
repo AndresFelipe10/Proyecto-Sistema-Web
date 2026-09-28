@@ -26,6 +26,20 @@ class LoginTest extends TestCase
             'password' => bcrypt('password123'),
         ]);
 
+        $adminRole = \App\Models\Role::firstOrCreate(
+            ['slug' => \App\Models\Role::ROLE_ADMIN],
+            ['name' => 'Administrador', 'description' => 'Acceso y administración total']
+        );
+
+        $business = \App\Models\Business::create([
+            'name' => 'Negocio Test',
+            'status' => 'active',
+        ]);
+        $business->users()->attach($user->id, [
+            'role_id' => $adminRole->id,
+            'is_active' => true,
+        ]);
+
         $response = $this->post('/login', [
             'email' => 'andres@example.com',
             'password' => 'password123',

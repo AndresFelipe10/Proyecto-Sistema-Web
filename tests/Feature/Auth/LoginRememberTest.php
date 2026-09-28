@@ -10,12 +10,33 @@ class LoginRememberTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_login_with_remember_value_one_succeeds_without_validation_error(): void
+    protected function createUserWithBusiness(string $email, string $password = 'secret123'): User
     {
         $user = User::factory()->create([
-            'email' => 'juan@example.com',
-            'password' => bcrypt('secret123'),
+            'email' => $email,
+            'password' => bcrypt($password),
         ]);
+
+        $adminRole = \App\Models\Role::firstOrCreate(
+            ['slug' => \App\Models\Role::ROLE_ADMIN],
+            ['name' => 'Administrador', 'description' => 'Acceso y administración total']
+        );
+
+        $business = \App\Models\Business::create([
+            'name' => 'Negocio Test',
+            'status' => 'active',
+        ]);
+        $business->users()->attach($user->id, [
+            'role_id' => $adminRole->id,
+            'is_active' => true,
+        ]);
+
+        return $user;
+    }
+
+    public function test_login_with_remember_value_one_succeeds_without_validation_error(): void
+    {
+        $user = $this->createUserWithBusiness('juan@example.com');
 
         $response = $this->post('/login', [
             'email' => 'juan@example.com',
@@ -30,10 +51,7 @@ class LoginRememberTest extends TestCase
 
     public function test_login_with_remember_browser_default_on_succeeds_without_validation_error(): void
     {
-        $user = User::factory()->create([
-            'email' => 'maria@example.com',
-            'password' => bcrypt('secret123'),
-        ]);
+        $user = $this->createUserWithBusiness('maria@example.com');
 
         $response = $this->post('/login', [
             'email' => 'maria@example.com',
@@ -48,10 +66,7 @@ class LoginRememberTest extends TestCase
 
     public function test_login_with_remember_boolean_true_succeeds_without_validation_error(): void
     {
-        $user = User::factory()->create([
-            'email' => 'carlos@example.com',
-            'password' => bcrypt('secret123'),
-        ]);
+        $user = $this->createUserWithBusiness('carlos@example.com');
 
         $response = $this->post('/login', [
             'email' => 'carlos@example.com',
@@ -66,10 +81,7 @@ class LoginRememberTest extends TestCase
 
     public function test_login_without_remember_parameter_succeeds(): void
     {
-        $user = User::factory()->create([
-            'email' => 'ana@example.com',
-            'password' => bcrypt('secret123'),
-        ]);
+        $user = $this->createUserWithBusiness('ana@example.com');
 
         $response = $this->post('/login', [
             'email' => 'ana@example.com',

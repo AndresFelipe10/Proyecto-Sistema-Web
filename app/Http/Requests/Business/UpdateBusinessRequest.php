@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Business;
 
+use App\Services\Tenant\TenantManager;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateBusinessRequest extends FormRequest
@@ -11,7 +12,9 @@ class UpdateBusinessRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('update', $this->route('business'));
+        $business = $this->route('business') ?? app(TenantManager::class)->get();
+
+        return $business !== null && $this->user()->can('update', $business);
     }
 
     /**

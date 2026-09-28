@@ -19,7 +19,6 @@ class Business extends Model
         'phone',
         'email',
         'address',
-        'is_active',
     ];
 
     protected function casts(): array
@@ -27,6 +26,11 @@ class Business extends Model
         return [
             'is_active' => 'boolean',
         ];
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active' && (bool) $this->is_active;
     }
 
     public function users(): BelongsToMany

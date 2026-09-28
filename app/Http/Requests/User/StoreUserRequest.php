@@ -23,7 +23,9 @@ class StoreUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email', 'max:255', 'exists:users,email'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8'],
             'role_id' => ['required', 'exists:roles,id'],
         ];
     }
@@ -36,7 +38,7 @@ class StoreUserRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.exists' => 'El correo electrónico no corresponde a ningún usuario registrado en la plataforma.',
+            'email.unique' => 'Ese correo no está disponible.',
             'role_id.exists' => 'El rol seleccionado no es válido.',
         ];
     }

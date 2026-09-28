@@ -9,7 +9,9 @@ use App\Models\User;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class UserController extends Controller
@@ -55,25 +57,22 @@ class UserController extends Controller
     public function store(StoreUserRequest $request): RedirectResponse
     {
         $currentBusiness = app(TenantManager::class)->get();
-        $targetUser = User::where('email', $request->email)->firstOrFail();
 
-        $alreadyMember = $currentBusiness->users()
-            ->where('users.id', $targetUser->id)
-            ->exists();
-
-        if ($alreadyMember) {
-            return back()->withInput()->withErrors([
-                'email' => 'Este usuario ya está vinculado a este emprendimiento.',
+        DB::transaction(function () use ($request, $currentBusiness) {
+            $user = User::create([
+                'name' => $request->string('name'),
+                'email' => $request->string('email'),
+                'password' => Hash::make($request->string('password')),
             ]);
-        }
 
-        $currentBusiness->users()->attach($targetUser->id, [
-            'role_id' => $request->role_id,
-            'is_active' => true,
-        ]);
+            $currentBusiness->users()->attach($user->id, [
+                'role_id' => $request->role_id,
+                'is_active' => true,
+            ]);
+        });
 
         return redirect()->route('users.index')
-            ->with('status', "Usuario {$targetUser->name} ({$targetUser->email}) incorporado al equipo exitosamente.");
+            ->with('status', "Colaborador '{$request->name}' registrado exitosamente en el equipo.");
     }
 
     /**

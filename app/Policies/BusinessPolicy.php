@@ -13,6 +13,10 @@ class BusinessPolicy
      */
     public function view(User $user, Business $business): bool
     {
+        if ((int) $business->id !== (int) session('current_business_id')) {
+            return false;
+        }
+
         return $user->businesses()
             ->where('businesses.id', $business->id)
             ->wherePivot('is_active', true)
@@ -20,29 +24,14 @@ class BusinessPolicy
     }
 
     /**
-     * Determine whether the user can update the business.
+     * Determine whether the user can update the business ("Mi negocio").
      */
     public function update(User $user, Business $business): bool
     {
-        $membership = $user->businesses()
-            ->where('businesses.id', $business->id)
-            ->wherePivot('is_active', true)
-            ->first();
-
-        if (! $membership) {
+        if ((int) $business->id !== (int) session('current_business_id')) {
             return false;
         }
 
-        $role = Role::find($membership->pivot->role_id);
-
-        return $role !== null && $role->slug === Role::ROLE_ADMIN;
-    }
-
-    /**
-     * Determine whether the user can switch to the business.
-     */
-    public function switch(User $user, Business $business): bool
-    {
-        return $this->view($user, $business);
+        return $user->isAdminOf($business);
     }
 }

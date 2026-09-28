@@ -39,40 +39,28 @@ class TenantIsolationTest extends TestCase
         ]);
     }
 
-    public function test_user_without_business_is_redirected_to_business_creation_screen(): void
+    public function test_user_without_active_membership_cannot_enter_and_session_is_terminated(): void
     {
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->get('/dashboard');
 
-        $response->assertRedirect(route('businesses.create'));
-        $response->assertSessionHas('info');
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHasErrors(['email' => 'Tu cuenta no está activa. Contacta a soporte.']);
+        $this->assertGuest();
     }
 
-    public function test_user_can_create_business_and_becomes_admin(): void
+    public function test_normal_user_cannot_create_business_returns_404(): void
     {
         $user = User::factory()->create();
+        $business = Business::create(['name' => 'Empresa Original']);
+        $business->users()->attach($user->id, ['role_id' => $this->adminRole->id, 'is_active' => true]);
 
         $response = $this->actingAs($user)->post('/businesses', [
-            'name' => 'Emprendimiento Valle',
-            'nit' => '901234567-8',
-            'phone' => '3009876543',
-            'email' => 'info@valle.com',
-            'address' => 'Carrera 1 # 10-20',
+            'name' => 'Emprendimiento No Autorizado',
         ]);
 
-        $response->assertRedirect(route('dashboard'));
-        $this->assertDatabaseHas('businesses', [
-            'name' => 'Emprendimiento Valle',
-            'nit' => '901234567-8',
-        ]);
-
-        $business = Business::where('name', 'Emprendimiento Valle')->first();
-        $this->assertTrue($user->businesses()->where('businesses.id', $business->id)->exists());
-
-        $pivot = $user->businesses()->where('businesses.id', $business->id)->first()->pivot;
-        $this->assertEquals($this->adminRole->id, $pivot->role_id);
-        $this->assertEquals($business->id, session('current_business_id'));
+        $response->assertNotFound();
     }
 
     public function test_global_scope_isolates_records_between_tenants(): void
@@ -158,57 +146,49 @@ class TenantIsolationTest extends TestCase
         $this->assertEquals($business->id, $category->business_id);
     }
 
-    public function test_user_cannot_switch_to_unauthorized_business(): void
+    public function test_business_switch_route_is_removed_returns_404(): void
     {
         $userA = User::factory()->create();
         $businessA = Business::create(['name' => 'Empresa A']);
         $businessA->users()->attach($userA->id, ['role_id' => $this->adminRole->id, 'is_active' => true]);
 
-        $userB = User::factory()->create();
         $businessB = Business::create(['name' => 'Empresa B']);
-        $businessB->users()->attach($userB->id, ['role_id' => $this->adminRole->id, 'is_active' => true]);
 
-        // User A tries to switch to Business B
         $response = $this->actingAs($userA)
-            ->withSession(['current_business_id' => $businessA->id])
-            ->post(route('businesses.switch', $businessB));
+            ->post("/businesses/{$businessB->id}/switch");
 
-        $response->assertStatus(403);
+        $response->assertNotFound();
     }
 
-    public function test_user_can_switch_between_their_own_businesses(): void
+    public function test_user_can_only_have_one_membership_enforced_by_database_unique_constraint(): void
     {
         $user = User::factory()->create();
         $business1 = Business::create(['name' => 'Mi Primer Negocio']);
         $business2 = Business::create(['name' => 'Mi Segundo Negocio']);
 
         $business1->users()->attach($user->id, ['role_id' => $this->adminRole->id, 'is_active' => true]);
+
+        $this->expectException(\Illuminate\Database\QueryException::class);
         $business2->users()->attach($user->id, ['role_id' => $this->adminRole->id, 'is_active' => true]);
-
-        $response = $this->actingAs($user)
-            ->withSession(['current_business_id' => $business1->id])
-            ->post(route('businesses.switch', $business2));
-
-        $response->assertRedirect(route('dashboard'));
-        $this->assertEquals($business2->id, session('current_business_id'));
     }
 
-    public function test_user_cannot_update_unauthorized_business(): void
+    public function test_admin_can_update_own_business_via_my_business_route(): void
     {
-        $userA = User::factory()->create();
-        $businessA = Business::create(['name' => 'Empresa A']);
-        $businessA->users()->attach($userA->id, ['role_id' => $this->adminRole->id, 'is_active' => true]);
+        $user = User::factory()->create();
+        $business = Business::create(['name' => 'Mi Negocio Real']);
+        $business->users()->attach($user->id, ['role_id' => $this->adminRole->id, 'is_active' => true]);
 
-        $userB = User::factory()->create();
-        $businessB = Business::create(['name' => 'Empresa B']);
-        $businessB->users()->attach($userB->id, ['role_id' => $this->adminRole->id, 'is_active' => true]);
-
-        $response = $this->actingAs($userA)
-            ->withSession(['current_business_id' => $businessA->id])
-            ->put(route('businesses.update', $businessB), [
-                'name' => 'Hack Attempt Name',
+        $response = $this->actingAs($user)
+            ->put(route('businesses.update'), [
+                'name' => 'Mi Negocio Real Actualizado',
+                'nit' => '901234567-8',
             ]);
 
-        $response->assertStatus(403);
+        $response->assertRedirect(route('businesses.edit'));
+        $this->assertDatabaseHas('businesses', [
+            'id' => $business->id,
+            'name' => 'Mi Negocio Real Actualizado',
+            'nit' => '901234567-8',
+        ]);
     }
 }
