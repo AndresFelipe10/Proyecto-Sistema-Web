@@ -70,8 +70,8 @@
                             @endif
                         </td>
                         <td>
-                            @if ($customer->identification_number)
-                                <span class="badge bg-light text-dark border font-monospace">{{ $customer->identification_number }}</span>
+                            @if ($customer->document ?? $customer->identification_number)
+                                <span class="badge bg-light text-dark border font-monospace">{{ $customer->document ?? $customer->identification_number }}</span>
                             @else
                                 <span class="text-muted small">—</span>
                             @endif

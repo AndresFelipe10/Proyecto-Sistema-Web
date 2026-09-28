@@ -44,12 +44,17 @@
                     </div>
 
                     <div class="col-md-5">
-                        <label for="identification_number" class="form-label small fw-semibold text-secondary">Cédula / NIT / Identificación</label>
+                        <label for="document" class="form-label small fw-semibold text-secondary">Cédula / NIT / Identificación <span class="text-danger">*</span></label>
                         <input type="text" 
-                               class="form-control font-monospace @error('identification_number') is-invalid @enderror" 
-                               id="identification_number" 
-                               name="identification_number" 
-                               value="{{ old('identification_number', $customer->identification_number) }}">
+                               class="form-control font-monospace @error('document') is-invalid @enderror" 
+                               id="document" 
+                               name="document" 
+                               value="{{ old('document', $customer->document ?? $customer->identification_number) }}" 
+                               placeholder="Ej. 1144123456 o 900123456-1"
+                               required>
+                        @error('document')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
 

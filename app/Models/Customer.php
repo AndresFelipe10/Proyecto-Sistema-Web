@@ -16,12 +16,35 @@ class Customer extends Model
     protected $fillable = [
         'business_id',
         'name',
+        'document',
         'identification_number',
         'email',
         'phone',
         'address',
         'is_active',
     ];
+
+    public function setDocumentAttribute($value): void
+    {
+        $this->attributes['document'] = $value;
+        $this->attributes['identification_number'] = $value;
+    }
+
+    public function setIdentificationNumberAttribute($value): void
+    {
+        $this->attributes['document'] = $value;
+        $this->attributes['identification_number'] = $value;
+    }
+
+    public function getDocumentAttribute($value): ?string
+    {
+        return $value ?? $this->attributes['identification_number'] ?? null;
+    }
+
+    public function getIdentificationNumberAttribute($value): ?string
+    {
+        return $value ?? $this->attributes['document'] ?? null;
+    }
 
     protected function casts(): array
     {

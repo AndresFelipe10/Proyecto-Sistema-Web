@@ -114,12 +114,14 @@ class CustomerTest extends TestCase
         $customer = Customer::withoutGlobalScopes()->create([
             'business_id' => $this->businessA->id,
             'name' => 'Nombre Antiguo',
+            'document' => '1144001122',
         ]);
 
         $response = $this->actingAs($this->adminUser)
             ->withSession(['current_business_id' => $this->businessA->id])
             ->put(route('customers.update', $customer), [
                 'name' => 'Nombre Nuevo',
+                'document' => '1144001122',
                 'phone' => '3001112233',
                 'is_active' => '1',
             ]);
@@ -128,6 +130,7 @@ class CustomerTest extends TestCase
         $this->assertDatabaseHas('customers', [
             'id' => $customer->id,
             'name' => 'Nombre Nuevo',
+            'document' => '1144001122',
             'phone' => '3001112233',
         ]);
     }

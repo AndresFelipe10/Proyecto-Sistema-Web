@@ -10,8 +10,8 @@
         </a>
         <div>
             <h3 class="fw-bold mb-0">{{ $customer->name }}</h3>
-            @if ($customer->identification_number)
-                <span class="badge bg-light text-dark font-monospace border">ID: {{ $customer->identification_number }}</span>
+            @if ($customer->document ?? $customer->identification_number)
+                <span class="badge bg-light text-dark font-monospace border">ID: {{ $customer->document ?? $customer->identification_number }}</span>
             @endif
         </div>
     </div>
@@ -32,7 +32,7 @@
             <ul class="list-unstyled mb-0">
                 <li class="mb-3">
                     <span class="text-muted small d-block">Identificación Tributaria / Cédula</span>
-                    <span class="fw-semibold">{{ $customer->identification_number ?? 'No especificada' }}</span>
+                    <span class="fw-semibold">{{ $customer->document ?? $customer->identification_number ?? 'No especificada' }}</span>
                 </li>
                 <li class="mb-3">
                     <span class="text-muted small d-block">Teléfono / WhatsApp</span>
