@@ -47,6 +47,7 @@ RUN composer dump-autoload --optimize --no-dev
 
 # Configure production PHP settings
 COPY ./docker/php/production.ini /usr/local/etc/php/conf.d/production.ini
+COPY ./docker/php/prod/www.conf /usr/local/etc/php-fpm.d/www.conf
 
 # Ensure storage and bootstrap/cache directories exist with proper permissions
 RUN mkdir -p storage/framework/sessions \

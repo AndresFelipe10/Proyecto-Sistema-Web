@@ -13,6 +13,11 @@ services:
       DB_PORT: 3306
     volumes:
       - app_storage:/var/www/html/storage
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - sistema_prod_network
     depends_on:
@@ -32,6 +37,11 @@ services:
       - app_storage:/var/www/html/storage:ro
       - ./docker/certbot/conf:/etc/letsencrypt:ro
       - ./docker/certbot/www:/var/www/certbot:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - sistema_prod_network
     depends_on:
@@ -48,6 +58,11 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
       - mysql_prod_data:/var/lib/mysql
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - sistema_prod_network
     healthcheck:
