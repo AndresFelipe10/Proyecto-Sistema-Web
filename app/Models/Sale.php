@@ -18,6 +18,8 @@ class Sale extends Model
         'business_id',
         'user_id',
         'customer_id',
+        'customer_name',
+        'customer_document',
         'invoice_number',
         'sale_date',
         'subtotal',

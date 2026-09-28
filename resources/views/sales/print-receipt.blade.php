@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticket {{ $sale->invoice_number }} | {{ config('app.name') }}</title>
+    <title>Comprobante de venta {{ $sale->invoice_number }} | {{ config('app.name') }}</title>
     @include('partials.brand-head')
     <style>
         /* ── Thermal receipt: 80mm width ── */
@@ -146,7 +146,7 @@
 </head>
 <body>
     <div class="no-print">
-        <button onclick="window.print()">🧾 Imprimir Ticket</button>
+        <button onclick="window.print()">🧾 Imprimir comprobante (ticket)</button>
         <button onclick="window.close()">Cerrar</button>
     </div>
 
@@ -167,7 +167,7 @@
     {{-- Invoice Info --}}
     <div class="receipt-info">
         <div class="row">
-            <span>Factura:</span>
+            <span>Comprobante:</span>
             <span><strong>{{ $sale->invoice_number }}</strong></span>
         </div>
         <div class="row">
@@ -176,7 +176,11 @@
         </div>
         <div class="row">
             <span>Cliente:</span>
-            <span>{{ $sale->customer ? $sale->customer->name : 'Consumidor Final' }}</span>
+            <span>{{ $sale->customer_name ?? ($sale->customer ? $sale->customer->name : config('sales.default_customer_name')) }}</span>
+        </div>
+        <div class="row">
+            <span>Doc/NIT:</span>
+            <span>{{ $sale->customer_document ?? ($sale->customer ? ($sale->customer->document ?? $sale->customer->identification_number) : config('sales.default_customer_document')) }}</span>
         </div>
         <div class="row">
             <span>Vendedor:</span>
@@ -235,6 +239,7 @@
         <div>{{ $business->name }}</div>
         <div>{{ now()->format('d/m/Y H:i') }}</div>
         <div>Cali, Colombia</div>
+        <div style="margin-top: 8px; font-size: 9px; line-height: 1.3; color: #444; font-style: italic;">{{ config('sales.legal_disclaimer') }}</div>
     </div>
 
     <script>

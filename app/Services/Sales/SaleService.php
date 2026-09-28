@@ -74,11 +74,31 @@ class SaleService
             // Generate unique invoice number for this business
             $invoiceNumber = $this->generateInvoiceNumber($businessId);
 
+            // Resolve customer snapshot (or fallback to Consumidor Final)
+            $customerId = $data['customer_id'] ?? null;
+            $customerName = config('sales.default_customer_name', 'CONSUMIDOR FINAL');
+            $customerDocument = config('sales.default_customer_document', '222222222222');
+
+            if ($customerId !== null) {
+                $customer = \App\Models\Customer::withoutGlobalScopes()
+                    ->where('business_id', $businessId)
+                    ->find($customerId);
+
+                if ($customer) {
+                    $customerName = $customer->name;
+                    $customerDocument = $customer->document ?? $customer->identification_number ?? $customerDocument;
+                } else {
+                    $customerId = null;
+                }
+            }
+
             // Create sale header
             $sale = Sale::create([
                 'business_id' => $businessId,
                 'user_id' => $userId,
-                'customer_id' => $data['customer_id'] ?? null,
+                'customer_id' => $customerId,
+                'customer_name' => $customerName,
+                'customer_document' => $customerDocument,
                 'invoice_number' => $invoiceNumber,
                 'sale_date' => $data['sale_date'],
                 'subtotal' => $subtotal,

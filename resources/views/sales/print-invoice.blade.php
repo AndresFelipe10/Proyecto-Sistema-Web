@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Factura {{ $sale->invoice_number }} | {{ config('app.name') }}</title>
+    <title>Comprobante de venta {{ $sale->invoice_number }} | {{ config('app.name') }}</title>
     @include('partials.brand-head')
     <style>
         /* ── Print-optimized layout for Letter/A4 ── */
@@ -126,7 +126,7 @@
                 @endif
             </div>
             <div class="invoice-meta">
-                <h2>Factura</h2>
+                <h2>Comprobante de venta</h2>
                 <p class="invoice-number">{{ $sale->invoice_number }}</p>
                 <p>Fecha: {{ $sale->sale_date->format('d/m/Y') }}</p>
                 <p>Hora: {{ $sale->sale_date->format('H:i') }}</p>
@@ -137,10 +137,8 @@
         <div class="info-grid">
             <div class="info-box">
                 <h3>Cliente</h3>
-                <p class="value">{{ $sale->customer ? $sale->customer->name : 'Consumidor Final' }}</p>
-                @if($sale->customer && $sale->customer->identification_number)
-                    <p>Doc: {{ $sale->customer->identification_number }}</p>
-                @endif
+                <p class="value">{{ $sale->customer_name ?? ($sale->customer ? $sale->customer->name : config('sales.default_customer_name')) }}</p>
+                <p>Doc/NIT: {{ $sale->customer_document ?? ($sale->customer ? ($sale->customer->document ?? $sale->customer->identification_number) : config('sales.default_customer_document')) }}</p>
                 @if($sale->customer && $sale->customer->phone)
                     <p>Tel: {{ $sale->customer->phone }}</p>
                 @endif
@@ -213,7 +211,8 @@
         <div class="invoice-footer">
             <p class="legal"><strong>{{ $business->name }}</strong>@if($business->nit) — NIT: {{ $business->nit }}@endif</p>
             <p>Documento generado el {{ now()->format('d/m/Y H:i') }} — Cali, Colombia</p>
-            <p>Gracias por su compra</p>
+            <p style="margin-top: 6px; font-size: 11px; color: #666; font-style: italic;">{{ config('sales.legal_disclaimer') }}</p>
+            <p style="margin-top: 4px;">Gracias por su compra</p>
         </div>
     </div>
 

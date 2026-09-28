@@ -88,6 +88,8 @@ class SalePrintTest extends TestCase
             'business_id' => $this->businessA->id,
             'user_id' => $this->adminUser->id,
             'customer_id' => $customer->id,
+            'customer_name' => $customer->name,
+            'customer_document' => '1144001122',
             'invoice_number' => 'VTA-202609-0001',
             'sale_date' => now(),
             'subtotal' => 100000,
@@ -111,6 +113,8 @@ class SalePrintTest extends TestCase
             'business_id' => $this->businessA->id,
             'user_id' => $this->adminUser->id,
             'customer_id' => null,
+            'customer_name' => config('sales.default_customer_name'),
+            'customer_document' => config('sales.default_customer_document'),
             'invoice_number' => 'VTA-202609-0002',
             'sale_date' => now(),
             'subtotal' => 50000,
@@ -182,7 +186,7 @@ class SalePrintTest extends TestCase
             ->get(route('sales.print.invoice', $this->saleNoCustomer));
 
         $response->assertStatus(200);
-        $response->assertSee('Consumidor Final');
+        $response->assertSee(config('sales.default_customer_name'));
         $response->assertDontSee('Venta al mostrador');
         $response->assertDontSee('Venta de Mostrador');
         $response->assertDontSee('Mostrador');
@@ -195,7 +199,7 @@ class SalePrintTest extends TestCase
             ->get(route('sales.print.receipt', $this->saleNoCustomer));
 
         $response->assertStatus(200);
-        $response->assertSee('Consumidor Final');
+        $response->assertSee(config('sales.default_customer_name'));
         $response->assertDontSee('Venta al mostrador');
     }
 

@@ -17,12 +17,12 @@
     <div class="d-flex align-items-center gap-2">
         @if ($sale->status === 'completed')
             <a href="{{ route('sales.print.invoice', $sale) }}" target="_blank"
-               class="btn btn-outline-primary btn-sm rounded-pill px-3" title="Imprimir factura tamaño carta/A4">
-                <i class="bi bi-printer me-1"></i> Imprimir Factura
+               class="btn btn-outline-primary btn-sm rounded-pill px-3" title="Imprimir comprobante tamaño carta/A4">
+                <i class="bi bi-printer me-1"></i> Imprimir comprobante (carta)
             </a>
             <a href="{{ route('sales.print.receipt', $sale) }}" target="_blank"
-               class="btn btn-outline-secondary btn-sm rounded-pill px-3" title="Imprimir ticket para impresora térmica 80mm">
-                <i class="bi bi-receipt me-1"></i> Imprimir Ticket
+               class="btn btn-outline-secondary btn-sm rounded-pill px-3" title="Imprimir comprobante para impresora térmica 80mm">
+                <i class="bi bi-receipt me-1"></i> Imprimir comprobante (ticket)
             </a>
             <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">
                 <i class="bi bi-check-circle-fill me-1"></i> Completada
@@ -59,12 +59,15 @@
                     <span class="fw-semibold">
                         @if ($sale->customer)
                             <a href="{{ route('customers.show', $sale->customer) }}" class="text-decoration-none">
-                                {{ $sale->customer->name }}
+                                {{ $sale->customer_name ?? $sale->customer->name }}
                             </a>
                         @else
-                            <span class="text-secondary">Consumidor Final</span>
+                            <span>{{ $sale->customer_name ?? config('sales.default_customer_name') }}</span>
                         @endif
                     </span>
+                    @if ($sale->customer_document)
+                        <span class="text-muted small d-block font-monospace">Doc: {{ $sale->customer_document }}</span>
+                    @endif
                 </div>
                 <div class="col-sm-6 col-md-3">
                     <span class="text-muted small d-block">Vendedor</span>

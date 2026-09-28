@@ -77,12 +77,15 @@ class SaleController extends Controller
     {
         Gate::authorize('create', Sale::class);
 
-        $customers = Customer::where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'identification_number']);
+        $selectedCustomer = null;
+        if (old('customer_id')) {
+            $selectedCustomer = Customer::find(old('customer_id'));
+        }
 
         return view('sales.create', [
-            'customers' => $customers,
+            'defaultCustomerName' => config('sales.default_customer_name', 'CONSUMIDOR FINAL'),
+            'defaultCustomerDocument' => config('sales.default_customer_document', '222222222222'),
+            'selectedCustomer' => $selectedCustomer,
         ]);
     }
 

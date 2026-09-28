@@ -46,6 +46,16 @@ class StoreSaleRequest extends FormRequest
     }
 
     /**
+     * Prepare data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('customer_id') && ($this->input('customer_id') === '' || $this->input('customer_id') === 'null')) {
+            $this->merge(['customer_id' => null]);
+        }
+    }
+
+    /**
      * Get custom attribute names for validator errors.
      */
     public function attributes(): array
