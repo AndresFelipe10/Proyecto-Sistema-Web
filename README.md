@@ -1,14 +1,14 @@
-# Sistema Web de Gestión de Ventas e Inventario para Pequeños Emprendimientos
+# PuntoStock — Sistema Web de Gestión de Ventas e Inventario para Pequeños Emprendimientos
 
 [![PHP](https://img.shields.io/badge/PHP-8.3-777BB4?style=flat-square&logo=php&logoColor=white)](https://www.php.net/)
 [![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20?style=flat-square&logo=laravel&logoColor=white)](https://laravel.com/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![Docker Compose](https://img.shields.io/badge/Docker%20Compose-3%20Servicios-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=flat-square&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
-[![Tests](https://img.shields.io/badge/Tests-171%20passed%20(686%20assertions)-brightgreen?style=flat-square)]()
+[![Tests](https://img.shields.io/badge/Tests-176%20passed-brightgreen?style=flat-square)]()
 [![Security](https://img.shields.io/badge/OWASP-Hardened-blue?style=flat-square)]()
 
-Sistema web integral, multiusuario y multi-tenant diseñado específicamente para centralizar y optimizar la gestión comercial, ventas, inventario y toma de decisiones en pequeños emprendimientos de **Cali, Colombia**. 
+**PuntoStock** es un sistema web integral, multiusuario y multi-tenant diseñado específicamente para centralizar y optimizar la gestión comercial, ventas, inventario y toma de decisiones en pequeños emprendimientos de **Cali, Colombia**. 
 
 Desarrollado como proyecto de Ingeniería de Sistemas bajo estrictos estándares profesionales de arquitectura, seguridad perimetral, integridad transaccional y capacidad de despliegue en producción.
 
@@ -246,6 +246,31 @@ El proyecto incluye configuraciones listas para despliegue en servidores VPS (Ub
    - Restauración interactiva: `bash scripts/restore-db.sh backups/dump_archivo.sql.gz`
 
 Para consultar los requisitos de hardware, configuración de dominio, certificados SSL con Let's Encrypt y buenas prácticas operativas, consulta la **[Guía de Despliegue Reproducible en docs/ARQUITECTURA.md](docs/ARQUITECTURA.md#gu%C3%ADa-de-despliegue-reproducible-en-producci%C3%B3n)**.
+
+> **Nota sobre variables de entorno**: Tras modificar `APP_NAME` u otras variables en `.env`, es necesario reconstruir la imagen Docker (`docker compose -f docker-compose.prod.yml build app`) y ejecutar `php artisan config:cache` para que la configuración se actualice en los contenedores de producción.
+
+---
+
+## Identidad Visual
+
+El sistema adopta la identidad de marca **PuntoStock** con una paleta cromática profesional y contrastada:
+
+- **Tinta (`#1B2A49`)**: Color primario de marca, textos destacados, barras de navegación y meta theme-color.
+- **Azafrán (`#E8A317`)**: Color de acento comercial y punto característico del imagotipo.
+- **Hueso (`#F6F4EF`)**: Tono de fondo complementario y contraste secundario.
+
+### Ubicación de Assets de Marca
+- **Assets servidos al cliente (`public/`)**:
+  - `public/favicon.svg`: Ícono vectorial SVG principal para navegadores modernos.
+  - `public/favicon.ico`: Favicon multipropósito ICO (16, 32 y 48 px).
+  - `public/favicon-16x16.png` y `public/favicon-32x32.png`: Variantes estándar PNG.
+  - `public/apple-touch-icon.png`: Ícono para dispositivos móviles Apple (180x180 px).
+  - `public/images/brand/logo-mark.svg`: Símbolo "P.S" con punto azafrán y viewBox ajustado (proporción ancho:alto ≈ 0.73).
+- **Archivos maestros de diseño (`resources/branding/`)**:
+  - `resources/branding/logo-master.svg` y `favicon-master.svg`: Vectores originales de referencia (no se sirven directamente).
+- **Vistas y componentes Blade (`resources/views/`)**:
+  - `resources/views/partials/brand-head.blade.php`: Inclusión unificada de favicons con versionado cache buster (`?v=1`).
+  - `resources/views/components/brand.blade.php`: Componente `<x-brand size="sm|lg" />` con texto HTML real y logo vectorial.
 
 ---
 

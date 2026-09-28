@@ -1,6 +1,6 @@
 # Manual de Usuario
 
-> Guía básica de uso del sistema de gestión de ventas e inventario.
+> Guía básica de uso de **PuntoStock**, sistema de gestión de ventas e inventario para pequeños emprendimientos.
 
 ## Registrar una venta
 
