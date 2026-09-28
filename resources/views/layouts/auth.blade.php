@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Acceso') — {{ config('app.name') }}</title>
+    <title>@hasSection('title')@yield('title') | @endif{{ config('app.name') }}</title>
+    @include('partials.brand-head')
     
     <!-- Bootstrap 5 CSS & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -86,9 +87,9 @@
             <div class="auth-card">
                 <div class="p-4 p-sm-5">
                     <div class="text-center mb-4">
-                        <span class="brand-badge mb-3">
-                            <i class="bi bi-shop"></i> Cali Emprende
-                        </span>
+                        <div class="d-flex justify-content-center mb-3">
+                            <x-brand size="lg" />
+                        </div>
                         <h1 class="h4 fw-bold text-dark mb-1">@yield('heading')</h1>
                         <p class="text-muted small">@yield('subheading')</p>
                     </div>

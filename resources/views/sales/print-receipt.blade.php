@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticket {{ $sale->invoice_number }}</title>
+    <title>Ticket {{ $sale->invoice_number }} | {{ config('app.name') }}</title>
+    @include('partials.brand-head')
     <style>
         /* ── Thermal receipt: 80mm width ── */
         @page {

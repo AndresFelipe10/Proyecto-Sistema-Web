@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Panel') — {{ config('app.name') }}</title>
+    <title>@hasSection('title')@yield('title') | @endif{{ config('app.name') }}</title>
+    @include('partials.brand-head')
 
     <!-- Bootstrap 5 CSS & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -146,8 +147,8 @@
                     <i class="bi bi-list fs-3"></i>
                 </button>
 
-                <a class="navbar-brand m-0" href="{{ route('dashboard') }}">
-                    <i class="bi bi-box-seam-fill"></i> {{ config('app.name') }}
+                <a class="navbar-brand m-0 text-decoration-none" href="{{ route('dashboard') }}">
+                    <x-brand size="sm" />
                 </a>
             </div>
 
