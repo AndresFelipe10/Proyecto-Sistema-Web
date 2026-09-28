@@ -83,35 +83,34 @@
                         </td>
                         <td>
                             @if ($biz->subscription_ends_at)
-                                <div class="fw-semibold text-light mb-1">
+                                <div class="fw-bold mb-1" style="color: #1e293b !important; font-size: 0.95rem;">
                                     {{ $biz->subscription_ends_at->timezone('America/Bogota')->format('d M, Y') }}
                                 </div>
                                 @php
                                     $daysLeft = $biz->daysUntilExpiration();
                                 @endphp
                                 @if ($daysLeft < 0)
-                                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25">
-                                        <i class="bi bi-x-circle me-1"></i>Vencida ({{ abs($daysLeft) }}d)
+                                    <span class="badge bg-danger bg-opacity-75 text-white border border-danger">
+                                        <i class="bi bi-slash-circle-fill me-1"></i>⛔ Vencida (hace {{ abs($daysLeft) }} {{ abs($daysLeft) === 1 ? 'día' : 'días' }})
                                     </span>
-                                @elseif ($daysLeft === 0)
+                                @elseif ($biz->isCriticalExpiring())
                                     <span class="badge bg-danger text-white">
-                                        <i class="bi bi-alarm me-1"></i>Vence hoy
+                                        <i class="bi bi-exclamation-octagon-fill me-1"></i>🚨 Notif. Crítica ({{ $daysLeft === 0 ? 'Vence hoy' : '1d restante' }})
                                     </span>
-                                @elseif ($daysLeft === 1)
-                                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25">
-                                        <i class="bi bi-clock me-1"></i>1 día restante
-                                    </span>
-                                @elseif ($daysLeft <= 3)
-                                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25">
-                                        <i class="bi bi-clock me-1"></i>{{ $daysLeft }} días restantes
+                                @elseif ($biz->isExpiringSoon())
+                                    <span class="badge bg-warning text-dark border border-warning">
+                                        <i class="bi bi-bell-fill me-1"></i>🔔 Notif. Preventiva ({{ $daysLeft }}d restantes)
                                     </span>
                                 @else
-                                    <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25">
-                                        <i class="bi bi-calendar-check me-1"></i>{{ $daysLeft }} días restantes
+                                    <span class="badge bg-info bg-opacity-25 text-info-emphasis border border-info border-opacity-25">
+                                        <i class="bi bi-check-circle-fill me-1"></i>✅ Al día (Sin notif.)
                                     </span>
                                 @endif
                             @else
-                                <span class="text-muted small">Sin fecha</span>
+                                @php
+                                    $daysLeft = null;
+                                @endphp
+                                <span class="badge bg-secondary bg-opacity-25 text-secondary">Sin fecha</span>
                             @endif
                         </td>
                         <td>
@@ -133,8 +132,17 @@
                                 <a href="{{ route('superadmin.businesses.users', $biz) }}" class="btn btn-outline-info" title="Ver usuarios">
                                     <i class="bi bi-people"></i>
                                 </a>
+                                @php
+                                    $expFormatted = $biz->subscription_ends_at ? $biz->subscription_ends_at->timezone('America/Bogota')->format('d/m/Y') : 'sin fecha';
+                                    $nextCutFormatted = $biz->subscription_ends_at ? $biz->subscription_ends_at->copy()->timezone('America/Bogota')->addDays(30)->format('d/m/Y') : 'en 30 días';
+                                    if ($daysLeft !== null && $daysLeft > 3) {
+                                        $confirmRenew = "Este negocio aún tiene {$daysLeft} días vigentes (vence el {$expFormatted}). ¿Seguro que deseas extender 30 días adicionales a su fecha de corte?";
+                                    } else {
+                                        $confirmRenew = "¿Confirmas la renovación de 30 días para {$biz->name}? Nueva fecha de corte: {$nextCutFormatted}.";
+                                    }
+                                @endphp
                                 <form method="POST" action="{{ route('superadmin.businesses.renewSubscription', $biz) }}" class="d-inline"
-                                      onsubmit="return confirm('¿Renovar 30 días calendario la suscripción de {{ $biz->name }}?');">
+                                      onsubmit="return confirm('{{ addslashes($confirmRenew) }}');">
                                     @csrf
                                     <button type="submit" class="btn btn-outline-success" title="Renovar 30 días">
                                         <i class="bi bi-arrow-repeat"></i>

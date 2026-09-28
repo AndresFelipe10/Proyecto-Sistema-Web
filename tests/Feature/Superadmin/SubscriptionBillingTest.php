@@ -107,9 +107,10 @@ class SubscriptionBillingTest extends TestCase
     }
 
     /**
-     * 2b. Test de renovación cuando la suscripción ya estaba vencida: renueva 30 días a partir de hoy.
+     * 2b. Test de renovación cuando la suscripción ya estaba vencida:
+     * suma 30 días estrictamente a su fecha de corte original para preservar el ciclo mensual fijo.
      */
-    public function test_superadmin_renewal_action_extends_expired_subscription_from_today(): void
+    public function test_superadmin_renewal_action_extends_expired_subscription_strictly_from_previous_cutoff(): void
     {
         $knownNow = Carbon::parse('2026-09-28 10:00:00', 'America/Bogota');
         Carbon::setTestNow($knownNow);
@@ -131,8 +132,8 @@ class SubscriptionBillingTest extends TestCase
 
         $business->refresh();
 
-        // Debe sumar 30 días a partir de hoy (knownNow)
-        $expectedEnd = $knownNow->copy()->addDays(30);
+        // Debe sumar 30 días estrictamente a la fecha en que venció (pastEnd)
+        $expectedEnd = $pastEnd->copy()->addDays(30);
         $this->assertSame(
             $expectedEnd->format('Y-m-d H:i:s'),
             $business->subscription_ends_at->timezone('America/Bogota')->format('Y-m-d H:i:s')
@@ -293,7 +294,7 @@ class SubscriptionBillingTest extends TestCase
     }
 
     /**
-     * 4. Test UI Superadmin: contraste de logo blanco, alertas y columna Vencimiento Mensualidad.
+     * 4. Test UI Superadmin: contraste de logo blanco, alertas y columna Vencimiento Mensualidad con color oscuro.
      */
     public function test_superadmin_views_display_white_brand_and_expiration_columns(): void
     {
@@ -315,7 +316,10 @@ class SubscriptionBillingTest extends TestCase
         $response->assertSee('text-white');
         $response->assertSee('Vencimiento Mensualidad');
         $response->assertSee($knownNow->copy()->addDays(30)->format('d M, Y'));
-        $response->assertSee('30 días restantes');
+        // Verifica el estilo de alto contraste oscuro para la fecha
+        $response->assertSee('style="color: #1e293b !important; font-size: 0.95rem;"', false);
+        // Verifica el badge de "Al día"
+        $response->assertSee('Al día (Sin notif.)');
         $response->assertSee('Renovar 30 días');
 
         // Vista de edición
@@ -323,6 +327,140 @@ class SubscriptionBillingTest extends TestCase
         $editResponse->assertStatus(200);
         $editResponse->assertSee('Vencimiento Mensualidad');
         $editResponse->assertSee('Renovar 30 días');
+        $editResponse->assertSee('name="subscription_ends_at"', false);
+
+        Carbon::setTestNow();
+    }
+
+    /**
+     * 5. Test: Al renovar la suscripción, el banner de recordatorio en la sesión del cliente desaparece de inmediato.
+     */
+    public function test_renewal_immediately_clears_client_warning_banner(): void
+    {
+        $knownNow = Carbon::parse('2026-09-28 08:00:00', 'America/Bogota');
+        Carbon::setTestNow($knownNow);
+
+        // Negocio a 2 días de vencer (alerta preventiva activa)
+        $business = Business::create([
+            'name' => 'Restaurante El Sabor',
+            'status' => 'active',
+            'subscription_starts_at' => $knownNow->copy()->subDays(28),
+            'subscription_ends_at' => $knownNow->copy()->addDays(2),
+        ]);
+
+        $tenantUser = User::factory()->create();
+        $business->users()->attach($tenantUser->id, [
+            'role_id' => $this->adminRole->id,
+            'is_active' => true,
+        ]);
+
+        // 1. Verificar que el cliente ve la alerta
+        $clientResponseBefore = $this->actingAs($tenantUser)->get('/dashboard');
+        $clientResponseBefore->assertStatus(200);
+        $clientResponseBefore->assertSee('Recordatorio: Tu mensualidad vence en 2 días');
+
+        // 2. El Superadmin renueva 30 días
+        $renewResponse = $this->actingAs($this->superadmin)
+            ->post("/superadmin/businesses/{$business->id}/renew-subscription");
+        $renewResponse->assertRedirect();
+
+        // 3. El cliente vuelve al dashboard y el banner ya NO existe
+        $clientResponseAfter = $this->actingAs($tenantUser)->get('/dashboard');
+        $clientResponseAfter->assertStatus(200);
+        $clientResponseAfter->assertDontSee('<div class="subscription-banner', false);
+        $clientResponseAfter->assertDontSee('Recordatorio: Tu mensualidad vence');
+        $clientResponseAfter->assertDontSee('¡Atención! Tu mensualidad vence');
+
+        Carbon::setTestNow();
+    }
+
+    /**
+     * 6. Test: Edición manual de subscription_ends_at en la vista de edición de Superadmin persiste correctamente.
+     */
+    public function test_manual_subscription_ends_at_editing_in_edit_view_persists_correctly(): void
+    {
+        $knownNow = Carbon::parse('2026-09-28 10:00:00', 'America/Bogota');
+        Carbon::setTestNow($knownNow);
+
+        $business = Business::create([
+            'name' => 'Emprendimiento Demo Cali',
+            'status' => 'active',
+            'subscription_starts_at' => $knownNow,
+            'subscription_ends_at' => $knownNow->copy()->addDays(44), // Fecha alterada por pruebas
+        ]);
+
+        // Superadmin ajusta manualmente a 30 días exactos (ej. 2026-10-28)
+        $newTargetDate = $knownNow->copy()->addDays(30)->format('Y-m-d');
+
+        $response = $this->actingAs($this->superadmin)
+            ->put("/superadmin/businesses/{$business->id}", [
+                'name' => 'Emprendimiento Demo Cali',
+                'nit' => '123456789-0',
+                'phone' => '3001234567',
+                'email' => 'demo@puntostock.co',
+                'address' => 'Av Colombia # 10-20',
+                'subscription_ends_at' => $newTargetDate,
+            ]);
+
+        $response->assertRedirect('/superadmin/businesses');
+        $response->assertSessionHas('status');
+
+        $business->refresh();
+        $this->assertSame(
+            $newTargetDate,
+            $business->subscription_ends_at->timezone('America/Bogota')->format('Y-m-d')
+        );
+
+        Carbon::setTestNow();
+    }
+
+    /**
+     * 7. Test: Los 4 estados de notificación se visualizan con sus badges específicos en la tabla de Superadmin.
+     */
+    public function test_superadmin_index_displays_all_notification_badges_correctly(): void
+    {
+        $knownNow = Carbon::parse('2026-09-28 10:00:00', 'America/Bogota');
+        Carbon::setTestNow($knownNow);
+
+        // 1. Al día (> 3 días)
+        Business::create([
+            'name' => 'Negocio Al Dia',
+            'status' => 'active',
+            'subscription_starts_at' => $knownNow,
+            'subscription_ends_at' => $knownNow->copy()->addDays(15),
+        ]);
+
+        // 2. Preventiva (2 días)
+        Business::create([
+            'name' => 'Negocio Preventivo',
+            'status' => 'active',
+            'subscription_starts_at' => $knownNow->copy()->subDays(28),
+            'subscription_ends_at' => $knownNow->copy()->addDays(2),
+        ]);
+
+        // 3. Crítica (vence hoy / 0 días)
+        Business::create([
+            'name' => 'Negocio Critico',
+            'status' => 'active',
+            'subscription_starts_at' => $knownNow->copy()->subDays(30),
+            'subscription_ends_at' => $knownNow->copy()->endOfDay(),
+        ]);
+
+        // 4. Vencida (-3 días)
+        Business::create([
+            'name' => 'Negocio Vencido',
+            'status' => 'active',
+            'subscription_starts_at' => $knownNow->copy()->subDays(33),
+            'subscription_ends_at' => $knownNow->copy()->subDays(3),
+        ]);
+
+        $response = $this->actingAs($this->superadmin)->get('/superadmin/businesses');
+
+        $response->assertStatus(200);
+        $response->assertSee('Al día (Sin notif.)');
+        $response->assertSee('Notif. Preventiva (2d restantes)');
+        $response->assertSee('Notif. Crítica (Vence hoy)');
+        $response->assertSee('Vencida (hace 3 días)');
 
         Carbon::setTestNow();
     }

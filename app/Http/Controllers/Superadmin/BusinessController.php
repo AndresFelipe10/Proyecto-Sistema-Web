@@ -153,7 +153,14 @@ class BusinessController extends Controller
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],
+            'subscription_ends_at' => ['nullable', 'date'],
         ]);
+
+        if (! empty($validated['subscription_ends_at'])) {
+            $validated['subscription_ends_at'] = Carbon::parse($validated['subscription_ends_at'], 'America/Bogota')->endOfDay();
+        } else {
+            $validated['subscription_ends_at'] = null;
+        }
 
         $business->update($validated);
 
@@ -190,7 +197,7 @@ class BusinessController extends Controller
     }
 
     /**
-     * Renew the business monthly subscription by adding 30 calendar days.
+     * Renew the business monthly subscription by adding 30 calendar days strictly from current cut-off date.
      */
     public function renewSubscription(Business $business): RedirectResponse
     {
@@ -201,12 +208,13 @@ class BusinessController extends Controller
             ? $business->subscription_ends_at->copy()->timezone('America/Bogota')
             : null;
 
-        if (! $currentEnd || $currentEnd->isPast()) {
+        // Se suman 30 días estrictamente a partir de la fecha de corte previa para mantener su ciclo mensual fijo
+        if ($currentEnd) {
+            $newStartsAt = $currentEnd->copy();
+            $newEndsAt = $currentEnd->copy()->addDays(30);
+        } else {
             $newStartsAt = $nowBogota;
             $newEndsAt = $nowBogota->copy()->addDays(30);
-        } else {
-            $newStartsAt = $business->subscription_starts_at ?? $nowBogota;
-            $newEndsAt = $currentEnd->copy()->addDays(30);
         }
 
         $business->subscription_starts_at = $newStartsAt;
@@ -215,7 +223,7 @@ class BusinessController extends Controller
 
         Log::info("Suscripción del negocio #{$business->id} ({$business->name}) renovada por 30 días hasta {$newEndsAt->format('Y-m-d H:i:s')} por el superadministrador #{$superadminId}.");
 
-        return back()->with('status', "Suscripción del negocio '{$business->name}' renovada por 30 días (vence el {$newEndsAt->format('d/m/Y')}).");
+        return back()->with('status', "Suscripción del negocio '{$business->name}' renovada por 30 días (nuevo corte: {$newEndsAt->format('d/m/Y')}).");
     }
 
     /**

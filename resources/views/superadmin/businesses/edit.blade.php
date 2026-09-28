@@ -41,24 +41,20 @@
                                     $daysLeft = $business->daysUntilExpiration();
                                 @endphp
                                 @if ($daysLeft < 0)
-                                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25">
-                                        <i class="bi bi-x-circle me-1"></i>Vencida ({{ abs($daysLeft) }}d)
+                                    <span class="badge bg-danger bg-opacity-75 text-white border border-danger">
+                                        <i class="bi bi-slash-circle-fill me-1"></i>⛔ Vencida (hace {{ abs($daysLeft) }} {{ abs($daysLeft) === 1 ? 'día' : 'días' }})
                                     </span>
-                                @elseif ($daysLeft === 0)
+                                @elseif ($business->isCriticalExpiring())
                                     <span class="badge bg-danger text-white">
-                                        <i class="bi bi-alarm me-1"></i>Vence hoy
+                                        <i class="bi bi-exclamation-octagon-fill me-1"></i>🚨 Notif. Crítica ({{ $daysLeft === 0 ? 'Vence hoy' : '1d restante' }})
                                     </span>
-                                @elseif ($daysLeft === 1)
-                                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25">
-                                        <i class="bi bi-clock me-1"></i>1 día restante
-                                    </span>
-                                @elseif ($daysLeft <= 3)
-                                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25">
-                                        <i class="bi bi-clock me-1"></i>{{ $daysLeft }} días restantes
+                                @elseif ($business->isExpiringSoon())
+                                    <span class="badge bg-warning text-dark border border-warning">
+                                        <i class="bi bi-bell-fill me-1"></i>🔔 Notif. Preventiva ({{ $daysLeft }}d restantes)
                                     </span>
                                 @else
-                                    <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25">
-                                        <i class="bi bi-calendar-check me-1"></i>{{ $daysLeft }} días restantes
+                                    <span class="badge bg-info bg-opacity-25 text-info-emphasis border border-info border-opacity-25">
+                                        <i class="bi bi-check-circle-fill me-1"></i>✅ Al día (Sin notif.)
                                     </span>
                                 @endif
                             @endif
@@ -107,6 +103,21 @@
                         <label for="address" class="form-label small fw-semibold text-secondary">Dirección</label>
                         <input type="text" class="form-control bg-dark border-secondary text-light @error('address') is-invalid @enderror"
                                id="address" name="address" value="{{ old('address', $business->address) }}">
+                    </div>
+                </div>
+
+                <div class="mb-4 p-3 rounded-3 border border-secondary border-opacity-50 bg-dark">
+                    <label for="subscription_ends_at" class="form-label small fw-semibold text-light">
+                        <i class="bi bi-calendar-event text-primary me-1"></i> Fecha de Vencimiento de Suscripción (Corte Mensual)
+                    </label>
+                    <input type="date" class="form-control bg-dark border-secondary text-light @error('subscription_ends_at') is-invalid @enderror"
+                           id="subscription_ends_at" name="subscription_ends_at"
+                           value="{{ old('subscription_ends_at', $business->subscription_ends_at?->timezone('America/Bogota')->format('Y-m-d')) }}">
+                    @error('subscription_ends_at')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                    <div class="form-text text-secondary small mt-1">
+                        Puedes ajustar libremente la fecha límite de mensualidad para corregir días o configurar un ciclo específico.
                     </div>
                 </div>
 
