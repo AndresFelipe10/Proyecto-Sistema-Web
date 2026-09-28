@@ -7,23 +7,27 @@
 1. En el sidebar, haz clic en **Ventas** y luego en **Nueva Venta**.
 2. Busca productos por nombre o SKU en la barra de búsqueda — haz clic para agregarlos al carrito.
 3. Ajusta la cantidad de cada producto según la venta real.
-4. Selecciona el **cliente** de la lista, o deja "Consumidor Final" si es una venta sin cliente registrado.
+4. **Selección del cliente**:
+   - Por defecto está seleccionado el chip **"Consumidor Final — 222222222222"** (conforme a los estándares de la DIAN).
+   - Para asociar un cliente registrado, escribe al menos 3 caracteres de su nombre o documento en el buscador interactivo y selecciónalo de los resultados.
+   - Si el cliente no existe aún, haz clic en el botón **"+"** para abrir el modal de creación rápida, completa los datos y se vinculará automáticamente.
+   - Para volver a Consumidor Final, haz clic en el botón **"X"** del chip del cliente.
 5. Si aplica un descuento, ingresa el **porcentaje (%)** en el campo "Descuento" — el sistema calcula automáticamente el monto en pesos y lo muestra debajo del campo.
 6. Selecciona el **método de pago** (efectivo, transferencia, tarjeta u otro).
-7. Haz clic en **Registrar Venta**. El sistema descuenta automáticamente el stock.
+7. Haz clic en **Registrar Venta**. El sistema descuenta automáticamente el stock y guarda una copia histórica inalterable de los datos del cliente.
 
 ## Imprimir comprobante de venta
 
-Después de registrar una venta (o desde el detalle de cualquier venta completada), puedes imprimir un comprobante en **dos formatos**:
+Después de registrar una venta (o desde el detalle de cualquier venta completada), puedes imprimir un comprobante en **dos formatos** (ambos incluyen la leyenda legal obligatoria: *"Comprobante interno de venta. No reemplaza la factura electrónica de venta ante la DIAN."*):
 
-### 🖨️ Factura (tamaño carta / A4)
-- Haz clic en el botón **"Imprimir Factura"** (ícono de impresora).
-- Se abre en una nueva pestaña con el formato formal: encabezado del negocio (nombre, NIT, dirección), tabla de productos con columnas amplias, totales destacados y pie con datos legales.
+### 🖨️ Comprobante de venta (tamaño carta / A4)
+- Haz clic en el botón **"Imprimir comprobante (carta)"** (ícono de impresora).
+- Se abre en una nueva pestaña con el formato formal: encabezado del negocio (nombre, NIT, dirección), datos del comprador, tabla de productos con columnas amplias, totales destacados y pie con la leyenda legal.
 - El navegador abrirá automáticamente el diálogo de impresión. Selecciona tu impresora o "Guardar como PDF".
 - **Úsala cuando**: el cliente solicita un documento formal, para archivo contable, o para entregar una copia al cliente con membrete del negocio.
 
-### 🧾 Ticket (impresora térmica 80mm)
-- Haz clic en el botón **"Imprimir Ticket"** (ícono de recibo).
+### 🧾 Comprobante de venta (ticket térmico 80mm)
+- Haz clic en el botón **"Imprimir comprobante (ticket)"** (ícono de recibo).
 - Se abre en una nueva pestaña con formato compacto: ancho de 80mm, tipografía monoespaciada, layout vertical de una columna — optimizado para impresoras POS térmicas.
 - El navegador abrirá automáticamente el diálogo de impresión. Selecciona tu impresora térmica.
 - **Úsalo cuando**: estés en el punto de venta del día a día y necesites un recibo rápido para el cliente.

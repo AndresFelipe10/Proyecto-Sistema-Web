@@ -21,6 +21,16 @@
 | Bypass de TenantScope por Superadmin | Middleware `EnsureUserIsSuperadmin` redirige a `/superadmin` en rutas de negocio |
 | Manipulación de membresías | Restricción `UNIQUE(user_id)` en `business_user` y resolución autoritativa de tenant |
 | Asignación masiva de privilegios | `is_superadmin` protegido fuera de `$fillable` en `User` |
+| Falsificación de Consumidor Final | Prohibición en Form Requests (`not_in:222222222222`) de registrar clientes con documento reservado |
+| XSS en autocomplete y modal POS | Renderizado estricto mediante `textContent` en Vanilla JS; prohibido `innerHTML` con datos del usuario |
+| Alteración de histórico de ventas | Snapshot inmutable en `sales` (`customer_name`, `customer_document`); edición de cliente no afecta ventas |
+| Abuso y DoS en búsqueda de clientes | Rate limiting `throttle:60,1`, longitud mínima de 3 caracteres y escape de comodines SQL (`!`, `%`, `_`) |
+
+## Integridad de Clientes, Snapshot Histórico y Consumidor Final (DIAN)
+- **Consumidor Final Seguro**: Las ventas a consumidor final mantienen `customer_id = NULL` sin crear registros ficticios en la tabla `customers`. El snapshot registra `CONSUMIDOR FINAL` y `222222222222` según `config/sales.php`.
+- **Inmutabilidad del Comprador**: Toda vista de detalle e impresión (ticket/carta) lee exclusivamente los campos copiados en la venta (`customer_name` y `customer_document`), asegurando que futuras ediciones o eliminaciones lógicas del cliente no alteren el histórico contable.
+- **Unicidad de Documento por Tenant**: Índice compuesto único `(business_id, document)` en `customers` y validación de formato numérico / NIT (`^\d{5,15}(-\d)?$`).
+- **Búsqueda POS Segura y Aislada**: Endpoint `GET /customers/search` con `throttle:60,1`, mínimo 3 caracteres, escape de comodines `!` `%` `_` para SQLite y MySQL, y aislamiento estricto por `business_id` vía `TenantScope`.
 
 ## Integridad de Plataforma y Aislamiento Multi-Tenant (SaaS Cerrado)
 - **Superadmin de plataforma**: Flag booleano `users.is_superadmin` exclusivo de plataforma. El superadmin no pertenece a ningún tenant; el middleware `SetCurrentTenant` lo redirige a `/superadmin` para evitar que consulte datos de negocios con el Global Scope deshabilitado. Usuarios normales reciben 404 al intentar ingresar a `/superadmin`.

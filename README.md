@@ -5,7 +5,7 @@
 [![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![Docker Compose](https://img.shields.io/badge/Docker%20Compose-3%20Servicios-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=flat-square&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
-[![Tests](https://img.shields.io/badge/Tests-187%20passed-brightgreen?style=flat-square)]()
+[![Tests](https://img.shields.io/badge/Tests-196%20passed-brightgreen?style=flat-square)]()
 [![Security](https://img.shields.io/badge/OWASP-Hardened-blue?style=flat-square)]()
 
 **PuntoStock** es un sistema web integral, multiusuario y multi-tenant diseñado específicamente para centralizar y optimizar la gestión comercial, ventas, inventario y toma de decisiones en pequeños emprendimientos de **Cali, Colombia**, bajo un modelo SaaS cerrado de alta seguridad. 
@@ -58,14 +58,18 @@ El sistema opera al 100% de su capacidad sin depender de servicios externos de i
   - **Agotado**: Stock en 0 o negativo (genera alerta crítica).
 - Recomendación automatizada de cantidad de reposición para compras.
 
-### 5. Punto de Venta y Facturación
-- Registro de ventas con soporte para clientes registrados o venta rápida a cliente de mostrador.
-- Soporte para diversos métodos de pago (Efectivo, Transferencia, Tarjeta, etc.) y descuentos.
-- Generación de numeración de factura consecutiva por negocio (`FAC-000001`).
+### 5. Punto de Venta y Comprobantes (DIAN Compliant)
+- Registro de ventas con soporte para **Consumidor Final DIAN** (`222222222222` / `customer_id = NULL`) predeterminado o clientes registrados mediante selector interactivo con búsqueda en tiempo real (debounce 280ms) y modal de creación rápida seguro.
+- **Snapshot inmutable del comprador**: En cada venta se clonan `customer_name` y `customer_document`, garantizando que futuras ediciones o desactivaciones de clientes no alteren el histórico contable ni los comprobantes.
+- Soporte para métodos de pago (Efectivo, Transferencia, Tarjeta, etc.) y descuentos en porcentaje (%) calculados de forma autoritativa en backend.
+- Generación de numeración de comprobante consecutiva por negocio (`FAC-000001`) con bloqueo pesimista y constraint UNIQUE en base de datos.
+- Impresión nativa de comprobantes en dos formatos (Carta y Ticket térmico 80mm) con rotulación legal no DIAN y leyenda obligatoria de advertencia.
 - Opción de anulación controlada por administradores con reversión automática del stock al inventario.
 
 ### 6. Directorio Comercial
 - Gestión centralizada de **Clientes** y **Proveedores**.
+- Índice compuesto único `(business_id, document)` en clientes, garantizando unicidad por tenant y validación de formato numérico / NIT (`^\d{5,15}(-\d)?$`).
+- Prohibición estricta de registro del documento DIAN `222222222222` en el directorio.
 - Validación de borrado seguro: clientes con historial de ventas no se eliminan físicamente sino que se desactivan para preservar la integridad contable.
 
 ### 7. Dashboard Gerencial y Reportes Financieros

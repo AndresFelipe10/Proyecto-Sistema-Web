@@ -25,7 +25,8 @@ Agregar tablas nuevas solo si son estrictamente necesarias, justificándolo en `
 - **businesses**: nombre, nit, teléfono, dirección, `status` (varchar 20, default 'active': 'active' / 'inactive').
 - **business_user**: `user_id`, `business_id`, `role_id`, `is_active`. Restricción `UNIQUE(user_id)` que asegura que un usuario pertenece a un único negocio.
 - **products**: nombre, descripción, SKU/código (único por `business_id`), categoría, precio de compra, precio de venta, stock actual, stock mínimo, estado, `business_id`.
-- **sales**: usuario, `business_id`, cliente, fecha, subtotal, descuento (`discount` en pesos, `discount_percentage` en porcentaje 0-100 con CHECK constraint), total, método de pago.
+- **customers**: `business_id`, nombre, `document` (varchar 30, normalizado sin espacios/puntos, único por tenant), `identification_number` (alias retrocompatible), email, teléfono, dirección, `is_active`.
+- **sales**: usuario, `business_id`, `customer_id` (nullable, `NULL` para ventas a consumidor final), `customer_name` (varchar 150, snapshot inmutable del comprador), `customer_document` (varchar 30, snapshot inmutable del comprador), fecha, subtotal, descuento (`discount` en pesos, `discount_percentage` en porcentaje 0-100 con CHECK constraint), total, método de pago.
 - **sale_details**: venta, producto, cantidad, precio unitario, subtotal.
 - **inventory_movements**: producto, tipo (entrada/salida/ajuste), cantidad, motivo, usuario, fecha, referencia a venta (si aplica).
 
@@ -45,5 +46,6 @@ Reglas de aplicación (Global Scope + Middleware + Policy) → `.agents/rules/02
 
 ## Índices y constraints mínimos
 - FK con `ON DELETE RESTRICT` o `CASCADE` según corresponda (nunca eliminar en cascada datos financieros como `sales`).
-- Índice compuesto o único en (`business_id`, `sku`) para productos.
+- Índice compuesto único en (`business_id`, `sku`) para productos.
+- Índice compuesto único en (`business_id`, `document`) para clientes.
 - Índice en `business_id` en toda tabla tenant-aware, dado que es el filtro más frecuente.
