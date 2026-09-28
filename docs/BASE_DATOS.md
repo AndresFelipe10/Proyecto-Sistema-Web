@@ -17,6 +17,7 @@ MySQL 8+, con integridad referencial, índices, constraints, transacciones y nor
 | `sales` | Cabecera de venta, por `business_id` |
 | `sale_details` | Detalle de venta (líneas) |
 | `sale_payments` | Métodos de pago y vueltos aplicados a la venta, por `business_id` |
+| `expenses` | Registro de facturas de compra y gastos operativos, por `business_id` |
 | `inventory_movements` | Historial de movimientos de stock (entradas/salidas/ajustes) |
 
 Agregar tablas nuevas solo si son estrictamente necesarias, justificándolo en `docs/DECISIONES_TECNICAS.md`.
@@ -30,6 +31,7 @@ Agregar tablas nuevas solo si son estrictamente necesarias, justificándolo en `
 - **sales**: usuario, `business_id`, `customer_id` (nullable, `NULL` para ventas a consumidor final), `customer_name` (varchar 150, snapshot inmutable del comprador), `customer_document` (varchar 30, snapshot inmutable del comprador), fecha, subtotal, descuento (`discount` en pesos, `discount_percentage` en porcentaje 0-100 con CHECK constraint), total, método de pago (`cash`, `card`, `transfer`, `other`, `mixed`), status, notas.
 - **sale_details**: venta, producto, cantidad, precio unitario, subtotal.
 - **sale_payments**: `business_id` (FK), `sale_id` (FK cascade), `method` (`PaymentMethod`: `cash`, `card`, `transfer`, `other`), `amount` (decimal 12,2 con CHECK `amount > 0`), `reference` (varchar 60 nullable), `cash_received` (decimal 12,2 nullable), `change_given` (decimal 12,2 nullable, CHECK `cash_received IS NULL OR cash_received >= amount`).
+- **expenses**: `business_id` (FK), `supplier_id` (FK nullable), `invoice_number` (varchar 50 nullable), `issue_date` (date), `due_date` (date nullable), `category` (enum: `merchandise`, `utilities`, `rent`, `supplies`, `payroll`, `other`), `description` (varchar 255 nullable), `amount` (decimal 12,2 con CHECK `amount > 0`), `status` (enum: `paid`, `pending` default `pending`), `paid_at` (date nullable), `payment_method` (`PaymentMethod` enum nullable), `attachment_path` (varchar 255 nullable), `attachment_original_name` (varchar 255 nullable), `created_by` (FK users), `deleted_at` (soft deletes) y timestamps.
 - **inventory_movements**: producto, tipo (entrada/salida/ajuste), cantidad, motivo, usuario, fecha, referencia a venta (si aplica).
 
 ## Estrategia multi-tenant
@@ -45,11 +47,15 @@ Reglas de aplicación (Global Scope + Middleware + Policy) → `.agents/rules/02
 - Operaciones críticas (venta, ajuste de stock) dentro de una transacción DB.
 - Prevención de stock negativo salvo regla de negocio explícita.
 - Bloqueo pesimista (`lockForUpdate`) en confirmación de venta cuando el stock disponible es límite, para evitar condiciones de carrera (ejemplo: stock=1, dos ventas simultáneas — solo una debe tener éxito).
+- **Regla contable de gastos**: El registro de gastos de categoría mercancía (`merchandise`) no genera movimientos de inventario ni altera el stock físico; este último se gestiona de forma estrictamente desacoplada en el módulo de Inventario.
 
 ## Índices y constraints mínimos
-- FK con `ON DELETE RESTRICT` o `CASCADE` según corresponda (nunca eliminar en cascada datos financieros como `sales`).
+- FK con `ON DELETE RESTRICT` o `CASCADE` según corresponda (nunca eliminar en cascada datos financieros como `sales` o `expenses`).
 - Índices en `sale_payments`: `(sale_id)`, `(business_id)`, y compuesto `(business_id, method)`.
 - CHECK constraints en `sale_payments`: `amount > 0` y `cash_received IS NULL OR cash_received >= amount`.
+- Índices en `expenses`: `(business_id, issue_date)`, `(business_id, status)`, `(business_id, supplier_id)`.
+- Constraint UNIQUE compuesto en `expenses`: `(business_id, supplier_id, invoice_number)` cuando ambos existan.
+- CHECK constraint en `expenses`: `amount > 0`.
 - Índice compuesto único en (`business_id`, `sku`) para productos.
 - Índice compuesto único en (`business_id`, `document`) para clientes.
 - Índice en `business_id` en toda tabla tenant-aware, dado que es el filtro más frecuente.

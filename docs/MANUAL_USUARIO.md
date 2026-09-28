@@ -57,6 +57,34 @@ Después de registrar una venta (o desde el detalle de cualquier venta completad
 3. Cada usuario debe tener un correo electrónico único que no esté en uso.
 4. Puedes activar o desactivar el acceso de tus empleados cuando sea necesario.
 
+## Gastos y Facturas de Compra (solo administradores)
+
+1. En el sidebar, haz clic en **Gastos** (ubicado inmediatamente después de Proveedores).
+2. Haz clic en **"Registrar Gasto"** para abrir el formulario de captura.
+3. Completa los datos requeridos:
+   - **Fecha de emisión**: Día en que se generó la compra o cobro del servicio.
+   - **Fecha de vencimiento (opcional)**: Para facturas a crédito o servicios por pagar.
+   - **Categoría**: Mercancía, Servicios públicos, Arriendo, Insumos / Papelería, Nómina u Otros.
+     > **Nota contable**: El registro de un gasto de categoría *Mercancía* asienta el egreso financiero en caja/cuentas por pagar, pero **NO altera el inventario físico ni el stock de los productos**. La recepción y conteo físico de existencias se administra exclusivamente en el módulo de **Inventario**.
+   - **Proveedor (opcional)**: Selecciona un proveedor registrado si aplica.
+   - **Número de factura (opcional)**: Para trazabilidad contable.
+   - **Monto ($)**: Valor total del gasto (debe ser mayor a $0).
+   - **Estado**: *Pendiente* (cuenta por pagar) o *Pagada*. Si seleccionas *Pagada*, debes indicar la fecha y el método de pago utilizado.
+   - **Comprobante / Factura adjunta (opcional)**: Puedes adjuntar un archivo digital en formato PDF, PNG o JPG (máximo 3 MB). El archivo se almacena en almacenamiento privado seguro y solo puede ser descargado por administradores autorizados.
+4. **Acción rápida "Marcar como pagada"**: Desde el listado principal o la vista de detalle, puedes hacer clic en el botón de pago verde para registrar la fecha y método de pago en un solo paso.
+5. **Cuentas vencidas**: Si una factura pendiente supera su fecha de vencimiento, el sistema la identificará automáticamente con el distintivo rojo **"Vencida"**.
+6. **Gastos por Proveedor**: Al consultar el detalle de un proveedor en el menú **Proveedores**, los administradores encontrarán una pestaña especial con todas las facturas asociadas y el acumulado total **"Por pagar"**.
+
+## Dashboard Gerencial y Financiero
+
+1. Al iniciar sesión o hacer clic en **Dashboard**, los usuarios acceden al panel de control adaptado a su rol:
+   - **Administradores**: Visualizan tarjetas financieras clave del mes actual (en horario de Colombia):
+     - **Ventas del Mes**: Total acumulado de ventas completadas.
+     - **Gastos / Compras del Mes**: Egresos totales del mes con el desglose secundario de montos pendientes por pagar.
+     - **Utilidad neta estimada**: Margen operativo resultante (`Ventas - Gastos`), resaltado en rojo si es negativo.
+     - **Stock Crítico y Catálogo**: Alertas de reposición inmediata y total de clientes.
+   - **Vendedores / Empleados**: Visualizan un panel 100% operativo (número de ventas realizadas hoy, ventas del mes en transacciones y productos con existencias críticas), manteniendo en reserva confidencial todos los valores monetarios, ingresos y márgenes del negocio.
+
 ## Soporte y Recuperación de Clave
 
 - Si olvidaste tu contraseña o requieres soporte para tu negocio, utiliza el enlace directo de **WhatsApp** en la pantalla de inicio de sesión o comunícate con la línea oficial de soporte.

@@ -26,13 +26,14 @@ Proyecto académico de Ingeniería de Sistemas, construido con estándares sufic
 4. Categorías
 5. Productos
 6. Inventario
-7. Ventas
+7. Ventas y Punto de Venta (con pagos mixtos y vueltos)
 8. Clientes
 9. Proveedores
-10. Dashboard
-11. Reportes
-12. Panel inteligente de inventario y alertas (reglas determinísticas)
-13. Módulo de consultas en lenguaje natural (IA, opcional)
+10. Gastos y facturas de compra (exclusivo Administrador)
+11. Dashboard gerencial y financiero
+12. Reportes
+13. Panel inteligente de inventario y alertas (reglas determinísticas)
+14. Módulo de consultas en lenguaje natural (IA, opcional)
 
 ## Requisitos clave
 - Multi-tenancy lógico vía `business_id` sobre una única base MySQL, con aislamiento garantizado en backend.
@@ -63,3 +64,5 @@ Ajustes de UX y negocio detectados en la validación final, previos al despliegu
 3. **Impresión de comprobantes**: Dos vistas dedicadas (`print-invoice` para carta/A4 y `print-receipt` para ticket térmico 80mm) con CSS `@media print` y `window.print()`, sin librería PDF. Protegidas por `SalePolicy::view()`.
 4. **Transformación SaaS Cerrado & Superadmin (Bloque A)**: Registro público `/register` desactivado (404); alta asistida vía soporte WhatsApp institucional; restricción `UNIQUE(user_id)` en membresías; rol Superadmin de plataforma desacoplado de tenants y flujo de forzado de cambio de primera contraseña (`must_change_password`).
 5. **Clientes, Snapshot Histórico y Consumidor Final DIAN (Bloque B)**: Configuración centralizada `config/sales.php` (`default_customer_name = 'CONSUMIDOR FINAL'`, `default_customer_document = '222222222222'`); snapshot inmutable en `sales` (`customer_name`, `customer_document`); prohibición de registro manual de cliente con documento DIAN 222222222222; índice compuesto `(business_id, document)` en `customers`; autocomplete POS con debounce de 280ms y modal de alta rápida vía `fetch` seguro con renderizado `textContent`; rotulación legal de comprobantes con leyenda `config('sales.legal_disclaimer')`.
+6. **Pagos Mixtos y Vueltos Autoritativos (Bloque C)**: Enum PHP `PaymentMethod`; tabla aditiva `sale_payments` con hasta 5 líneas combinadas; regla de máximo una sola línea de efectivo (`cash`); atajos rápidos de billetes en POS; cálculo autoritativo de vueltos en backend y validación de suma exacta en centavos enteros; backfill idempotente retrocompatible para ventas históricas.
+7. **Gastos, Facturas de Compra, Adjuntos Privados y Dashboard Financiero (Bloque D)**: Módulo de gastos exclusivo para administradores (`ExpensePolicy`); regla contable que desacopla gastos de mercancía del inventario físico; almacenamiento seguro de adjuntos en disco privado local con nombres aleatorios y streaming con cabecera `nosniff`; acción rápida "Marcar como pagada"; estado dinámico "Vencida" para cuentas por pagar; integración de gastos y saldo pendiente en la vista del Proveedor; métricas financieras protegidas en Dashboard (`America/Bogota`) con ocultamiento total de ingresos, gastos y utilidad neta para vendedores; y respaldo de infraestructura consolidado empaquetando base de datos y adjuntos privados.

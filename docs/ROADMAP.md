@@ -27,7 +27,7 @@ Fases en orden de desarrollo. Ninguna fase comienza sin que la anterior tenga su
 | B-A | Bloque A — SaaS Cerrado & Superadmin | 17 | Registro cerrado (/register 404), WhatsApp CTA, UNIQUE(user_id), Superadmin global, forzado de cambio de clave | ✅ Completada | Plataforma cerrada con aprovisionamiento interactivo seguro y redirección de roles sin bypass. |
 | B-B | Bloque B — Clientes y Consumidor Final (DIAN) | B-A | Consumidor Final DIAN (222222222222), snapshot inmutable en sales, búsqueda/modal POS, rotulación legal | ✅ Completada | Snapshot histórico en ventas, índice compuesto (business_id, document), autocompletado POS XSS-free. |
 | B-C | Bloque C — Múltiples Métodos de Pago por Venta | B-B | Tabla sale_payments, pagos mixtos, validación autoritativa en backend, reportes | ✅ Completada | Enum PaymentMethod, tabla sale_payments aditiva con backfill idempotente, pagos mixtos (hasta 5 líneas, máx 1 efectivo), cálculo autoritativo de cambio/vueltos, interfaz POS reactiva, comprobantes y reportes basados en montos aplicados. |
-| B-D | Bloque D — Módulo de Gastos Operativos | B-C | CRUD de gastos, categorías, aislamiento tenant, balance neto ingresos vs egresos | ⏳ Pendiente | Esperando confirmación explícita para inicio de ejecución. |
+| B-D | Bloque D — Gastos, facturas de compra y dashboard | B-C | CRUD gastos, almacenamiento privado con hash, descarga segura nosniff, estado vencida dinámico, métricas financieras protegidas en dashboard, 403 vendedores, backup consolidado | ✅ Completada | Módulo de Gastos exclusivo admin, regla contable de inventario desacoplado, almacenamiento seguro de adjuntos, integración en detalle proveedor, métricas protegidas en Dashboard y API, respaldo consolidado y 218 tests pasando. |
 
 ---
 
@@ -46,4 +46,4 @@ Según [`docs/PLAN_PROYECTO.md`](PLAN_PROYECTO.md), el éxito del proyecto se ev
 | **Independencia del núcleo frente a IA** | ✅ Cumplido | El núcleo funciona al 100% con `AI_MODULE_ENABLED=false` o sin API key de Gemini. |
 | **Base de datos persistente** | ✅ Cumplido | Volumen Docker `mysql_data` (dev) y `mysql_prod_data` (prod) con scripts automatizados de respaldo y restauración. |
 | **Despliegue sin herramientas técnicas en cliente** | ✅ Cumplido | El usuario final únicamente interactúa mediante navegador web bajo HTTP/HTTPS; toda la infraestructura corre contenerizada. |
-| **Suite global de pruebas pasando** | ✅ Cumplido | **208 tests pasando (885 assertions)** con 0 errores y 0 fallos. |
+| **Suite global de pruebas pasando** | ✅ Cumplido | **218 tests pasando (983 assertions)** con 0 errores y 0 fallos. |

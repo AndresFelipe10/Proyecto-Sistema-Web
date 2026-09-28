@@ -5,7 +5,7 @@
 [![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![Docker Compose](https://img.shields.io/badge/Docker%20Compose-3%20Servicios-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=flat-square&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
-[![Tests](https://img.shields.io/badge/Tests-208%20passed-brightgreen?style=flat-square)]()
+[![Tests](https://img.shields.io/badge/Tests-218%20passed-brightgreen?style=flat-square)]()
 [![Security](https://img.shields.io/badge/OWASP-Hardened-blue?style=flat-square)]()
 
 **PuntoStock** es un sistema web integral, multiusuario y multi-tenant diseñado específicamente para centralizar y optimizar la gestión comercial, ventas, inventario y toma de decisiones en pequeños emprendimientos de **Cali, Colombia**, bajo un modelo SaaS cerrado de alta seguridad. 
@@ -72,20 +72,29 @@ El sistema opera al 100% de su capacidad sin depender de servicios externos de i
 - Prohibición estricta de registro del documento DIAN `222222222222` en el directorio.
 - Validación de borrado seguro: clientes con historial de ventas no se eliminan físicamente sino que se desactivan para preservar la integridad contable.
 
-### 7. Dashboard Gerencial y Reportes Financieros
+### 7. Gastos, Facturas de Compra y Almacenamiento Seguro (Exclusivo Administrador)
+- Registro y control de egresos categorizados (`merchandise`, `utilities`, `rent`, `supplies`, `payroll`, `other`) con montos positivos validados en backend y CHECK en base de datos.
+- **Regla contable estricta**: Los gastos de mercancía no alteran stock ni inventario (el stock se gestiona exclusivamente por el módulo de Inventario).
+- Vínculo opcional con proveedores del mismo tenant y control de duplicidad por `(business_id, supplier_id, invoice_number)`.
+- Estado dinámico de mora ("Vencida") para cuentas por pagar sin alterar el esquema relacional (`status = pending` y `due_date < hoy`).
+- Acción rápida de pago con registro obligatorio de método de pago y fecha.
+- **Almacenamiento Seguro de Adjuntos**: Comprobantes y facturas en PDF/JPG/PNG almacenados en disco privado (`storage/app/private/expenses`) con nombres de hash aleatorio; descarga exclusivamente bajo `ExpensePolicy` con streaming protegido y cabeceras `nosniff`. Limpieza física automática al actualizar o eliminar.
+
+### 8. Dashboard Gerencial y Reportes Financieros
 - **KPIs en Tiempo Real**: Ventas del día, ingresos mensuales, productos críticos y ticket promedio.
+- **Métricas Financieras Protegidas (Exclusivas Administrador)**: Ventas del mes, gastos del mes (con desglose de pendientes) y utilidad neta estimada. Estas cifras se ocultan automáticamente a los vendedores tanto en la interfaz web como en el endpoint `/api/dashboard`.
 - **Reportes Especializados**:
   - Reporte de ventas filtrable por rango de fechas y método de pago.
   - Reporte de valoración de inventario (costo total vs. valor potencial de venta y margen estimado).
   - Ranking de productos más vendidos y rentables.
   - **Exportación en CSV** respetando el aislamiento multi-tenant.
 
-### 8. Asistente de Consultas en Lenguaje Natural (IA)
+### 9. Asistente de Consultas en Lenguaje Natural (IA)
 - Permite a los usuarios consultar datos operativos en lenguaje cotidiano (*"¿Cuáles son los productos con stock bajo?"*, *"¿Cuánto vendimos este mes?"*).
 - **Seguridad Garantizada**: Implementa *Function Calling / Structured Output* con una estricta lista blanca de intenciones permitidas. No ejecuta SQL arbitrario, no tiene permisos de escritura y el `business_id` es inyectado por Laravel.
 - **Fallback Automático**: Mensajes controlados si la cuota de la API se agota o hay cortes de red.
 
-### 9. Endurecimiento de Seguridad OWASP
+### 10. Endurecimiento de Seguridad OWASP
 - Middleware perimetral de cabeceras HTTP (`X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`, `Referrer-Policy`).
 - Protección CSRF activa en todos los formularios y rutas de escritura.
 - Rate Limiting contra ataques de fuerza bruta en inicio de sesión (5 intentos / min) y abuso de IA (30 peticiones / min).
@@ -269,9 +278,10 @@ El proyecto incluye configuraciones listas para despliegue en servidores VPS (Ub
 
 1. **Configuración de Producción:** [`docker-compose.prod.yml`](docker-compose.prod.yml) y [`docker/php/Dockerfile.prod`](docker/php/Dockerfile.prod).
 2. **Script de Despliegue:** [`scripts/deploy.sh`](scripts/deploy.sh) (ejecuta respaldo preventivo, modo mantenimiento, compilación, migraciones con `--force` y optimización de cachés).
-3. **Respaldo y Restauración de Base de Datos:**
-   - Respaldo automatizado con retención: `bash scripts/backup-db.sh`
-   - Restauración interactiva: `bash scripts/restore-db.sh backups/dump_archivo.sql.gz`
+3. **Respaldo y Restauración del Sistema:**
+   - Respaldo automatizado consolidado (Base de Datos MySQL + Adjuntos privados en `app_storage`): `bash scripts/backup.sh` (genera archivo `.tar.gz` con política de retención de 7 días).
+   - Respaldo exclusivo de base de datos: `bash scripts/backup-db.sh`
+   - Restauración interactiva de base de datos: `bash scripts/restore-db.sh backups/dump_archivo.sql.gz`
 
 Para consultar los requisitos de hardware, configuración de dominio, certificados SSL con Let's Encrypt y buenas prácticas operativas, consulta la **[Guía de Despliegue Reproducible en docs/ARQUITECTURA.md](docs/ARQUITECTURA.md#gu%C3%ADa-de-despliegue-reproducible-en-producci%C3%B3n)**.
 

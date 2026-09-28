@@ -31,6 +31,18 @@
 | XSS en referencia de pago | Sanitización con `strip_tags()` y acotado a 60 caracteres en backend |
 | Distorsión de ingresos | Ingresos calculados exclusivamente como `SUM(sale_payments.amount)` (nunca sumando `cash_received`) |
 | Inconsistencia de pago/stock | Transaccionalidad estricta (`DB::transaction`): falla en pago revierte venta, ítems y stock |
+| Subida de archivos maliciosos en adjuntos | Almacenamiento en disco privado (`storage/app/private/expenses`), nombre con hash aleatorio, validación estricta de MIME real (PDF, JPG, PNG <= 3MB), rechazo de SVG, HTML, PHP y doble extensión |
+| Descarga insegura de comprobantes | Streaming bajo `ExpensePolicy` con `Content-Disposition` y cabecera obligatoria `X-Content-Type-Options: nosniff` |
+| Fuga de métricas financieras a vendedores | Enmascaramiento autoritativo en `DashboardService` y `/api/dashboard`; vendedores no reciben montos de ventas, gastos ni utilidades |
+| Acceso no autorizado a gastos | Módulo exclusivo para Administradores de negocio bajo `ExpensePolicy` y middleware `role:admin`; empleados reciben 403 Forbidden |
+
+## Seguridad de Gastos, Adjuntos y Métricas Financieras (Bloque D)
+- **Almacenamiento Privado de Facturas**: Los comprobantes se guardan en el disco `'local'` (`storage/app/private/expenses`), inaccesible directamente por el servidor web o por enlaces simbólicos públicos (`storage:link`). La ruta en disco utiliza nombres completamente aleatorios (`Str::random(40)`) sin conservar el nombre original del archivo en la ruta física.
+- **Validación Estricta de Mime y Extensiones**: Se bloquean ejecutables, scripts web (PHP, HTML, JS), imágenes vectoriales SVG (vectores de XSS) y archivos con doble extensión (`factura.php.pdf`).
+- **Descarga Segura con Headers de Protección**: La ruta `GET /expenses/{expense}/attachment` está protegida por `ExpensePolicy`, verificando que el usuario sea administrador del mismo tenant. Se emite streaming con `Content-Disposition: inline` y cabecera obligatoria `X-Content-Type-Options: nosniff`.
+- **Limpieza Física de Archivos**: Al eliminar un gasto o al actualizarlo reemplazando o retirando el adjunto, el archivo físico anterior es eliminado inmediatamente del almacenamiento privado.
+- **Control de Acceso Basado en Roles (RBAC)**: El módulo de gastos está restringido exclusivamente al rol Administrador del negocio. Los empleados y vendedores reciben 403 Forbidden en todas las operaciones.
+- **Enmascaramiento de Dashboard**: El endpoint `/api/dashboard` y la vista Blade filtran todos los montos monetarios de ventas, gastos y utilidades para usuarios no administradores.
 
 ## Integridad de Pagos Mixtos y Vueltos (Bloque C)
 - **Comparación en Centavos Enteros**: Para prevenir vulnerabilidades derivadas de la imprecisión de coma flotante IEEE 754, la suma de los montos de pago (`amount`) se compara contra el total de la venta convirtiendo ambos a centavos enteros: `(int) round($amt * 100)`.
