@@ -35,3 +35,20 @@ Después de registrar una venta (o desde el detalle de cualquier venta completad
 1. En el sidebar, haz clic en **Ventas** para ver el historial completo.
 2. Usa los filtros (fecha, método de pago, estado, búsqueda) para encontrar ventas específicas.
 3. Haz clic en **"Ver"** para acceder al detalle y los botones de impresión.
+
+## Mi Negocio (solo administradores)
+
+1. En el sidebar, haz clic en **Mi negocio**.
+2. Puedes consultar y actualizar el **nombre comercial**, el **NIT** y el **teléfono de contacto** de tu emprendimiento.
+3. El estado de la cuenta es gestionado por la plataforma; si requieres cambios adicionales o soporte, contacta a la administración.
+
+## Equipo de Trabajo
+
+1. En el sidebar, haz clic en **Equipo**.
+2. Como administrador puedes crear cuentas para tus vendedores/empleados.
+3. Cada usuario debe tener un correo electrónico único que no esté en uso.
+4. Puedes activar o desactivar el acceso de tus empleados cuando sea necesario.
+
+## Soporte y Recuperación de Clave
+
+- Si olvidaste tu contraseña o requieres soporte para tu negocio, utiliza el enlace directo de **WhatsApp** en la pantalla de inicio de sesión o comunícate con la línea oficial de soporte.

@@ -106,6 +106,9 @@ AI_PROVIDER=gemini
 GEMINI_API_KEY=tu_api_key_de_produccion_aqui
 AI_TIMEOUT_SECONDS=10
 
+# WhatsApp de soporte y canal comercial
+SUPPORT_WHATSAPP=573163765939
+
 # Configuración de Puertos en Producción
 PROD_PORT=80
 PROD_SSL_PORT=443
@@ -123,7 +126,7 @@ BACKUP_RETENTION_DAYS=7
 2. **Crear y configurar el archivo `.env`:**
    ```bash
    cp .env.example .env
-   nano .env # Ajustar contraseñas y APP_URL
+   nano .env # Ajustar contraseñas, APP_URL y SUPPORT_WHATSAPP
    ```
 
 3. **Construir y levantar los contenedores de producción:**
@@ -142,7 +145,12 @@ BACKUP_RETENTION_DAYS=7
    ```
    *(Opcional: Si es la primera instalación y se desean datos base de prueba/roles: `php artisan db:seed --force`)*
 
-6. **Optimizar Laravel para producción:**
+6. **Crear el Superadministrador inicial de la plataforma:**
+   ```bash
+   docker compose -f docker-compose.prod.yml exec app php artisan superadmin:create admin@puntostock.co --name="Super Administrador"
+   ```
+
+7. **Optimizar Laravel para producción:**
    ```bash
    docker compose -f docker-compose.prod.yml exec app php artisan config:cache
    docker compose -f docker-compose.prod.yml exec app php artisan route:cache

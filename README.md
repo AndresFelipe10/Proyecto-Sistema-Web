@@ -5,10 +5,10 @@
 [![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![Docker Compose](https://img.shields.io/badge/Docker%20Compose-3%20Servicios-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=flat-square&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
-[![Tests](https://img.shields.io/badge/Tests-176%20passed-brightgreen?style=flat-square)]()
+[![Tests](https://img.shields.io/badge/Tests-187%20passed-brightgreen?style=flat-square)]()
 [![Security](https://img.shields.io/badge/OWASP-Hardened-blue?style=flat-square)]()
 
-**PuntoStock** es un sistema web integral, multiusuario y multi-tenant diseñado específicamente para centralizar y optimizar la gestión comercial, ventas, inventario y toma de decisiones en pequeños emprendimientos de **Cali, Colombia**. 
+**PuntoStock** es un sistema web integral, multiusuario y multi-tenant diseñado específicamente para centralizar y optimizar la gestión comercial, ventas, inventario y toma de decisiones en pequeños emprendimientos de **Cali, Colombia**, bajo un modelo SaaS cerrado de alta seguridad. 
 
 Desarrollado como proyecto de Ingeniería de Sistemas bajo estrictos estándares profesionales de arquitectura, seguridad perimetral, integridad transaccional y capacidad de despliegue en producción.
 
@@ -235,6 +235,30 @@ docker compose exec app php artisan test
 
 ---
 
+## Administración de Plataforma y Modelo SaaS Cerrado
+
+PuntoStock opera bajo un modelo de **SaaS cerrado**:
+- El registro público está deshabilitado (`/register` devuelve 404). Los interesados en adquirir la plataforma son canalizados vía WhatsApp institucional (`SUPPORT_WHATSAPP=573163765939`).
+- Cada usuario pertenece exclusivamente a un único negocio (`UNIQUE(user_id)`).
+- El aprovisionamiento de negocios y cuentas de administrador es realizado exclusivamente por el **Superadministrador de plataforma** desde `/superadmin`.
+
+### Creación de Superadministrador en Producción
+Para crear la primera cuenta de superadministrador de forma interactiva y segura (sin seeders ni contraseñas expuestas en repositorios):
+
+```bash
+docker compose exec app php artisan superadmin:create admin@puntostock.co --name="Super Administrador"
+```
+El comando solicitará la contraseña mediante entrada oculta con confirmación (mínimo 12 caracteres).
+
+### Variables de Entorno Relevantes
+En el archivo `.env`:
+```ini
+# WhatsApp de soporte y canal comercial
+SUPPORT_WHATSAPP=573163765939
+```
+
+---
+
 ## Despliegue en Producción
 
 El proyecto incluye configuraciones listas para despliegue en servidores VPS (Ubuntu 22.04/24.04 LTS) con imágenes Docker inmutables y scripts de automatización:
@@ -247,7 +271,7 @@ El proyecto incluye configuraciones listas para despliegue en servidores VPS (Ub
 
 Para consultar los requisitos de hardware, configuración de dominio, certificados SSL con Let's Encrypt y buenas prácticas operativas, consulta la **[Guía de Despliegue Reproducible en docs/ARQUITECTURA.md](docs/ARQUITECTURA.md#gu%C3%ADa-de-despliegue-reproducible-en-producci%C3%B3n)**.
 
-> **Nota sobre variables de entorno**: Tras modificar `APP_NAME` u otras variables en `.env`, es necesario reconstruir la imagen Docker (`docker compose -f docker-compose.prod.yml build app`) y ejecutar `php artisan config:cache` para que la configuración se actualice en los contenedores de producción.
+> **Nota sobre variables de entorno**: Tras modificar `APP_NAME`, `SUPPORT_WHATSAPP` u otras variables en `.env`, es necesario reconstruir la imagen Docker (`docker compose -f docker-compose.prod.yml build app`) y ejecutar `php artisan config:cache` para que la configuración se actualice en los contenedores de producción.
 
 ---
 

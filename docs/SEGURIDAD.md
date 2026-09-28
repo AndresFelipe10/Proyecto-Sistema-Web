@@ -17,6 +17,16 @@
 | Errores en producción | `APP_DEBUG=false`; páginas de error genéricas; sin stack traces visibles |
 | Logs | Sin contraseñas, tokens, ni datos sensibles en logs |
 | Fuerza bruta | Rate limiting en login |
+| Registro no autorizado | Registro público `/register` eliminado (404); alta controlada por Superadmin |
+| Bypass de TenantScope por Superadmin | Middleware `EnsureUserIsSuperadmin` redirige a `/superadmin` en rutas de negocio |
+| Manipulación de membresías | Restricción `UNIQUE(user_id)` en `business_user` y resolución autoritativa de tenant |
+| Asignación masiva de privilegios | `is_superadmin` protegido fuera de `$fillable` en `User` |
+
+## Integridad de Plataforma y Aislamiento Multi-Tenant (SaaS Cerrado)
+- **Superadmin de plataforma**: Flag booleano `users.is_superadmin` exclusivo de plataforma. El superadmin no pertenece a ningún tenant; el middleware `SetCurrentTenant` lo redirige a `/superadmin` para evitar que consulte datos de negocios con el Global Scope deshabilitado. Usuarios normales reciben 404 al intentar ingresar a `/superadmin`.
+- **Aislamiento por membresía única autoritativa**: `SetCurrentTenant` resuelve el tenant directamente desde la membresía activa del usuario en `business_user`. Nunca confía en inputs de la request o valores en sesión. Si el usuario o el negocio están inactivos, la sesión web se destruye y los tokens Sanctum de API se revocan.
+- **Creación interactiva sin secretos**: El comando `php artisan superadmin:create` solicita contraseña por CLI oculto con validación de 12 caracteres mínimos, prohibiendo seeders con credenciales expuestas en el código.
+- **Forzado de cambio de contraseña**: Usuarios creados o restablecidos por superadmin tienen `must_change_password = true`, siendo redirigidos por middleware a cambiar su contraseña antes de poder operar el sistema.
 
 ## Integridad financiera y cálculos autoritativos en backend
 Los siguientes valores críticos NUNCA se confían al cliente y se calculan o resuelven exclusivamente en backend:

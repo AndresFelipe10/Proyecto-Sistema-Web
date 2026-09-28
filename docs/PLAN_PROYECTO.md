@@ -15,13 +15,14 @@ Proyecto académico de Ingeniería de Sistemas, construido con estándares sufic
 - Fuera de alcance en esta etapa: apps móviles nativas, microservicios, frontend SPA (React/Vue/Angular), múltiples proveedores de IA simultáneos.
 
 ## Usuarios
-- **Administrador**: gestión completa del emprendimiento (usuarios, productos, categorías, inventario, ventas, clientes, proveedores, reportes, dashboard, configuración).
+- **Superadministrador de plataforma**: gestión global de la plataforma SaaS (creación, edición, suspensión y reactivación de negocios y sus administradores; métricas globales). No pertenece a ningún negocio y no accede a rutas operativas de tenants.
+- **Administrador de negocio**: gestión completa de su propio emprendimiento (datos de "Mi negocio", usuarios/equipo, productos, categorías, inventario, ventas, clientes, proveedores, reportes, dashboard, configuración). Un usuario pertenece a un único negocio.
 - **Empleado/Vendedor**: consulta de productos, registro de ventas, consulta de clientes y disponibilidad.
 
 ## Módulos
-1. Autenticación
-2. Emprendimientos
-3. Usuarios y roles
+1. Autenticación (SaaS cerrado con canal de WhatsApp y cambio forzado de contraseña inicial)
+2. Mi negocio (administración del emprendimiento propio) y Portal Superadmin (`/superadmin`)
+3. Usuarios y roles (gestión de equipo interno del negocio)
 4. Categorías
 5. Productos
 6. Inventario

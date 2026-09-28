@@ -21,6 +21,9 @@ MySQL 8+, con integridad referencial, índices, constraints, transacciones y nor
 Agregar tablas nuevas solo si son estrictamente necesarias, justificándolo en `docs/DECISIONES_TECNICAS.md`.
 
 ## Campos clave por tabla (mínimos)
+- **users**: nombre, correo, contraseña, `is_superadmin` (boolean, default false, flag de plataforma), `must_change_password` (boolean, default false, forzado de actualización).
+- **businesses**: nombre, nit, teléfono, dirección, `status` (varchar 20, default 'active': 'active' / 'inactive').
+- **business_user**: `user_id`, `business_id`, `role_id`, `is_active`. Restricción `UNIQUE(user_id)` que asegura que un usuario pertenece a un único negocio.
 - **products**: nombre, descripción, SKU/código (único por `business_id`), categoría, precio de compra, precio de venta, stock actual, stock mínimo, estado, `business_id`.
 - **sales**: usuario, `business_id`, cliente, fecha, subtotal, descuento (`discount` en pesos, `discount_percentage` en porcentaje 0-100 con CHECK constraint), total, método de pago.
 - **sale_details**: venta, producto, cantidad, precio unitario, subtotal.
