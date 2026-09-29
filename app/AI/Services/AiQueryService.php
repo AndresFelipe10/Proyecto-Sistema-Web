@@ -56,7 +56,18 @@ class AiQueryService
             );
         }
 
-        // 2. Extracción de intención mediante el proveedor (con captura de timeouts/errores)
+        // 2. Detección rápida de saludos y aperturas conversacionales (sin consumir cuota ni demoras)
+        if ($this->isGreeting($cleanQuery)) {
+            return new AiQueryResult(
+                intent: 'greeting',
+                summary: '¡Hola! Soy tu asistente de consultas de negocio. Puedes preguntarme sobre productos con stock bajo o agotados, balance de ventas de hoy o del mes, clientes registrados y valor del inventario. ¿Qué te gustaría consultar?',
+                data: [],
+                meta: ['type' => 'conversational'],
+                isSuccess: true
+            );
+        }
+
+        // 3. Extracción de intención mediante el proveedor (con captura de timeouts/errores)
         try {
             $extractedIntent = $this->provider->extractIntent($cleanQuery);
         } catch (AiProviderException | Throwable $e) {
@@ -105,4 +116,35 @@ class AiQueryService
             AiIntent::TOP_SELLING_PRODUCTS => $this->saleTools->topSelling($businessId, $filters),
         };
     }
+
+    /**
+     * Detect if a user message is a conversational greeting or polite opening.
+     */
+    protected function isGreeting(string $text): bool
+    {
+        $normalized = mb_strtolower(trim($text));
+        $normalized = trim($normalized, "¡!¿?.,;");
+
+        $exactGreetings = [
+            'hola',
+            'buenas',
+            'buenos dias',
+            'buenos días',
+            'buenas tardes',
+            'buenas noches',
+            'saludos',
+            'que tal',
+            'qué tal',
+            'hi',
+            'hello',
+            'hey',
+        ];
+
+        if (in_array($normalized, $exactGreetings, true)) {
+            return true;
+        }
+
+        return (bool) preg_match('/^(hola|buenos\s*d[ií]as|buenas\s*tardes|buenas\s*noches|saludos)\b/i', $normalized);
+    }
 }
+

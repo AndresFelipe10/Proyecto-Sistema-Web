@@ -18,12 +18,12 @@ class GeminiProvider implements AiProviderInterface
 
     public function __construct(
         ?string $apiKey = null,
-        string $model = 'gemini-1.5-flash',
+        string $model = 'gemini-flash-lite-latest',
         string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta',
         int $timeout = 10
     ) {
         $this->apiKey = $apiKey ?? config('ai.providers.gemini.api_key');
-        $this->model = $model ?? config('ai.providers.gemini.model', 'gemini-1.5-flash');
+        $this->model = $model ?? config('ai.providers.gemini.model', 'gemini-flash-lite-latest');
         $this->baseUrl = $baseUrl ?? config('ai.providers.gemini.base_url', 'https://generativelanguage.googleapis.com/v1beta');
         $this->timeout = $timeout ?: (int) config('ai.timeout', 10);
     }
@@ -72,7 +72,11 @@ class GeminiProvider implements AiProviderInterface
         ];
 
         try {
-            $response = Http::timeout($this->timeout)
+            $response = Http::retry(2, 250, function ($exception, $request) {
+                    return $exception instanceof \Illuminate\Http\Client\RequestException 
+                        && in_array($exception->response?->status(), [429, 503], true);
+                }, throw: false)
+                ->timeout($this->timeout)
                 ->withHeaders([
                     'Content-Type' => 'application/json',
                     'x-goog-api-key' => $this->apiKey,
@@ -110,7 +114,20 @@ class GeminiProvider implements AiProviderInterface
                 }
             }
 
-            throw new AiProviderException("No se detectó una intención estructurada en la respuesta del modelo.");
+            $textResponse = null;
+            foreach ($parts as $part) {
+                if (isset($part['text'])) {
+                    $textResponse = $part['text'];
+                    break;
+                }
+            }
+
+            return new AiQueryIntent(
+                intent: 'unrecognized',
+                filters: [],
+                confidence: 0.0,
+                rawResponse: $textResponse
+            );
         } catch (AiProviderException $e) {
             throw $e;
         } catch (Throwable $e) {

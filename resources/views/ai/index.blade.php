@@ -97,7 +97,7 @@
             </h6>
             <div class="d-flex flex-column gap-2" id="suggestionChips">
                 @foreach ($suggestions as $suggestion)
-                    <button type="button" class="btn btn-sm btn-outline-secondary text-start rounded-pill py-2 px-3 suggestion-btn text-truncate">
+                    <button type="button" class="btn btn-sm btn-outline-secondary text-start rounded-pill py-2 px-3 suggestion-btn text-truncate" data-query="{{ $suggestion }}" title="{{ $suggestion }}">
                         <i class="bi bi-arrow-return-right me-1 text-primary"></i> {{ $suggestion }}
                     </button>
                 @endforeach
@@ -258,8 +258,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     suggestionBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            const text = btn.textContent.trim();
-            sendQuery(text);
+            const text = btn.getAttribute('data-query') || btn.innerText.trim();
+            input.value = text;
+            input.focus();
+            input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
     });
 
