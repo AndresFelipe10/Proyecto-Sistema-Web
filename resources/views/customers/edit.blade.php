@@ -51,6 +51,7 @@
                                name="document" 
                                value="{{ old('document', $customer->document ?? $customer->identification_number) }}" 
                                placeholder="Ej. 1144123456 o 900123456-1"
+                               inputmode="numeric"
                                required>
                         @error('document')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -62,10 +63,15 @@
                     <div class="col-md-6">
                         <label for="phone" class="form-label small fw-semibold text-secondary">Teléfono / WhatsApp</label>
                         <input type="text" 
-                               class="form-control @error('phone') is-invalid @enderror" 
+                               class="form-control font-monospace @error('phone') is-invalid @enderror" 
                                id="phone" 
                                name="phone" 
-                               value="{{ old('phone', $customer->phone) }}">
+                               value="{{ old('phone', $customer->phone) }}"
+                               placeholder="Ej. 315 123 4567"
+                               inputmode="tel">
+                        @error('phone')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="col-md-6">
@@ -102,4 +108,27 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const docInput = document.getElementById('document');
+    if (docInput) {
+        docInput.addEventListener('input', function() {
+            let val = this.value.replace(/[^0-9-]/g, '');
+            const parts = val.split('-');
+            if (parts.length > 2) {
+                val = parts[0] + '-' + parts.slice(1).join('');
+            }
+            this.value = val;
+        });
+    }
+
+    const phoneInput = document.getElementById('phone');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^\d\s+\-()]/g, '');
+        });
+    }
+});
+</script>
 @endsection

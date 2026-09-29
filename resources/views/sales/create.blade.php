@@ -3,6 +3,17 @@
 @section('title', 'Nueva Venta')
 
 @section('content')
+<style>
+/* Ocultar flechas/spinners nativos en inputs de cantidad del carrito */
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.qty-input[type=number] {
+    -moz-appearance: textfield;
+}
+</style>
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
     <div>
         <h3 class="fw-bold mb-1">Nueva Venta</h3>
@@ -48,11 +59,11 @@
                         <thead class="bg-light">
                             <tr>
                                 <th>Producto</th>
-                                <th class="text-center" style="width:100px;">Stock</th>
-                                <th class="text-center" style="width:110px;">Cantidad</th>
-                                <th class="text-end" style="width:140px;">P. Unitario</th>
-                                <th class="text-end" style="width:140px;">Subtotal</th>
-                                <th class="text-center" style="width:60px;"></th>
+                                <th class="text-center" style="width:90px;">Stock</th>
+                                <th class="text-center" style="width:140px;">Cantidad</th>
+                                <th class="text-end" style="width:130px;">P. Unitario</th>
+                                <th class="text-end" style="width:130px;">Subtotal</th>
+                                <th class="text-center" style="width:50px;"></th>
                             </tr>
                         </thead>
                         <tbody id="cartBody">
@@ -71,60 +82,99 @@
         {{-- Panel derecho: Resumen y datos de la venta --}}
         <div class="col-lg-4">
             <div class="card card-custom p-4 mb-4">
-                <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="bi bi-receipt me-2 text-primary"></i>Datos de la Venta</h5>
+                {{-- SECCIÓN 1: CABECERA / CONTEXTO --}}
+                <div class="border-bottom pb-3 mb-3">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-receipt me-2 text-primary"></i>Datos de la Venta</h5>
 
-                <div class="mb-3">
-                    <label for="sale_date" class="form-label small fw-semibold text-muted">Fecha y Hora</label>
-                    <input type="datetime-local" id="sale_date" name="sale_date" class="form-control"
-                           value="{{ old('sale_date', now()->format('Y-m-d\TH:i')) }}" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold text-muted d-flex justify-content-between align-items-center">
-                        <span>Cliente</span>
-                        <small class="text-secondary">Opcional</small>
-                    </label>
-
-                    {{-- Hidden input with authoritative customer_id --}}
-                    <input type="hidden" id="customer_id" name="customer_id" 
-                           value="{{ old('customer_id', $selectedCustomer?->id ?? '') }}">
-
-                    {{-- Chip del cliente seleccionado --}}
-                    <div id="customer_chip_container" class="mb-2 p-2 rounded-3 border bg-light d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center overflow-hidden me-2">
-                            <i id="customer_chip_icon" class="bi {{ ($selectedCustomer || old('customer_id')) ? 'bi-person-check-fill text-success' : 'bi-person text-secondary' }} fs-5 me-2 flex-shrink-0"></i>
-                            <div class="small text-truncate">
-                                <span id="customer_chip_name" class="fw-bold d-block text-truncate">
-                                    {{ $selectedCustomer ? $selectedCustomer->name : ($defaultCustomerName ?? config('sales.default_customer_name')) }}
-                                </span>
-                                <span id="customer_chip_doc" class="text-muted font-monospace small">
-                                    {{ $selectedCustomer ? ($selectedCustomer->document ?? $selectedCustomer->identification_number) : ($defaultCustomerDocument ?? config('sales.default_customer_document')) }}
-                                </span>
-                            </div>
-                        </div>
-                        <button type="button" id="btn_remove_customer" class="btn btn-sm btn-outline-danger py-0 px-2 rounded-pill {{ ($selectedCustomer || old('customer_id')) ? '' : 'd-none' }}" title="Quitar cliente (Consumidor Final)">
-                            <i class="bi bi-x"></i> Quitar
-                        </button>
+                    {{-- Fecha y Hora (compacta con indicador de fecha colombiana) --}}
+                    <div class="mb-3">
+                        <label for="sale_date" class="form-label small fw-semibold text-muted d-flex justify-content-between align-items-center mb-1">
+                            <span><i class="bi bi-clock-history me-1"></i>Fecha y Hora</span>
+                            <span class="badge bg-light text-secondary border font-monospace fw-normal">{{ now()->format('d/m/Y') }}</span>
+                        </label>
+                        <input type="datetime-local" id="sale_date" name="sale_date" class="form-control form-control-sm"
+                               value="{{ old('sale_date', now()->format('Y-m-d\TH:i')) }}" required>
                     </div>
 
-                    {{-- Campo de búsqueda y botón '+' --}}
-                    <div class="position-relative">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-                            <input type="text" id="customer_search" class="form-control" 
-                                   placeholder="Buscar cliente (Cédula/NIT o nombre)..." 
-                                   autocomplete="off">
-                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#quickCustomerModal" title="Crear cliente rápido">
-                                <i class="bi bi-plus-lg"></i>
+                    {{-- Selector de Cliente --}}
+                    <div>
+                        <label class="form-label small fw-semibold text-muted d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-person me-1"></i>Cliente</span>
+                            <small class="text-secondary">Opcional</small>
+                        </label>
+
+                        {{-- Hidden input with authoritative customer_id --}}
+                        <input type="hidden" id="customer_id" name="customer_id" 
+                               value="{{ old('customer_id', $selectedCustomer?->id ?? '') }}">
+
+                        {{-- Chip del cliente seleccionado --}}
+                        <div id="customer_chip_container" class="mb-2 p-2 rounded-3 border bg-light d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center overflow-hidden me-2">
+                                <i id="customer_chip_icon" class="bi {{ ($selectedCustomer || old('customer_id')) ? 'bi-person-check-fill text-success' : 'bi-person text-secondary' }} fs-5 me-2 flex-shrink-0"></i>
+                                <div class="small text-truncate">
+                                    <span id="customer_chip_name" class="fw-bold d-block text-truncate">
+                                        {{ $selectedCustomer ? $selectedCustomer->name : ($defaultCustomerName ?? config('sales.default_customer_name')) }}
+                                    </span>
+                                    <span id="customer_chip_doc" class="text-muted font-monospace small">
+                                        {{ $selectedCustomer ? ($selectedCustomer->document ?? $selectedCustomer->identification_number) : ($defaultCustomerDocument ?? config('sales.default_customer_document')) }}
+                                    </span>
+                                </div>
+                            </div>
+                            <button type="button" id="btn_remove_customer" class="btn btn-sm btn-outline-danger py-0 px-2 rounded-pill {{ ($selectedCustomer || old('customer_id')) ? '' : 'd-none' }}" title="Quitar cliente (Consumidor Final)">
+                                <i class="bi bi-x"></i> Quitar
                             </button>
                         </div>
-                        {{-- Dropdown de resultados --}}
-                        <div id="customer_search_results" class="list-group position-absolute shadow w-100 mt-1 d-none" style="z-index: 1060; max-height: 220px; overflow-y: auto;"></div>
+
+                        {{-- Campo de búsqueda y botón '+' --}}
+                        <div class="position-relative">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" id="customer_search" class="form-control" 
+                                       placeholder="Buscar cliente (Cédula/NIT o nombre)..." 
+                                       autocomplete="off">
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#quickCustomerModal" title="Crear cliente rápido">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                            {{-- Dropdown de resultados --}}
+                            <div id="customer_search_results" class="list-group position-absolute shadow w-100 mt-1 d-none" style="z-index: 1060; max-height: 220px; overflow-y: auto;"></div>
+                        </div>
                     </div>
                 </div>
 
-                {{-- Métodos de Pago y Pagos Mixtos --}}
-                <div class="mb-3">
+                {{-- SECCIÓN 2: LIQUIDACIÓN Y RESUMEN DE TOTALES --}}
+                <div class="border-bottom pb-3 mb-3">
+                    <h6 class="fw-bold text-uppercase text-muted small mb-2"><i class="bi bi-calculator me-1"></i>Resumen de Cobro</h6>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Subtotal</span>
+                        <span class="fw-semibold font-monospace" id="displaySubtotal">$0</span>
+                    </div>
+
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="discount_percentage" class="form-label small text-muted mb-0">Descuento (%)</label>
+                            <span class="fw-semibold text-danger font-monospace small" id="displayDiscount">-$0</span>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="discount_percentage" name="discount_percentage" class="form-control"
+                                   value="{{ old('discount_percentage', 0) }}" min="0" max="100" step="any" placeholder="0">
+                            <span class="input-group-text bg-light">%</span>
+                        </div>
+                        <div id="discountFeedback" class="form-text text-info mt-1" style="display:none;">
+                            <i class="bi bi-info-circle me-1"></i>Equivale a <strong id="discountMoneyPreview">$0</strong> de descuento
+                        </div>
+                    </div>
+
+                    {{-- Caja destacada de Total Final a Cobrar --}}
+                    <div class="bg-light p-3 rounded-3 border mt-3 text-center">
+                        <span class="text-muted small d-block text-uppercase fw-semibold mb-1">Total a Cobrar</span>
+                        <span class="fw-bold fs-3 text-primary font-monospace d-block" id="displayTotal">$0</span>
+                    </div>
+                </div>
+
+                {{-- SECCIÓN 3: RECEPCIÓN Y MÉTODOS DE PAGO --}}
+                <div class="border-bottom pb-3 mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <label class="form-label small fw-semibold text-muted mb-0">
                             <i class="bi bi-wallet2 me-1"></i>Métodos de Pago
@@ -149,45 +199,19 @@
                     @enderror
                 </div>
 
-                <div class="mb-3">
-                    <label for="discount_percentage" class="form-label small fw-semibold text-muted">Descuento (%)</label>
-                    <div class="input-group">
-                        <input type="number" id="discount_percentage" name="discount_percentage" class="form-control"
-                               value="{{ old('discount_percentage', 0) }}" min="0" max="100" step="any">
-                        <span class="input-group-text bg-light">%</span>
+                {{-- SECCIÓN 4: METADATOS Y ACCIÓN --}}
+                <div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label small fw-semibold text-muted"><i class="bi bi-chat-left-text me-1"></i>Notas</label>
+                        <textarea id="notes" name="notes" class="form-control" rows="2" maxlength="1000"
+                                  placeholder="Notas u observaciones adicionales...">{{ old('notes') }}</textarea>
                     </div>
-                    <div id="discountFeedback" class="form-text text-info mt-1" style="display:none;">
-                        <i class="bi bi-info-circle me-1"></i>Equivale a <strong id="discountMoneyPreview">$0</strong> de descuento
-                    </div>
-                </div>
 
-                <div class="mb-3">
-                    <label for="notes" class="form-label small fw-semibold text-muted">Notas</label>
-                    <textarea id="notes" name="notes" class="form-control" rows="2" maxlength="1000"
-                              placeholder="Notas adicionales...">{{ old('notes') }}</textarea>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm" id="btnSubmitSale" disabled>
+                        <i class="bi bi-check2-circle me-2"></i> Registrar Venta
+                    </button>
                 </div>
             </div>
-
-            {{-- Totales --}}
-            <div class="card card-custom p-4 mb-4">
-                <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted">Subtotal</span>
-                    <span class="fw-semibold" id="displaySubtotal">$0</span>
-                </div>
-                <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted">Descuento</span>
-                    <span class="fw-semibold text-danger" id="displayDiscount">-$0</span>
-                </div>
-                <hr>
-                <div class="d-flex justify-content-between">
-                    <span class="fw-bold fs-5">Total</span>
-                    <span class="fw-bold fs-5 text-primary" id="displayTotal">$0</span>
-                </div>
-            </div>
-
-            <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm" id="btnSubmitSale" disabled>
-                <i class="bi bi-check2-circle me-2"></i> Registrar Venta
-            </button>
         </div>
     </div>
 </form>
@@ -207,18 +231,20 @@
 
                 <div class="mb-3">
                     <label for="quick_customer_document" class="form-label small fw-semibold text-muted">Cédula o NIT <span class="text-danger">*</span></label>
-                    <input type="text" id="quick_customer_document" class="form-control font-monospace" placeholder="Ej: 1144001234 o 900123456-1" required>
+                    <input type="text" id="quick_customer_document" class="form-control font-monospace" placeholder="Ej: 1144001234 o 900123456-1" inputmode="numeric" required>
                     <div class="form-text small">Solo dígitos (5-15) y guión opcional con dígito de verificación.</div>
                 </div>
 
                 <div class="mb-3">
                     <label for="quick_customer_name" class="form-label small fw-semibold text-muted">Nombre o Razón Social <span class="text-danger">*</span></label>
-                    <input type="text" id="quick_customer_name" class="form-control" placeholder="Nombre completo" required>
+                    <input type="text" id="quick_customer_name" class="form-control" placeholder="Nombre completo o razón social" required>
+                    <div class="form-text small">Debe contener letras (no se permiten únicamente números).</div>
                 </div>
 
                 <div class="mb-3">
                     <label for="quick_customer_phone" class="form-label small fw-semibold text-muted">Teléfono <span class="text-muted">(opcional)</span></label>
-                    <input type="text" id="quick_customer_phone" class="form-control" placeholder="Ej: 3151234567">
+                    <input type="tel" id="quick_customer_phone" class="form-control font-monospace" placeholder="Ej: 3151234567" inputmode="tel">
+                    <div class="form-text small">Solo números y símbolos telefónicos (+, -).</div>
                 </div>
 
                 <div class="mb-3">
@@ -349,14 +375,22 @@ document.addEventListener('DOMContentLoaded', function () {
                     <span class="badge ${item.stock <= 0 ? 'bg-danger' : item.stock <= 5 ? 'bg-warning text-dark' : 'bg-light text-dark border'} rounded-pill">${item.stock}</span>
                 </td>
                 <td class="text-center">
-                    <input type="number" name="items[${index}][quantity]" value="${item.quantity}"
-                           class="form-control form-control-sm text-center qty-input"
-                           min="1" max="${item.stock}" data-index="${index}" style="width:80px; margin:0 auto;">
+                    <div class="input-group input-group-sm justify-content-center mx-auto" style="max-width: 125px;">
+                        <button type="button" class="btn btn-outline-secondary btn-qty-minus px-2" data-index="${index}" title="Disminuir cantidad" ${item.quantity <= 1 ? 'disabled' : ''}>
+                            <i class="bi bi-dash-lg"></i>
+                        </button>
+                        <input type="number" name="items[${index}][quantity]" value="${item.quantity}"
+                               class="form-control form-control-sm text-center qty-input px-1 fw-bold font-monospace"
+                               min="1" max="${item.stock}" data-index="${index}" style="width:45px;">
+                        <button type="button" class="btn btn-outline-secondary btn-qty-plus px-2" data-index="${index}" title="Aumentar cantidad" ${item.quantity >= item.stock ? 'disabled' : ''}>
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
                 </td>
-                <td class="text-end">$${formatNumber(item.unit_price)}</td>
-                <td class="text-end fw-semibold">$${formatNumber(lineSubtotal)}</td>
+                <td class="text-end font-monospace">$${formatNumber(item.unit_price)}</td>
+                <td class="text-end fw-semibold font-monospace">$${formatNumber(lineSubtotal)}</td>
                 <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-danger rounded-circle remove-btn" data-index="${index}">
+                    <button type="button" class="btn btn-sm btn-outline-danger rounded-circle remove-btn" data-index="${index}" title="Quitar producto">
                         <i class="bi bi-trash3"></i>
                     </button>
                 </td>
@@ -364,7 +398,29 @@ document.addEventListener('DOMContentLoaded', function () {
             cartBody.appendChild(tr);
         });
 
-        // Bind quantity change
+        // Bind minus buttons
+        document.querySelectorAll('.btn-qty-minus').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const idx = parseInt(this.dataset.index);
+                if (cart[idx].quantity > 1) {
+                    cart[idx].quantity -= 1;
+                    renderCart();
+                }
+            });
+        });
+
+        // Bind plus buttons
+        document.querySelectorAll('.btn-qty-plus').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const idx = parseInt(this.dataset.index);
+                if (cart[idx].quantity < cart[idx].stock) {
+                    cart[idx].quantity += 1;
+                    renderCart();
+                }
+            });
+        });
+
+        // Bind manual quantity change
         document.querySelectorAll('.qty-input').forEach(input => {
             input.addEventListener('change', function () {
                 const idx = parseInt(this.dataset.index);
@@ -410,8 +466,8 @@ document.addEventListener('DOMContentLoaded', function () {
             discountFeedback.style.display = 'none';
         }
 
-        // Sincronizar pago por defecto en efectivo y renderizar
-        syncDefaultCashPayment(total);
+        // Sincronizar pago si hay un único método de pago
+        syncSinglePayment(total);
         renderPaymentLines();
         updatePaymentsFeedback();
     }
@@ -434,11 +490,16 @@ document.addEventListener('DOMContentLoaded', function () {
         return Math.max(subtotal - discountMoney, 0);
     }
 
-    function syncDefaultCashPayment(total) {
-        if (!userModifiedPayments && payments.length === 1 && payments[0].method === 'cash') {
+    function syncSinglePayment(total) {
+        if (payments.length === 1) {
             payments[0].amount = total;
-            payments[0].cash_received = null;
-            payments[0].change_given = 0;
+            if (payments[0].method === 'cash') {
+                if (payments[0].cash_received !== null && payments[0].cash_received !== undefined && payments[0].cash_received !== '') {
+                    payments[0].change_given = Math.max(0, payments[0].cash_received - total);
+                } else {
+                    payments[0].change_given = 0;
+                }
+            }
         }
     }
 
@@ -1123,6 +1184,26 @@ document.addEventListener('DOMContentLoaded', function () {
             quickCustomerErrors.classList.remove('d-none');
         });
     });
+
+    // Restricciones en tiempo real para el modal de cliente rápido
+    const quickDocInput = document.getElementById('quick_customer_document');
+    if (quickDocInput) {
+        quickDocInput.addEventListener('input', function() {
+            let val = this.value.replace(/[^0-9-]/g, '');
+            const parts = val.split('-');
+            if (parts.length > 2) {
+                val = parts[0] + '-' + parts.slice(1).join('');
+            }
+            this.value = val;
+        });
+    }
+
+    const quickPhoneInput = document.getElementById('quick_customer_phone');
+    if (quickPhoneInput) {
+        quickPhoneInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^\d\s+\-()]/g, '');
+        });
+    }
 
     // ── Utilities ──
     function formatNumber(n) {

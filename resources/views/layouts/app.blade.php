@@ -153,6 +153,15 @@
             border-bottom: 1px solid #fecaca !important;
             color: #991b1b;
         }
+
+        /* Salvaguarda para iconos de paginación SVG */
+        .pagination svg {
+            width: 1em !important;
+            height: 1em !important;
+            max-width: 16px !important;
+            max-height: 16px !important;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>

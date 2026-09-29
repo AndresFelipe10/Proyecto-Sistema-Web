@@ -425,4 +425,58 @@ class BlockBSecurityTest extends TestCase
         $responseErr->assertStatus(422);
         $responseErr->assertJsonValidationErrors(['document']);
     }
+
+    public function test_customer_name_and_phone_validation_rejects_invalid_inputs_and_normalizes_empty_strings(): void
+    {
+        // 1. Nombre compuesto únicamente por números debe ser rechazado
+        $resNumName = $this->actingAs($this->adminA)
+            ->withSession(['current_business_id' => $this->businessA->id])
+            ->postJson(route('customers.store'), [
+                'name' => '123456',
+                'document' => '1144007788',
+            ]);
+
+        $resNumName->assertStatus(422);
+        $resNumName->assertJsonValidationErrors(['name']);
+
+        // 2. Teléfono con texto alfabético debe ser rechazado
+        $resAlphaPhone = $this->actingAs($this->adminA)
+            ->withSession(['current_business_id' => $this->businessA->id])
+            ->postJson(route('customers.store'), [
+                'name' => 'Cliente Valido',
+                'document' => '1144007789',
+                'phone' => 'ssss',
+            ]);
+
+        $resAlphaPhone->assertStatus(422);
+        $resAlphaPhone->assertJsonValidationErrors(['phone']);
+
+        // 3. Documento con letras debe ser rechazado
+        $resAlphaDoc = $this->actingAs($this->adminA)
+            ->withSession(['current_business_id' => $this->businessA->id])
+            ->postJson(route('customers.store'), [
+                'name' => 'Cliente Valido',
+                'document' => 'pepito',
+            ]);
+
+        $resAlphaDoc->assertStatus(422);
+        $resAlphaDoc->assertJsonValidationErrors(['document']);
+
+        // 4. Cliente válido con teléfono válido y nombre con números y letras
+        $resOk = $this->actingAs($this->adminA)
+            ->withSession(['current_business_id' => $this->businessA->id])
+            ->postJson(route('customers.store'), [
+                'name' => 'Bodega Central 1A',
+                'document' => '1144007790',
+                'phone' => '+57 315 123-4567',
+                'email' => '   ', // debe normalizarse a null
+            ]);
+
+        $resOk->assertStatus(201);
+        $customer = Customer::where('document', '1144007790')->first();
+        $this->assertNotNull($customer);
+        $this->assertEquals('Bodega Central 1A', $customer->name);
+        $this->assertEquals('+57 315 123-4567', $customer->phone);
+        $this->assertNull($customer->email);
+    }
 }

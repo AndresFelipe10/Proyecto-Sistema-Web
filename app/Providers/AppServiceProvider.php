@@ -6,6 +6,7 @@ use App\AI\Contracts\AiProviderInterface;
 use App\AI\Providers\FakeAiProvider;
 use App\AI\Providers\GeminiProvider;
 use App\Services\Tenant\TenantManager;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -33,6 +34,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Paginator::useBootstrapFive();
+
         \Illuminate\Support\Facades\Gate::define('manage-platform', function (\App\Models\User $user) {
             return (bool) $user->is_superadmin;
         });
