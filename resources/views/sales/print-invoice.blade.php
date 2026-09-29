@@ -14,7 +14,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 13px;
+            font-size: 14px;
             color: #1a1a1a;
             line-height: 1.5;
             background: #fff;
@@ -30,12 +30,12 @@
             padding-bottom: 20px;
             margin-bottom: 25px;
         }
-        .business-info h1 { font-size: 22px; color: #4f46e5; margin-bottom: 4px; }
-        .business-info p { color: #555; font-size: 12px; line-height: 1.6; }
+        .business-info h1 { font-size: 24px; color: #4f46e5; margin-bottom: 4px; }
+        .business-info p { color: #555; font-size: 13px; line-height: 1.6; }
         .invoice-meta { text-align: right; }
         .invoice-meta h2 { font-size: 28px; color: #4f46e5; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
-        .invoice-meta p { font-size: 12px; color: #555; }
-        .invoice-meta .invoice-number { font-size: 16px; font-weight: 700; color: #1a1a1a; font-family: 'Courier New', monospace; }
+        .invoice-meta p { font-size: 13px; color: #555; }
+        .invoice-meta .invoice-number { font-size: 17px; font-weight: 700; color: #1a1a1a; font-family: 'Courier New', monospace; }
 
         /* ── Client & Sale Info ── */
         .info-grid {
@@ -45,36 +45,36 @@
             margin-bottom: 25px;
         }
         .info-box { background: #f8f9fa; border-radius: 8px; padding: 15px; }
-        .info-box h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 8px; }
-        .info-box p { font-size: 13px; margin-bottom: 3px; }
+        .info-box h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 8px; }
+        .info-box p { font-size: 14px; margin-bottom: 3px; }
         .info-box .value { font-weight: 600; }
 
         /* ── Products Table ── */
         table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
         thead { background: #4f46e5; color: #fff; }
-        th { padding: 10px 12px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        th { padding: 10px 12px; text-align: left; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
         th.text-center { text-align: center; }
         th.text-end { text-align: right; }
-        td { padding: 10px 12px; border-bottom: 1px solid #e9ecef; }
+        td { padding: 10px 12px; border-bottom: 1px solid #e9ecef; font-size: 14px; }
         td.text-center { text-align: center; }
         td.text-end { text-align: right; }
         tbody tr:nth-child(even) { background: #f8f9fa; }
         .product-name { font-weight: 600; }
-        .product-sku { color: #888; font-size: 11px; font-family: 'Courier New', monospace; }
+        .product-sku { color: #888; font-size: 12px; font-family: 'Courier New', monospace; }
 
         /* ── Totals ── */
         .totals-section { display: flex; justify-content: flex-end; margin-bottom: 30px; }
-        .totals-box { width: 300px; }
-        .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+        .totals-box { width: 320px; }
+        .totals-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
         .totals-row.discount { color: #dc3545; }
-        .totals-row.total { font-size: 18px; font-weight: 700; border-top: 2px solid #1a1a1a; padding-top: 10px; margin-top: 6px; }
+        .totals-row.total { font-size: 19px; font-weight: 700; border-top: 2px solid #1a1a1a; padding-top: 10px; margin-top: 6px; }
 
         /* ── Footer ── */
         .invoice-footer {
             border-top: 1px solid #dee2e6;
             padding-top: 15px;
             text-align: center;
-            font-size: 11px;
+            font-size: 12px;
             color: #888;
         }
         .invoice-footer .legal { margin-bottom: 5px; }

@@ -420,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ── Estado y Manejo de Pagos Mixtos y Vueltos ──
     let payments = [
-        { method: 'cash', amount: 0, reference: '', cash_received: 0, change_given: 0 }
+        { method: 'cash', amount: 0, reference: '', cash_received: null, change_given: 0 }
     ];
     let userModifiedPayments = false;
 
@@ -437,9 +437,32 @@ document.addEventListener('DOMContentLoaded', function () {
     function syncDefaultCashPayment(total) {
         if (!userModifiedPayments && payments.length === 1 && payments[0].method === 'cash') {
             payments[0].amount = total;
-            payments[0].cash_received = total;
+            payments[0].cash_received = null;
             payments[0].change_given = 0;
         }
+    }
+
+    function getSmartShortcuts(amount) {
+        const list = [{ label: 'Exacto', val: 'exact' }];
+        if (amount <= 0) {
+            [10000, 20000, 50000, 100000].forEach(v => list.push({ label: '$' + formatNumber(v), val: v }));
+            return list;
+        }
+        const candidates = new Set();
+        const next10k = Math.ceil(amount / 10000) * 10000;
+        if (next10k > amount) candidates.add(next10k);
+        const next20k = Math.ceil(amount / 20000) * 20000;
+        if (next20k > amount) candidates.add(next20k);
+        const next50k = Math.ceil(amount / 50000) * 50000;
+        if (next50k > amount) candidates.add(next50k);
+        const next100k = Math.ceil(amount / 100000) * 100000;
+        if (next100k > amount) candidates.add(next100k);
+
+        const sorted = Array.from(candidates).sort((a, b) => a - b).slice(0, 3);
+        sorted.forEach(val => {
+            list.push({ label: '$' + formatNumber(val), val: val });
+        });
+        return list;
     }
 
     function renderPaymentLines() {
@@ -451,7 +474,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         payments.forEach((p, idx) => {
             const card = document.createElement('div');
-            card.className = 'card p-2 bg-light border-0 rounded-3 shadow-none';
+            card.className = 'card p-2 bg-light border-0 rounded-3 shadow-none mb-2';
 
             // Fila principal: Selector de método, input de monto y botón de eliminar
             const row = document.createElement('div');
@@ -486,7 +509,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 userModifiedPayments = true;
                 p.method = this.value;
                 if (p.method === 'cash') {
-                    p.cash_received = p.amount;
+                    p.cash_received = null;
                     p.change_given = 0;
                 } else {
                     p.cash_received = null;
@@ -508,7 +531,7 @@ document.addEventListener('DOMContentLoaded', function () {
             spanPrefix.textContent = '$';
             const inputAmount = document.createElement('input');
             inputAmount.type = 'number';
-            inputAmount.className = 'form-control text-end fw-semibold';
+            inputAmount.className = 'form-control text-end fw-semibold font-monospace';
             inputAmount.min = '0';
             inputAmount.step = 'any';
             inputAmount.value = p.amount > 0 ? p.amount : (payments.length === 1 && total > 0 ? total : '');
@@ -518,28 +541,46 @@ document.addEventListener('DOMContentLoaded', function () {
                 userModifiedPayments = true;
                 p.amount = parseFloat(this.value) || 0;
                 if (p.method === 'cash') {
-                    if (p.cash_received === undefined || p.cash_received === null || p.cash_received < p.amount) {
-                        p.cash_received = p.amount;
+                    if (p.cash_received !== undefined && p.cash_received !== null && p.cash_received !== '') {
+                        p.change_given = Math.max(0, p.cash_received - p.amount);
+                    } else {
+                        p.change_given = 0;
                     }
-                    p.change_given = Math.max(0, p.cash_received - p.amount);
+                    if (typeof updateChangeDisplay === 'function') {
+                        updateChangeDisplay();
+                    }
                 }
                 updatePaymentsFeedback();
-
-                const changeBadge = card.querySelector('.cash-change-badge');
-                if (changeBadge) {
-                    const diff = (p.cash_received || 0) - p.amount;
-                    if (diff >= 0) {
-                        changeBadge.className = 'badge bg-success font-monospace cash-change-badge';
-                        changeBadge.textContent = 'Vuelto: $' + formatNumber(diff);
-                    } else {
-                        changeBadge.className = 'badge bg-danger font-monospace cash-change-badge';
-                        changeBadge.textContent = 'Falta $' + formatNumber(Math.abs(diff));
-                    }
-                }
             });
             inputGroup.appendChild(spanPrefix);
             inputGroup.appendChild(inputAmount);
             colAmount.appendChild(inputGroup);
+
+            // Botón rápido para auto-ajustar al saldo restante cuando hay más de 1 método
+            if (payments.length > 1) {
+                const otherSum = payments.reduce((acc, curr, i) => i !== idx ? acc + (curr.amount || 0) : acc, 0);
+                const remainingForThis = Math.max(0, Math.round((total - otherSum) * 100) / 100);
+                if (remainingForThis !== p.amount) {
+                    const btnAdjust = document.createElement('button');
+                    btnAdjust.type = 'button';
+                    btnAdjust.className = 'btn btn-link btn-xs p-0 text-decoration-none text-primary mt-1 d-block text-end w-100';
+                    btnAdjust.style.fontSize = '0.72rem';
+                    btnAdjust.innerHTML = `<i class="bi bi-magic me-1"></i>Ajustar al restante ($${formatNumber(remainingForThis)})`;
+                    btnAdjust.title = 'Ajustar este método para completar el total de la venta';
+                    btnAdjust.addEventListener('click', function() {
+                        p.amount = remainingForThis;
+                        inputAmount.value = p.amount;
+                        if (p.method === 'cash') {
+                            p.cash_received = null;
+                            p.change_given = 0;
+                        }
+                        renderPaymentLines();
+                        updatePaymentsFeedback();
+                    });
+                    colAmount.appendChild(btnAdjust);
+                }
+            }
+
             row.appendChild(colAmount);
 
             // Columna de eliminar línea (si hay más de 1)
@@ -561,6 +602,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             row.appendChild(colDelete);
             card.appendChild(row);
+
+            // Declarar updateChangeDisplay en alcance común para la tarjeta de efectivo
+            let updateChangeDisplay = null;
 
             // Sección específica para Efectivo (Paga con, Atajos y Vueltos)
             if (p.method === 'cash') {
@@ -586,7 +630,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 recInput.className = 'form-control text-end font-monospace fw-semibold';
                 recInput.min = '0';
                 recInput.step = 'any';
-                recInput.value = p.cash_received !== undefined && p.cash_received !== null ? p.cash_received : p.amount;
+                recInput.value = (p.cash_received !== undefined && p.cash_received !== null) ? p.cash_received : '';
+                recInput.placeholder = p.amount > 0 ? ('$' + formatNumber(p.amount) + ' (o atajo)') : '0';
 
                 recGroup.appendChild(recPrefix);
                 recGroup.appendChild(recInput);
@@ -594,63 +639,107 @@ document.addEventListener('DOMContentLoaded', function () {
                 receivedRow.appendChild(recInputCol);
                 cashSection.appendChild(receivedRow);
 
-                // Botones de atajos rápidos
+                // Botones de atajos rápidos inteligentes basados en el monto a pagar
                 const shortcutsRow = document.createElement('div');
                 shortcutsRow.className = 'd-flex flex-wrap gap-1 mb-2';
 
-                const shortcuts = [
-                    { label: 'Exacto', val: 'exact' },
-                    { label: '$10.000', val: 10000 },
-                    { label: '$20.000', val: 20000 },
-                    { label: '$50.000', val: 50000 },
-                    { label: '$100.000', val: 100000 }
-                ];
-
-                shortcuts.forEach(sc => {
-                    const btnSc = document.createElement('button');
-                    btnSc.type = 'button';
-                    btnSc.className = 'btn btn-outline-secondary btn-sm py-0 px-2 rounded-pill';
-                    btnSc.style.fontSize = '0.75rem';
-                    btnSc.textContent = sc.label;
-                    btnSc.addEventListener('click', function() {
-                        const targetVal = sc.val === 'exact' ? p.amount : sc.val;
-                        recInput.value = targetVal;
-                        p.cash_received = targetVal;
-                        p.change_given = Math.max(0, targetVal - p.amount);
-                        updateChangeDisplay();
-                        updatePaymentsFeedback();
+                function renderShortcuts() {
+                    shortcutsRow.innerHTML = '';
+                    const shortcuts = getSmartShortcuts(p.amount);
+                    shortcuts.forEach(sc => {
+                        const btnSc = document.createElement('button');
+                        btnSc.type = 'button';
+                        btnSc.className = 'btn btn-outline-secondary btn-sm py-0 px-2 rounded-pill';
+                        btnSc.style.fontSize = '0.75rem';
+                        btnSc.textContent = sc.label;
+                        btnSc.addEventListener('click', function() {
+                            const targetVal = sc.val === 'exact' ? p.amount : sc.val;
+                            recInput.value = targetVal;
+                            p.cash_received = targetVal;
+                            p.change_given = Math.max(0, targetVal - p.amount);
+                            updateChangeDisplay();
+                            updatePaymentsFeedback();
+                        });
+                        shortcutsRow.appendChild(btnSc);
                     });
-                    shortcutsRow.appendChild(btnSc);
-                });
+                }
+                renderShortcuts();
                 cashSection.appendChild(shortcutsRow);
 
-                // Fila de Vuelto / Cambio
+                // Fila de Vuelto / Cambio o estado de entrega de efectivo
                 const changeRow = document.createElement('div');
-                changeRow.className = 'd-flex justify-content-between align-items-center';
-                changeRow.innerHTML = '<span class="small text-muted">Vuelto / Cambio:</span>';
-                const changeBadge = document.createElement('span');
-                changeBadge.className = 'badge cash-change-badge font-monospace';
+                changeRow.className = 'd-flex justify-content-between align-items-center mt-1 flex-wrap gap-1';
 
-                function updateChangeDisplay() {
-                    const diff = (p.cash_received || 0) - p.amount;
-                    if (diff >= 0) {
-                        changeBadge.className = 'badge bg-success font-monospace cash-change-badge';
-                        changeBadge.textContent = 'Vuelto: $' + formatNumber(diff);
-                    } else {
-                        changeBadge.className = 'badge bg-danger font-monospace cash-change-badge';
-                        changeBadge.textContent = 'Falta $' + formatNumber(Math.abs(diff));
+                updateChangeDisplay = function() {
+                    changeRow.innerHTML = '';
+                    if (p.amount <= 0) {
+                        return;
                     }
-                }
+
+                    if (p.cash_received === null || p.cash_received === undefined) {
+                        const note = document.createElement('span');
+                        note.className = 'small text-muted font-monospace';
+                        note.innerHTML = '<i class="bi bi-info-circle me-1"></i>Exacto o ingrese con cuánto paga el cliente';
+                        changeRow.appendChild(note);
+                        return;
+                    }
+
+                    const diff = p.cash_received - p.amount;
+
+                    if (diff >= 0) {
+                        const label = document.createElement('span');
+                        label.className = 'small text-muted';
+                        label.textContent = 'Vuelto / Cambio:';
+                        changeRow.appendChild(label);
+
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-success font-monospace cash-change-badge';
+                        badge.textContent = 'Vuelto: $' + formatNumber(diff);
+                        changeRow.appendChild(badge);
+                    } else {
+                        const shortAmt = Math.abs(diff);
+                        const alertWrapper = document.createElement('div');
+                        alertWrapper.className = 'd-flex align-items-center justify-content-between w-100 flex-wrap gap-1';
+
+                        const label = document.createElement('span');
+                        label.className = 'badge bg-danger-subtle text-danger border border-danger-subtle font-monospace text-wrap text-start py-1';
+                        label.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i>Efectivo menor al asignado (faltan $${formatNumber(shortAmt)})`;
+                        alertWrapper.appendChild(label);
+
+                        if (p.cash_received > 0) {
+                            const btnSetAmount = document.createElement('button');
+                            btnSetAmount.type = 'button';
+                            btnSetAmount.className = 'btn btn-link btn-xs p-0 text-decoration-none text-primary fw-semibold';
+                            btnSetAmount.style.fontSize = '0.75rem';
+                            btnSetAmount.innerHTML = `<i class="bi bi-arrow-down-left me-1"></i>Cobrar solo $${formatNumber(p.cash_received)} en efectivo`;
+                            btnSetAmount.title = `Fijar $${formatNumber(p.cash_received)} como el monto a cobrar en efectivo`;
+                            btnSetAmount.addEventListener('click', function() {
+                                p.amount = p.cash_received;
+                                p.change_given = 0;
+                                renderPaymentLines();
+                                updatePaymentsFeedback();
+                            });
+                            alertWrapper.appendChild(btnSetAmount);
+                        }
+
+                        changeRow.appendChild(alertWrapper);
+                    }
+                };
                 updateChangeDisplay();
 
                 recInput.addEventListener('input', function() {
-                    p.cash_received = parseFloat(this.value) || 0;
-                    p.change_given = Math.max(0, p.cash_received - p.amount);
+                    const rawVal = this.value.trim();
+                    if (rawVal === '') {
+                        p.cash_received = null;
+                        p.change_given = 0;
+                    } else {
+                        p.cash_received = parseFloat(rawVal) || 0;
+                        p.change_given = Math.max(0, p.cash_received - p.amount);
+                    }
                     updateChangeDisplay();
                     updatePaymentsFeedback();
                 });
 
-                changeRow.appendChild(changeBadge);
                 cashSection.appendChild(changeRow);
                 card.appendChild(cashSection);
             } else {
@@ -704,14 +793,66 @@ document.addEventListener('DOMContentLoaded', function () {
             feedback.className = 'small p-2 rounded-3 text-center fw-semibold bg-light text-muted';
             feedback.textContent = 'Venta con 100% de descuento ($0)';
         } else if (diff > 0) {
-            feedback.className = 'small p-2 rounded-3 text-center fw-semibold bg-danger-subtle text-danger border border-danger-subtle';
-            feedback.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i>Falta por cubrir: <strong>$${formatNumber(diff / 100)}</strong>`;
+            const missing = diff / 100;
+            feedback.className = 'small p-2 rounded-3 fw-semibold bg-danger-subtle text-danger border border-danger-subtle d-flex align-items-center justify-content-between flex-wrap gap-2';
+            feedback.innerHTML = `
+                <span><i class="bi bi-exclamation-triangle-fill me-1"></i>Falta asignar a los métodos: <strong>$${formatNumber(missing)}</strong></span>
+            `;
+            if (payments.length > 0) {
+                const btnBalance = document.createElement('button');
+                btnBalance.type = 'button';
+                btnBalance.className = 'btn btn-outline-danger btn-sm py-0 px-2 rounded-pill';
+                btnBalance.style.fontSize = '0.75rem';
+                btnBalance.textContent = '+ Asignar al último método';
+                btnBalance.addEventListener('click', function() {
+                    const lastP = payments[payments.length - 1];
+                    lastP.amount = Math.round(((lastP.amount || 0) + missing) * 100) / 100;
+                    if (lastP.method === 'cash') {
+                        lastP.cash_received = Math.max(lastP.cash_received || 0, lastP.amount);
+                        lastP.change_given = Math.max(0, lastP.cash_received - lastP.amount);
+                    }
+                    renderPaymentLines();
+                    updatePaymentsFeedback();
+                });
+                feedback.appendChild(btnBalance);
+            }
         } else if (diff < 0) {
-            feedback.className = 'small p-2 rounded-3 text-center fw-semibold bg-warning-subtle text-warning-emphasis border border-warning-subtle';
-            feedback.innerHTML = `<i class="bi bi-exclamation-circle-fill me-1"></i>Sobra asignado: <strong>$${formatNumber(Math.abs(diff) / 100)}</strong>`;
+            const excess = Math.abs(diff) / 100;
+            feedback.className = 'small p-2 rounded-3 fw-semibold bg-warning-subtle text-warning-emphasis border border-warning-subtle d-flex align-items-center justify-content-between flex-wrap gap-2';
+            feedback.innerHTML = `
+                <span><i class="bi bi-exclamation-circle-fill me-1"></i>Suma de métodos ($${formatNumber(sum)}) supera el total ($${formatNumber(total)}) por <strong>$${formatNumber(excess)}</strong></span>
+            `;
+            if (payments.length > 0) {
+                const btnBalance = document.createElement('button');
+                btnBalance.type = 'button';
+                btnBalance.className = 'btn btn-outline-warning btn-sm py-0 px-2 rounded-pill text-dark';
+                btnBalance.style.fontSize = '0.75rem';
+                btnBalance.textContent = 'Ajustar al total';
+                btnBalance.addEventListener('click', function() {
+                    let remainingExcess = excess;
+                    for (let i = payments.length - 1; i >= 0; i--) {
+                        if (payments[i].amount >= remainingExcess) {
+                            payments[i].amount = Math.round((payments[i].amount - remainingExcess) * 100) / 100;
+                            if (payments[i].method === 'cash') {
+                                payments[i].change_given = Math.max(0, (payments[i].cash_received || payments[i].amount) - payments[i].amount);
+                            }
+                            remainingExcess = 0;
+                            break;
+                        }
+                    }
+                    renderPaymentLines();
+                    updatePaymentsFeedback();
+                });
+                feedback.appendChild(btnBalance);
+            }
         } else {
-            feedback.className = 'small p-2 rounded-3 text-center fw-semibold bg-success-subtle text-success border border-success-subtle';
-            feedback.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i>Monto exacto cubierto ($${formatNumber(total)})`;
+            if (cashValid) {
+                feedback.className = 'small p-2 rounded-3 text-center fw-semibold bg-success-subtle text-success border border-success-subtle';
+                feedback.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i>Monto exacto cubierto ($${formatNumber(total)})`;
+            } else {
+                feedback.className = 'small p-2 rounded-3 text-center fw-semibold bg-danger-subtle text-danger border border-danger-subtle';
+                feedback.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i>Monto total cubierto, pero el efectivo entregado es menor al asignado a esa línea`;
+            }
         }
 
         // Estado del botón submit
@@ -740,8 +881,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         payments.forEach((p, idx) => {
             const isCash = p.method === 'cash';
-            const cashRec = isCash ? (p.cash_received !== undefined && p.cash_received !== null ? p.cash_received : p.amount) : '';
-            const change = isCash ? Math.max(0, (p.cash_received || p.amount) - p.amount) : '';
+            const hasExplicitRec = p.cash_received !== undefined && p.cash_received !== null && p.cash_received !== '';
+            const cashRec = isCash ? (hasExplicitRec ? p.cash_received : p.amount) : '';
+            const change = isCash ? Math.max(0, (hasExplicitRec ? p.cash_received : p.amount) - p.amount) : '';
 
             hiddenContainer.innerHTML += `
                 <input type="hidden" name="payments[${idx}][method]" value="${escapeHtml(p.method)}">
@@ -772,8 +914,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 method: newMethod,
                 amount: remaining,
                 reference: '',
-                cash_received: newMethod === 'cash' ? remaining : null,
-                change_given: newMethod === 'cash' ? 0 : null
+                cash_received: null,
+                change_given: 0
             });
 
             renderPaymentLines();

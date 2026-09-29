@@ -14,7 +14,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Courier New', 'Lucida Console', monospace;
-            font-size: 12px;
+            font-size: 13px;
             color: #000;
             line-height: 1.4;
             background: #fff;
@@ -32,13 +32,13 @@
             margin-bottom: 8px;
         }
         .receipt-header .business-name {
-            font-size: 16px;
+            font-size: 17px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
         .receipt-header .business-detail {
-            font-size: 10px;
+            font-size: 11px;
             color: #333;
         }
 
@@ -47,7 +47,7 @@
             border-bottom: 1px dashed #000;
             padding-bottom: 8px;
             margin-bottom: 8px;
-            font-size: 11px;
+            font-size: 12px;
         }
         .receipt-info .row {
             display: flex;
@@ -59,14 +59,14 @@
             display: flex;
             justify-content: space-between;
             font-weight: 700;
-            font-size: 11px;
+            font-size: 12px;
             border-bottom: 1px solid #000;
             padding-bottom: 3px;
             margin-bottom: 5px;
         }
         .item-line {
             margin-bottom: 4px;
-            font-size: 11px;
+            font-size: 12px;
         }
         .item-name {
             font-weight: 600;
@@ -91,12 +91,12 @@
         .totals .row {
             display: flex;
             justify-content: space-between;
-            font-size: 12px;
+            font-size: 13px;
             margin-bottom: 2px;
         }
         .totals .discount { color: #333; }
         .totals .total-row {
-            font-size: 16px;
+            font-size: 17px;
             font-weight: 700;
             border-top: 1px solid #000;
             padding-top: 5px;
@@ -109,11 +109,11 @@
             margin-top: 10px;
             padding-top: 8px;
             text-align: center;
-            font-size: 10px;
+            font-size: 11px;
             color: #555;
         }
         .receipt-footer .thanks {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 700;
             color: #000;
             margin-bottom: 4px;
@@ -198,6 +198,12 @@
                 @endswitch
             </span>
         </div>
+        @if($sale->notes)
+            <div class="row" style="align-items: flex-start; margin-top: 3px; border-top: 1px dotted #ccc; padding-top: 3px;">
+                <span style="font-weight: bold;">Obs / Notas:</span>
+                <span style="text-align: right; max-width: 75%; word-break: break-word;">{{ $sale->notes }}</span>
+            </div>
+        @endif
     </div>
 
     {{-- Items --}}
@@ -237,7 +243,7 @@
     {{-- Formas de pago aplicadas --}}
     @if($sale->payments->isNotEmpty())
         <div class="totals" style="border-top: 1px dashed #333; margin-top: 6px; padding-top: 4px;">
-            <div style="font-weight: bold; font-size: 11px; margin-bottom: 3px; text-transform: uppercase;">Formas de pago:</div>
+            <div style="font-weight: bold; font-size: 12px; margin-bottom: 3px; text-transform: uppercase;">Formas de pago:</div>
             @foreach($sale->payments as $payment)
                 <div class="row">
                     <span>{{ $payment->method_label }}{{ $payment->reference ? ' (' . $payment->reference . ')' : '' }}:</span>
@@ -245,11 +251,11 @@
                 </div>
                 @if(($payment->method instanceof \App\Enums\PaymentMethod ? $payment->method->value : $payment->method) === 'cash')
                     @if($payment->cash_received !== null)
-                        <div class="row" style="color: #444; font-size: 10px;">
+                        <div class="row" style="color: #444; font-size: 11px;">
                             <span>  Efectivo recibido:</span>
                             <span>${{ number_format($payment->cash_received, 0, ',', '.') }}</span>
                         </div>
-                        <div class="row" style="color: #444; font-size: 10px;">
+                        <div class="row" style="color: #444; font-size: 11px;">
                             <span>  Vueltos:</span>
                             <span>${{ number_format($payment->change_given, 0, ',', '.') }}</span>
                         </div>
@@ -265,7 +271,7 @@
         <div>{{ $business->name }}</div>
         <div>{{ now()->format('d/m/Y H:i') }}</div>
         <div>Cali, Colombia</div>
-        <div style="margin-top: 8px; font-size: 9px; line-height: 1.3; color: #444; font-style: italic;">{{ config('sales.legal_disclaimer') }}</div>
+        <div style="margin-top: 8px; font-size: 10px; line-height: 1.3; color: #444; font-style: italic;">{{ config('sales.legal_disclaimer') }}</div>
     </div>
 
     <script>

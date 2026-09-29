@@ -357,6 +357,239 @@ class ReportService
     }
 
     /**
+     * Generate daily or monthly Cash Register balancing report (Cuadre de Caja).
+     *
+     * @param int $businessId
+     * @param array $filters
+     * @return array
+     */
+    public function getCashRegisterReport(int $businessId, array $filters = []): array
+    {
+        $periodType = ($filters['period_type'] ?? 'daily') === 'monthly' ? 'monthly' : 'daily';
+
+        if ($periodType === 'monthly') {
+            $monthStr = $filters['month'] ?? Carbon::now()->format('Y-m');
+            try {
+                $dateFrom = Carbon::createFromFormat('Y-m', $monthStr)->startOfMonth()->startOfDay();
+                $dateTo = (clone $dateFrom)->endOfMonth()->endOfDay();
+            } catch (\Exception $e) {
+                $dateFrom = Carbon::now()->startOfMonth()->startOfDay();
+                $dateTo = Carbon::now()->endOfMonth()->endOfDay();
+                $monthStr = Carbon::now()->format('Y-m');
+            }
+            $selectedDate = null;
+            $selectedMonth = $monthStr;
+        } else {
+            $dateStr = $filters['date'] ?? Carbon::today()->format('Y-m-d');
+            try {
+                $dateFrom = Carbon::parse($dateStr)->startOfDay();
+                $dateTo = (clone $dateFrom)->endOfDay();
+            } catch (\Exception $e) {
+                $dateFrom = Carbon::today()->startOfDay();
+                $dateTo = Carbon::today()->endOfDay();
+                $dateStr = Carbon::today()->format('Y-m-d');
+            }
+            $selectedDate = $dateStr;
+            $selectedMonth = null;
+        }
+
+        $query = Sale::where('business_id', $businessId)
+            ->where('status', 'completed')
+            ->whereBetween('sale_date', [$dateFrom, $dateTo])
+            ->with(['customer', 'user', 'payments']);
+
+        if (!empty($filters['user_id'])) {
+            $query->where('user_id', (int) $filters['user_id']);
+        }
+
+        $sales = $query->orderBy('sale_date', 'asc')->get();
+
+        $byMethod = [
+            'cash' => [
+                'name' => 'Efectivo',
+                'icon' => 'bi-cash-stack',
+                'color' => 'success',
+                'amount' => 0.00,
+                'nominal_received' => 0.00,
+                'change_given' => 0.00,
+                'transactions_count' => 0,
+            ],
+            'transfer' => [
+                'name' => 'Transferencia / Nequi',
+                'icon' => 'bi-phone',
+                'color' => 'info',
+                'amount' => 0.00,
+                'transactions_count' => 0,
+            ],
+            'card' => [
+                'name' => 'Tarjeta',
+                'icon' => 'bi-credit-card',
+                'color' => 'primary',
+                'amount' => 0.00,
+                'transactions_count' => 0,
+            ],
+            'other' => [
+                'name' => 'Otro',
+                'icon' => 'bi-wallet2',
+                'color' => 'secondary',
+                'amount' => 0.00,
+                'transactions_count' => 0,
+            ],
+        ];
+
+        foreach ($sales as $sale) {
+            if ($sale->payments->isNotEmpty()) {
+                foreach ($sale->payments as $payment) {
+                    $m = $payment->method instanceof \App\Enums\PaymentMethod ? $payment->method->value : (string) $payment->method;
+                    if (!isset($byMethod[$m])) {
+                        $byMethod[$m] = [
+                            'name' => ucfirst($m),
+                            'icon' => 'bi-credit-card-2-front',
+                            'color' => 'secondary',
+                            'amount' => 0.00,
+                            'transactions_count' => 0,
+                        ];
+                    }
+                    $amt = (float) $payment->amount;
+                    $byMethod[$m]['amount'] += $amt;
+                    $byMethod[$m]['transactions_count']++;
+
+                    if ($m === 'cash') {
+                        $rec = $payment->cash_received !== null ? (float) $payment->cash_received : $amt;
+                        $chg = $payment->change_given !== null ? (float) $payment->change_given : 0.0;
+                        $byMethod['cash']['nominal_received'] += $rec;
+                        $byMethod['cash']['change_given'] += $chg;
+                    }
+                }
+            } else {
+                $m = (string) $sale->payment_method;
+                if (!isset($byMethod[$m])) {
+                    $byMethod[$m] = [
+                        'name' => ucfirst($m),
+                        'icon' => 'bi-credit-card-2-front',
+                        'color' => 'secondary',
+                        'amount' => 0.00,
+                        'transactions_count' => 0,
+                    ];
+                }
+                $amt = (float) $sale->total;
+                $byMethod[$m]['amount'] += $amt;
+                $byMethod[$m]['transactions_count']++;
+
+                if ($m === 'cash') {
+                    $byMethod['cash']['nominal_received'] += $amt;
+                    $byMethod['cash']['change_given'] += 0.0;
+                }
+            }
+        }
+
+        $totalRevenue = (float) $sales->sum('total');
+        $salesCount = $sales->count();
+
+        $cashiers = \App\Models\User::whereHas('businesses', function ($q) use ($businessId) {
+            $q->where('businesses.id', $businessId);
+        })->orderBy('name')->get();
+
+        return [
+            'sales' => $sales,
+            'cashiers' => $cashiers,
+            'by_method' => $byMethod,
+            'total_revenue' => $totalRevenue,
+            'sales_count' => $salesCount,
+            'period_type' => $periodType,
+            'selected_date' => $selectedDate,
+            'selected_month' => $selectedMonth,
+            'selected_user_id' => !empty($filters['user_id']) ? (int) $filters['user_id'] : null,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+        ];
+    }
+
+    /**
+     * Export Cash Register balancing report as CSV.
+     *
+     * @param int $businessId
+     * @param array $filters
+     * @return string
+     */
+    public function exportCashRegisterCsv(int $businessId, array $filters = []): string
+    {
+        $data = $this->getCashRegisterReport($businessId, $filters);
+        $handle = fopen('php://temp', 'r+');
+
+        // UTF-8 BOM
+        fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+        // Resumen de Cabecera
+        $periodLabel = $data['period_type'] === 'monthly' ? 'Mensual (' . $data['selected_month'] . ')' : 'Diario (' . $data['selected_date'] . ')';
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['CUADRE DE CAJA - ' . $periodLabel]));
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['Total Recaudado', $data['total_revenue']]));
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['Cantidad de Ventas', $data['sales_count']]));
+        fputcsv($handle, []);
+
+        // Discriminación por Método de Pago
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], [
+            'Metodo de Pago',
+            'Transacciones',
+            'Monto Ingresado',
+            'Efectivo Recibido (Nominal)',
+            'Cambio / Vueltos Entregados',
+        ]));
+
+        foreach ($data['by_method'] as $key => $method) {
+            $row = [
+                $method['name'],
+                $method['transactions_count'],
+                $method['amount'],
+                $key === 'cash' ? $method['nominal_received'] : 'N/A',
+                $key === 'cash' ? $method['change_given'] : 'N/A',
+            ];
+            fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], $row));
+        }
+
+        fputcsv($handle, []);
+
+        // Detalle de Ventas
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], [
+            'Factura',
+            'Fecha y Hora',
+            'Cajero / Vendedor',
+            'Cliente',
+            'Total',
+            'Metodos Aplicados',
+            'Notas',
+        ]));
+
+        foreach ($data['sales'] as $sale) {
+            $methodsApplied = [];
+            if ($sale->payments->isNotEmpty()) {
+                foreach ($sale->payments as $p) {
+                    $methodsApplied[] = $p->method_label . ': $' . number_format($p->amount, 0, ',', '.') . ($p->reference ? ' (' . $p->reference . ')' : '');
+                }
+            } else {
+                $methodsApplied[] = ($sale->payment_method_label ?? $sale->payment_method) . ': $' . number_format($sale->total, 0, ',', '.');
+            }
+
+            $row = [
+                $sale->invoice_number,
+                $sale->sale_date->format('Y-m-d H:i'),
+                $sale->user ? $sale->user->name : 'N/A',
+                $sale->customer_name ?? ($sale->customer ? $sale->customer->name : config('sales.default_customer_name', 'CONSUMIDOR FINAL')),
+                $sale->total,
+                implode(' | ', $methodsApplied),
+                $sale->notes ?? '',
+            ];
+            fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], $row));
+        }
+
+        rewind($handle);
+        $csv = stream_get_contents($handle);
+        fclose($handle);
+
+        return $csv;
+    }
+
+    /**
      * Sanitize cell value to prevent CSV formula injection (CWE-1236).
      */
     private function sanitizeCsvCell(mixed $value): mixed

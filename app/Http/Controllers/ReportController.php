@@ -92,4 +92,32 @@ class ReportController extends Controller
 
         return view('reports.top-products', $data);
     }
+
+    /**
+     * Cash register balancing report (Cuadre de caja diario y mensual) with optional CSV export.
+     * Accessible by both Admins and Employees.
+     */
+    public function cashRegister(Request $request): View|Response
+    {
+        $businessId = (int) (session('current_business_id') ?? $request->user()->current_business_id);
+
+        $filters = $request->only(['period_type', 'date', 'month', 'user_id']);
+
+        if ($request->query('export') === 'csv') {
+            $csv = $this->reportService->exportCashRegisterCsv($businessId, $filters);
+            $suffix = ($filters['period_type'] ?? 'daily') === 'monthly'
+                ? ($filters['month'] ?? date('Y-m'))
+                : ($filters['date'] ?? date('Y-m-d'));
+            $filename = 'cuadre_caja_' . $suffix . '_' . date('His') . '.csv';
+
+            return response($csv, 200, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            ]);
+        }
+
+        $data = $this->reportService->getCashRegisterReport($businessId, $filters);
+
+        return view('reports.cash-register', $data);
+    }
 }

@@ -345,4 +345,179 @@ class ReportTest extends TestCase
         $this->assertStringContainsString('CSV-SKU-A', $contentInv);
         $this->assertStringNotContainsString('CSV-SKU-B', $contentInv);
     }
+
+    public function test_admin_and_employee_can_access_cash_register_report(): void
+    {
+        // Admin access
+        $adminResponse = $this->actingAs($this->adminUserA)
+            ->withSession(['current_business_id' => $this->businessA->id])
+            ->get('/cash-register');
+
+        $adminResponse->assertStatus(200);
+        $adminResponse->assertSee('Cuadre de Caja');
+
+        // Employee access (as per user clarification: accessible to both admins and employees)
+        $employeeResponse = $this->actingAs($this->employeeUserA)
+            ->withSession(['current_business_id' => $this->businessA->id])
+            ->get('/cash-register');
+
+        $employeeResponse->assertStatus(200);
+        $employeeResponse->assertSee('Cuadre de Caja');
+    }
+
+    public function test_cash_register_report_isolates_by_tenant(): void
+    {
+        $today = Carbon::today()->setTime(10, 0);
+
+        Sale::withoutGlobalScopes()->create([
+            'business_id' => $this->businessA->id,
+            'user_id' => $this->adminUserA->id,
+            'invoice_number' => 'CUADRE-TENANT-A',
+            'sale_date' => $today,
+            'subtotal' => 50000,
+            'total' => 50000,
+            'payment_method' => 'cash',
+            'status' => 'completed',
+        ]);
+
+        Sale::withoutGlobalScopes()->create([
+            'business_id' => $this->businessB->id,
+            'user_id' => $this->adminUserB->id,
+            'invoice_number' => 'CUADRE-TENANT-B',
+            'sale_date' => $today,
+            'subtotal' => 80000,
+            'total' => 80000,
+            'payment_method' => 'cash',
+            'status' => 'completed',
+        ]);
+
+        $response = $this->actingAs($this->employeeUserA)
+            ->withSession(['current_business_id' => $this->businessA->id])
+            ->get('/cash-register?date=' . $today->format('Y-m-d'));
+
+        $response->assertStatus(200);
+        $response->assertSee('CUADRE-TENANT-A');
+        $response->assertDontSee('CUADRE-TENANT-B');
+    }
+
+    public function test_cash_register_discriminates_by_payment_method_daily_and_monthly(): void
+    {
+        $date = Carbon::today()->setTime(14, 0);
+
+        // Venta 1: Efectivo con vuelto
+        $sale1 = Sale::withoutGlobalScopes()->create([
+            'business_id' => $this->businessA->id,
+            'user_id' => $this->employeeUserA->id,
+            'invoice_number' => 'CUADRE-VTA-1',
+            'sale_date' => $date,
+            'subtotal' => 30000,
+            'total' => 30000,
+            'payment_method' => 'cash',
+            'status' => 'completed',
+        ]);
+        \App\Models\SalePayment::withoutGlobalScopes()->create([
+            'business_id' => $this->businessA->id,
+            'sale_id' => $sale1->id,
+            'method' => 'cash',
+            'amount' => 30000,
+            'cash_received' => 50000,
+            'change_given' => 20000,
+        ]);
+
+        // Venta 2: Nequi / Transferencia
+        $sale2 = Sale::withoutGlobalScopes()->create([
+            'business_id' => $this->businessA->id,
+            'user_id' => $this->employeeUserA->id,
+            'invoice_number' => 'CUADRE-VTA-2',
+            'sale_date' => $date,
+            'subtotal' => 25000,
+            'total' => 25000,
+            'payment_method' => 'transfer',
+            'status' => 'completed',
+        ]);
+        \App\Models\SalePayment::withoutGlobalScopes()->create([
+            'business_id' => $this->businessA->id,
+            'sale_id' => $sale2->id,
+            'method' => 'transfer',
+            'amount' => 25000,
+            'reference' => 'NEQUI-9988',
+        ]);
+
+        // Cuadre diario
+        $dailyResponse = $this->actingAs($this->adminUserA)
+            ->withSession(['current_business_id' => $this->businessA->id])
+            ->get('/cash-register?period_type=daily&date=' . $date->format('Y-m-d'));
+
+        $dailyResponse->assertStatus(200);
+        $dailyResponse->assertSee('$55.000'); // Total recaudado
+        $dailyResponse->assertSee('$30.000'); // Efectivo
+        $dailyResponse->assertSee('$25.000'); // Transferencia
+
+        // Cuadre mensual
+        $monthlyResponse = $this->actingAs($this->adminUserA)
+            ->withSession(['current_business_id' => $this->businessA->id])
+            ->get('/cash-register?period_type=monthly&month=' . $date->format('Y-m'));
+
+        $monthlyResponse->assertStatus(200);
+        $monthlyResponse->assertSee('$55.000');
+    }
+
+    public function test_cash_register_csv_export_works_and_is_tenant_isolated(): void
+    {
+        $date = Carbon::today()->setTime(11, 0);
+
+        Sale::withoutGlobalScopes()->create([
+            'business_id' => $this->businessA->id,
+            'user_id' => $this->adminUserA->id,
+            'invoice_number' => 'CSV-CUADRE-A',
+            'sale_date' => $date,
+            'subtotal' => 40000,
+            'total' => 40000,
+            'payment_method' => 'cash',
+            'status' => 'completed',
+        ]);
+
+        Sale::withoutGlobalScopes()->create([
+            'business_id' => $this->businessB->id,
+            'user_id' => $this->adminUserB->id,
+            'invoice_number' => 'CSV-CUADRE-B',
+            'sale_date' => $date,
+            'subtotal' => 90000,
+            'total' => 90000,
+            'payment_method' => 'cash',
+            'status' => 'completed',
+        ]);
+
+        $csvResponse = $this->actingAs($this->employeeUserA)
+            ->withSession(['current_business_id' => $this->businessA->id])
+            ->get('/cash-register?export=csv&date=' . $date->format('Y-m-d'));
+
+        $csvResponse->assertStatus(200);
+        $this->assertStringContainsString('text/csv', $csvResponse->headers->get('Content-Type'));
+        $content = $csvResponse->getContent();
+        $this->assertStringContainsString('CSV-CUADRE-A', $content);
+        $this->assertStringNotContainsString('CSV-CUADRE-B', $content);
+    }
+
+    public function test_sales_print_receipt_shows_notes_if_present(): void
+    {
+        $sale = Sale::withoutGlobalScopes()->create([
+            'business_id' => $this->businessA->id,
+            'user_id' => $this->adminUserA->id,
+            'invoice_number' => 'REC-NOTES-001',
+            'sale_date' => Carbon::now(),
+            'subtotal' => 15000,
+            'total' => 15000,
+            'payment_method' => 'cash',
+            'notes' => 'Cliente solicita empaque para regalo',
+            'status' => 'completed',
+        ]);
+
+        $response = $this->actingAs($this->employeeUserA)
+            ->withSession(['current_business_id' => $this->businessA->id])
+            ->get('/sales/' . $sale->id . '/print/receipt');
+
+        $response->assertStatus(200);
+        $response->assertSee('Cliente solicita empaque para regalo');
+    }
 }

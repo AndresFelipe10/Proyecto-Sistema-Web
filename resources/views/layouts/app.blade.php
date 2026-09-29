@@ -18,6 +18,7 @@
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.9375rem;
             background-color: #f8fafc;
             color: #1e293b;
             min-height: 100vh;

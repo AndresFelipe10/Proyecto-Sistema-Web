@@ -9,8 +9,15 @@
 
         {{-- 2. Ventas --}}
         <li class="nav-item">
-            <a class="nav-link fw-semibold {{ request()->routeIs('sales.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('sales.index') }}">
+            <a class="nav-link fw-semibold {{ request()->routeIs('sales.*') && !request()->routeIs('reports.cash-register') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('sales.index') }}">
                 <i class="bi bi-cart-check me-2"></i> Ventas
+            </a>
+        </li>
+
+        {{-- 2b. Cuadre de Caja (Para Administrador y Empleados) --}}
+        <li class="nav-item">
+            <a class="nav-link fw-semibold {{ request()->routeIs('reports.cash-register') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('reports.cash-register') }}">
+                <i class="bi bi-cash-coin me-2"></i> Cuadre de Caja
             </a>
         </li>
 

@@ -102,6 +102,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/sales/{sale}/print/invoice', [SaleController::class, 'printInvoice'])->name('sales.print.invoice');
         Route::get('/sales/{sale}/print/receipt', [SaleController::class, 'printReceipt'])->name('sales.print.receipt');
 
+        // Cuadre de Caja (Lectura para Administrador y Empleado)
+        Route::get('/cash-register', [ReportController::class, 'cashRegister'])->name('reports.cash-register');
+
         // API interna para búsqueda de productos (POS autocomplete)
         Route::get('/api/products/search', ProductSearchController::class)->name('api.products.search');
 

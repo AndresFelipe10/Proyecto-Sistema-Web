@@ -8,11 +8,16 @@
         <h3 class="fw-bold mb-1">Ventas</h3>
         <p class="text-muted mb-0">Historial de ventas y comprobantes</p>
     </div>
-    @can('create', App\Models\Sale::class)
-        <a href="{{ route('sales.create') }}" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm">
-            <i class="bi bi-cart-plus me-1"></i> Nueva Venta
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ route('reports.cash-register') }}" class="btn btn-outline-primary rounded-pill px-3 fw-semibold shadow-sm">
+            <i class="bi bi-cash-coin me-1"></i> Cuadre de Caja
         </a>
-    @endcan
+        @can('create', App\Models\Sale::class)
+            <a href="{{ route('sales.create') }}" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm">
+                <i class="bi bi-cart-plus me-1"></i> Nueva Venta
+            </a>
+        @endcan
+    </div>
 </div>
 
 {{-- Filtros --}}
