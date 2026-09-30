@@ -103,6 +103,13 @@ Route::middleware('auth')->group(function () {
             Route::get('/orders/{order}', [RestaurantOrderController::class, 'show'])->name('orders.show');
             Route::post('/orders/{order}/items', [RestaurantOrderController::class, 'addItems'])->name('orders.items.store');
             Route::match(['get', 'post'], '/orders/{order}/kitchen-ticket', [RestaurantOrderController::class, 'kitchenTicket'])->name('orders.kitchen-ticket');
+
+            // Domicilios y Despacho
+            Route::get('/deliveries', [RestaurantOrderController::class, 'deliveries'])->name('orders.deliveries');
+            Route::get('/orders-delivery/create', [RestaurantOrderController::class, 'createDelivery'])->name('orders.create-delivery');
+            Route::post('/orders-delivery', [RestaurantOrderController::class, 'storeDelivery'])->name('orders.store-delivery');
+            Route::post('/orders/{order}/status', [RestaurantOrderController::class, 'updateStatus'])->name('orders.status.update');
+            Route::get('/orders/{order}/dispatch-ticket', [RestaurantOrderController::class, 'dispatchTicket'])->name('orders.dispatch-ticket');
         });
 
         // Inventario (Lectura y Registro de Movimientos para Administrador y Empleado)

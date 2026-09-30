@@ -22,8 +22,13 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link fw-semibold {{ request()->routeIs('restaurant.orders.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('restaurant.orders.index') }}">
+                <a class="nav-link fw-semibold {{ request()->routeIs('restaurant.orders.*') && !request()->routeIs('restaurant.orders.deliveries') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('restaurant.orders.index') }}">
                     <i class="bi bi-receipt me-2"></i> Comandas
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link fw-semibold {{ request()->routeIs('restaurant.orders.deliveries') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('restaurant.orders.deliveries') }}">
+                    <i class="bi bi-bicycle me-2"></i> Domicilios y Despacho
                 </a>
             </li>
         @endif

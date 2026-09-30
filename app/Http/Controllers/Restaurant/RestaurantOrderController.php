@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Restaurant;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Restaurant\AddOrderItemsRequest;
+use App\Http\Requests\Restaurant\StoreDeliveryOrderRequest;
 use App\Http\Requests\Restaurant\StoreRestaurantOrderRequest;
 use App\Models\Product;
 use App\Models\RestaurantOrder;
@@ -121,5 +122,83 @@ class RestaurantOrderController extends Controller
             'itemsToPrint' => $itemsToPrint,
             'isReprint' => $isReprint,
         ]);
+    }
+
+    /**
+     * Show form to create a delivery or takeout order.
+     */
+    public function createDelivery(Request $request): View
+    {
+        Gate::authorize('create', RestaurantOrder::class);
+
+        $products = Product::where('is_active', true)
+            ->with('category')
+            ->orderBy('name')
+            ->get();
+
+        return view('restaurant.orders.create-delivery', compact('products'));
+    }
+
+    /**
+     * Store a newly created delivery or takeout order.
+     */
+    public function storeDelivery(StoreDeliveryOrderRequest $request, RestaurantOrderService $orderService): RedirectResponse
+    {
+        $order = $orderService->openDeliveryOrTakeoutOrder(
+            (int) session('current_business_id'),
+            (int) $request->user()->id,
+            $request->validated()
+        );
+
+        return redirect()->route('restaurant.orders.show', $order)
+            ->with('success', "Pedido {$order->order_number} registrado exitosamente.");
+    }
+
+    /**
+     * Display the operational board for deliveries and dispatches.
+     */
+    public function deliveries(Request $request): View
+    {
+        Gate::authorize('viewAny', RestaurantOrder::class);
+
+        $orders = RestaurantOrder::whereIn('order_type', ['delivery', 'takeout'])
+            ->whereIn('status', ['open', 'in_kitchen', 'dispatched', 'delivered'])
+            ->with(['items.product', 'user', 'customer'])
+            ->latest()
+            ->get();
+
+        $kitchenOrders = $orders->whereIn('status', ['open', 'in_kitchen']);
+        $dispatchedOrders = $orders->where('status', 'dispatched');
+        $deliveredOrders = $orders->where('status', 'delivered');
+
+        return view('restaurant.orders.deliveries', compact('kitchenOrders', 'dispatchedOrders', 'deliveredOrders'));
+    }
+
+    /**
+     * Update order delivery operational status.
+     */
+    public function updateStatus(Request $request, RestaurantOrder $order, RestaurantOrderService $orderService): RedirectResponse
+    {
+        Gate::authorize('update', $order);
+
+        $request->validate([
+            'status' => ['required', 'string', 'in:open,in_kitchen,dispatched,delivered,cancelled'],
+        ]);
+
+        $orderService->updateDeliveryStatus($order, $request->input('status'));
+
+        return back()->with('success', 'Estado del pedido actualizado correctamente.');
+    }
+
+    /**
+     * Render the 80mm thermal dispatch ticket for delivery orders.
+     */
+    public function dispatchTicket(RestaurantOrder $order): View
+    {
+        Gate::authorize('view', $order);
+
+        $order->load(['items.product', 'user', 'customer', 'business']);
+
+        return view('restaurant.orders.dispatch-ticket', compact('order'));
     }
 }

@@ -140,6 +140,81 @@ class RestaurantOrderService
     }
 
     /**
+     * Open a new delivery or takeout order.
+     */
+    public function openDeliveryOrTakeoutOrder(int $businessId, int $userId, array $data): RestaurantOrder
+    {
+        return DB::transaction(function () use ($businessId, $userId, $data) {
+            $orderType = $data['order_type'] ?? 'delivery';
+            $deliveryFee = $orderType === 'takeout' ? 0.00 : round((float) ($data['delivery_fee'] ?? 0.00), 2);
+
+            if ($deliveryFee < 0) {
+                throw ValidationException::withMessages([
+                    'delivery_fee' => 'El costo de envío no puede ser negativo.',
+                ]);
+            }
+
+            $customerName = $data['customer_name'] ?? null;
+            $deliveryPhone = $data['delivery_phone'] ?? null;
+            $deliveryAddress = $data['delivery_address'] ?? null;
+
+            if (! empty($data['customer_id'])) {
+                $customer = \App\Models\Customer::where('business_id', $businessId)->find($data['customer_id']);
+                if ($customer) {
+                    $customerName = $customerName ?: $customer->name;
+                    $deliveryPhone = $deliveryPhone ?: $customer->phone;
+                    $deliveryAddress = $deliveryAddress ?: $customer->address;
+                }
+            }
+
+            $orderNumber = $this->generateOrderNumber($businessId);
+
+            $order = RestaurantOrder::create([
+                'business_id' => $businessId,
+                'table_id' => null,
+                'user_id' => $userId,
+                'order_number' => $orderNumber,
+                'order_type' => $orderType,
+                'status' => 'open',
+                'customer_id' => $data['customer_id'] ?? null,
+                'customer_name' => $customerName,
+                'delivery_phone' => $deliveryPhone,
+                'delivery_address' => $deliveryAddress,
+                'delivery_notes' => $data['delivery_notes'] ?? null,
+                'delivery_fee' => $deliveryFee,
+                'notes' => $data['notes'] ?? null,
+                'subtotal' => 0.00,
+                'total' => $deliveryFee,
+            ]);
+
+            if (! empty($data['items']) && is_array($data['items'])) {
+                $this->addItemsToOrder($order, $data['items']);
+            }
+
+            return $order->fresh(['items.product', 'user', 'customer']);
+        });
+    }
+
+    /**
+     * Update delivery operational status (in_kitchen, dispatched, delivered, cancelled).
+     */
+    public function updateDeliveryStatus(RestaurantOrder $order, string $newStatus): RestaurantOrder
+    {
+        return DB::transaction(function () use ($order, $newStatus) {
+            $validStatuses = ['open', 'in_kitchen', 'dispatched', 'delivered', 'cancelled'];
+            if (! in_array($newStatus, $validStatuses, true)) {
+                throw ValidationException::withMessages([
+                    'status' => 'Estado de pedido no válido.',
+                ]);
+            }
+
+            $order->update(['status' => $newStatus]);
+
+            return $order->fresh();
+        });
+    }
+
+    /**
      * Generate sequential order number per business.
      * Format: ORD-XXXX (e.g. ORD-0001)
      */
