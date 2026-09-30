@@ -21,6 +21,9 @@ MySQL 8+, con integridad referencial, índices, constraints, transacciones y nor
 | `inventory_movements` | Historial de movimientos de stock (entradas/salidas/ajustes) |
 | `recipes` | Fórmulas y recetas estándar por plato, por `business_id` |
 | `recipe_items` | Insumos e ingredientes por porción de cada receta, por `business_id` |
+| `restaurant_tables` | Catálogo y estado de mesas de salón, por `business_id` |
+| `restaurant_orders` | Comandas y pedidos de salón/domicilio por tandas, por `business_id` |
+| `restaurant_order_items` | Platos y productos por tanda de comanda, por `business_id` |
 
 Agregar tablas nuevas solo si son estrictamente necesarias, justificándolo en `docs/DECISIONES_TECNICAS.md`.
 
@@ -37,6 +40,9 @@ Agregar tablas nuevas solo si son estrictamente necesarias, justificándolo en `
 - **inventory_movements**: producto, tipo (entrada/salida/ajuste), cantidad (`decimal 12,3`), previous_stock (`decimal 12,3`), new_stock (`decimal 12,3`), motivo (`receta_venta`, `receta_anulacion`, etc.), usuario, fecha, referencia a venta (si aplica).
 - **recipes**: `id`, `business_id` (FK cascade), `product_id` (FK products restrict), `name` (varchar 150), `is_active` (boolean default true), timestamps. UNIQUE(`business_id`, `product_id`).
 - **recipe_items**: `id`, `business_id` (FK cascade), `recipe_id` (FK cascade), `ingredient_id` (FK products restrict), `quantity_per_portion` (`decimal 12,3` con CHECK `quantity_per_portion > 0`), `unit` (varchar 20), timestamps. UNIQUE(`recipe_id`, `ingredient_id`).
+- **restaurant_tables**: `id`, `business_id` (FK cascade), `name` (varchar 50), `capacity` (int unsigned default 4 con CHECK `capacity > 0`), `status` (enum: `available`, `occupied`, `billed` default `available`), `is_active` (boolean default true), timestamps. UNIQUE(`business_id`, `name`).
+- **restaurant_orders**: `id`, `business_id` (FK cascade), `table_id` (FK restaurant_tables nullable), `user_id` (FK users), `sale_id` (FK sales nullable), `order_number` (varchar 30), `order_type` (enum: `table`, `delivery`, `takeout` default `table`), `status` (enum: `open`, `in_kitchen`, `dispatched`, `delivered`, `closed`, `cancelled` default `open`), `customer_id` (FK nullable), `customer_name` (varchar 150 nullable), `delivery_fee` (decimal 12,2 default 0.00 con CHECK `delivery_fee >= 0`), `subtotal` (decimal 12,2), `total` (decimal 12,2), `notes` (varchar 500 nullable), `closed_at` (timestamp nullable), timestamps. UNIQUE(`business_id`, `order_number`).
+- **restaurant_order_items**: `id`, `business_id` (FK cascade), `order_id` (FK restaurant_orders cascade), `product_id` (FK products restrict), `quantity` (`decimal 12,3` con CHECK `quantity > 0`), `unit_price` (decimal 12,2), `subtotal` (decimal 12,2), `notes` (varchar 255 nullable), `status` (enum: `pending`, `kitchen`, `served`, `cancelled` default `pending`), `printed_to_kitchen` (boolean default false), `batch_number` (int unsigned default 1), timestamps.
 
 ## Estrategia multi-tenant
 Multi-tenancy **lógico** mediante columna `business_id` en toda tabla tenant-aware, sobre una única base compartida.
@@ -61,11 +67,19 @@ Reglas de aplicación (Global Scope + Middleware + Policy) → `.agents/rules/02
 - CHECK constraints en `sale_payments`: `amount > 0` y `cash_received IS NULL OR cash_received >= amount`.
 - CHECK constraint en `expenses`: `amount > 0`.
 - CHECK constraint en `recipe_items`: `quantity_per_portion > 0`.
+- CHECK constraint en `restaurant_tables`: `capacity > 0`.
+- CHECK constraint en `restaurant_orders`: `delivery_fee >= 0`.
+- CHECK constraint en `restaurant_order_items`: `quantity > 0`.
 - Índices en `sale_payments`: `(sale_id)`, `(business_id)`, y compuesto `(business_id, method)`.
 - Índices en `expenses`: `(business_id, issue_date)`, `(business_id, status)`, `(business_id, supplier_id)`.
 - Constraint UNIQUE compuesto en `expenses`: `(business_id, supplier_id, invoice_number)` cuando ambos existan.
 - Constraint UNIQUE compuesto en `recipes`: `(business_id, product_id)`.
 - Constraint UNIQUE compuesto en `recipe_items`: `(recipe_id, ingredient_id)`.
+- Constraint UNIQUE compuesto en `restaurant_tables`: `(business_id, name)`.
+- Constraint UNIQUE compuesto en `restaurant_orders`: `(business_id, order_number)`.
+- Índices en `restaurant_tables`: `(business_id, status)`.
+- Índices en `restaurant_orders`: `(business_id, status)` y `(business_id, order_type)`.
+- Índices en `restaurant_order_items`: `(business_id)`, `(order_id)`, `(product_id)`.
 - Índices en `recipe_items`: `(business_id)`, `(recipe_id)`, `(ingredient_id)`.
 - Índice compuesto único en (`business_id`, `sku`) para productos.
 - Índice compuesto único en (`business_id`, `document`) para clientes.

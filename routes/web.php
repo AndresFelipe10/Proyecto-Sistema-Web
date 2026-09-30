@@ -15,6 +15,8 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\Restaurant\RestaurantOrderController;
+use App\Http\Controllers\Restaurant\RestaurantTableController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\Superadmin\BusinessController as SuperadminBusinessController;
 use App\Http\Controllers\Superadmin\DashboardController as SuperadminDashboardController;
@@ -79,6 +81,29 @@ Route::middleware('auth')->group(function () {
         Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
         Route::get('/recipes', [RecipeController::class, 'index'])->name('recipes.index');
         Route::get('/recipes/{recipe}', [RecipeController::class, 'show'])->name('recipes.show');
+
+        // Módulo Restaurante: Salón, Mesas y Comandas (Solo comercios tipo Restaurante)
+        Route::middleware('restaurant')->prefix('restaurant')->name('restaurant.')->group(function () {
+            // Salón y Mesas (Lectura para Administrador y Empleado)
+            Route::get('/tables', [RestaurantTableController::class, 'index'])->name('tables.index');
+
+            // Mesas (Escritura y Eliminación exclusiva Administrador)
+            Route::middleware('role:admin')->group(function () {
+                Route::get('/tables/create', [RestaurantTableController::class, 'create'])->name('tables.create');
+                Route::post('/tables', [RestaurantTableController::class, 'store'])->name('tables.store');
+                Route::get('/tables/{table}/edit', [RestaurantTableController::class, 'edit'])->name('tables.edit');
+                Route::put('/tables/{table}', [RestaurantTableController::class, 'update'])->name('tables.update');
+                Route::delete('/tables/{table}', [RestaurantTableController::class, 'destroy'])->name('tables.destroy');
+            });
+
+            // Comandas (Lectura, Apertura y Adición para Administrador y Empleado)
+            Route::get('/orders', [RestaurantOrderController::class, 'index'])->name('orders.index');
+            Route::get('/orders/create', [RestaurantOrderController::class, 'create'])->name('orders.create');
+            Route::post('/orders', [RestaurantOrderController::class, 'store'])->name('orders.store');
+            Route::get('/orders/{order}', [RestaurantOrderController::class, 'show'])->name('orders.show');
+            Route::post('/orders/{order}/items', [RestaurantOrderController::class, 'addItems'])->name('orders.items.store');
+            Route::match(['get', 'post'], '/orders/{order}/kitchen-ticket', [RestaurantOrderController::class, 'kitchenTicket'])->name('orders.kitchen-ticket');
+        });
 
         // Inventario (Lectura y Registro de Movimientos para Administrador y Empleado)
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');

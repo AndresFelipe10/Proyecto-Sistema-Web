@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => CheckRole::class,
             'superadmin' => \App\Http\Middleware\EnsureUserIsSuperadmin::class,
             'must_change_password' => \App\Http\Middleware\EnsurePasswordIsChanged::class,
+            'restaurant' => \App\Http\Middleware\EnsureBusinessIsRestaurant::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

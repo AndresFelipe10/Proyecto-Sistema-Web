@@ -126,4 +126,14 @@ class Business extends Model
     {
         return $this->hasMany(Recipe::class);
     }
+
+    public function restaurantTables(): HasMany
+    {
+        return $this->hasMany(RestaurantTable::class);
+    }
+
+    public function restaurantOrders(): HasMany
+    {
+        return $this->hasMany(RestaurantOrder::class);
+    }
 }
