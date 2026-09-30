@@ -45,7 +45,7 @@
                 <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="bi bi-search me-2 text-primary"></i>Agregar Productos</h5>
 
                 <div class="input-group mb-3">
-                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-upc-scan text-muted"></i></span>
+                    <span class="input-group-text bg-light border-end-0" id="searchScanIconContainer"><i class="bi bi-upc-scan text-muted"></i></span>
                     <input type="text" id="productSearch" class="form-control border-start-0"
                            placeholder="Buscar por nombre o SKU..." autocomplete="off">
                 </div>
@@ -275,52 +275,173 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let cart = [];
     let searchTimeout = null;
+    let activeProductAbort = null;
+    const productSearchCache = new Map();
+    let highlightedProductIndex = -1;
+    const scanIconContainer = document.getElementById('searchScanIconContainer');
 
-    // ── Product search with debounce ──
+    function setProductLoading(isLoading) {
+        if (!scanIconContainer) return;
+        if (isLoading) {
+            scanIconContainer.innerHTML = '<span class="spinner-border spinner-border-sm text-primary" role="status" style="width: 0.85rem; height: 0.85rem;"></span>';
+        } else {
+            scanIconContainer.innerHTML = '<i class="bi bi-upc-scan text-muted"></i>';
+        }
+    }
+
+    function renderProductResults(products, query) {
+        searchResults.innerHTML = '';
+        highlightedProductIndex = -1;
+
+        if (!Array.isArray(products) || products.length === 0) {
+            searchResults.innerHTML = '<div class="list-group-item text-muted small py-2"><i class="bi bi-info-circle me-1"></i>No se encontraron productos para "' + escapeHtml(query) + '"</div>';
+            searchResults.style.display = 'block';
+            return;
+        }
+
+        products.forEach((p, idx) => {
+            const inCart = cart.find(c => c.product_id === p.id);
+            const disabled = inCart ? 'opacity-50' : '';
+            const label = inCart ? ' <span class="badge bg-secondary-subtle text-secondary border font-monospace ms-1" style="font-size:0.7rem;">En carrito</span>' : '';
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 product-result-item ${disabled}`;
+            btn.dataset.index = idx;
+            btn.innerHTML = `
+                <div class="text-truncate me-2">
+                    <span class="fw-semibold">${escapeHtml(p.name)}</span>
+                    <small class="text-muted ms-2 font-monospace">${escapeHtml(p.sku || '')}</small>
+                    ${label}
+                </div>
+                <div class="text-end flex-shrink-0">
+                    <span class="fw-bold text-primary font-monospace">$${formatNumber(p.sale_price)}</span>
+                    <small class="text-muted d-block" style="font-size:0.75rem;">Stock: ${p.stock}</small>
+                </div>
+            `;
+            if (!inCart) {
+                btn.addEventListener('click', () => addToCart(p));
+            }
+            searchResults.appendChild(btn);
+        });
+
+        searchResults.style.display = 'block';
+    }
+
+    function executeProductSearch(query, isImmediate = false) {
+        if (activeProductAbort) {
+            activeProductAbort.abort();
+            activeProductAbort = null;
+        }
+
+        const trimmed = query.trim();
+        if (trimmed.length < 2) {
+            searchResults.style.display = 'none';
+            searchResults.innerHTML = '';
+            setProductLoading(false);
+            return;
+        }
+
+        const cacheKey = trimmed.toLowerCase();
+        if (productSearchCache.has(cacheKey)) {
+            const cached = productSearchCache.get(cacheKey);
+            setProductLoading(false);
+            if (isImmediate && cached.length === 1 && !cart.find(c => c.product_id === cached[0].id)) {
+                addToCart(cached[0]);
+                return;
+            }
+            renderProductResults(cached, trimmed);
+            return;
+        }
+
+        setProductLoading(true);
+        activeProductAbort = new AbortController();
+
+        fetch(`{{ route('api.products.search') }}?q=${encodeURIComponent(trimmed)}`, {
+            signal: activeProductAbort.signal,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(products => {
+            setProductLoading(false);
+            activeProductAbort = null;
+            productSearchCache.set(cacheKey, products);
+
+            // Si es escaneo directo (código de barras o Enter) y hay exactamente 1 coincidencia
+            if (isImmediate && products.length === 1 && !cart.find(c => c.product_id === products[0].id)) {
+                addToCart(products[0]);
+                return;
+            }
+
+            renderProductResults(products, trimmed);
+        })
+        .catch(err => {
+            if (err.name !== 'AbortError') {
+                setProductLoading(false);
+                activeProductAbort = null;
+            }
+        });
+    }
+
+    // ── Búsqueda reactiva con debounce de 180ms ──
     searchInput.addEventListener('input', function () {
         clearTimeout(searchTimeout);
-        const q = this.value.trim();
-        if (q.length < 2) {
+        const q = this.value;
+        if (q.trim().length < 2) {
+            if (activeProductAbort) {
+                activeProductAbort.abort();
+                activeProductAbort = null;
+            }
             searchResults.style.display = 'none';
+            setProductLoading(false);
             return;
         }
 
         searchTimeout = setTimeout(() => {
-            fetch(`{{ route('api.products.search') }}?q=${encodeURIComponent(q)}`)
-                .then(r => r.json())
-                .then(products => {
-                    searchResults.innerHTML = '';
-                    if (products.length === 0) {
-                        searchResults.innerHTML = '<div class="list-group-item text-muted small py-2">No se encontraron productos</div>';
-                    } else {
-                        products.forEach(p => {
-                            const inCart = cart.find(c => c.product_id === p.id);
-                            const disabled = inCart ? 'opacity-50' : '';
-                            const label = inCart ? ' (ya en carrito)' : '';
-                            const btn = document.createElement('button');
-                            btn.type = 'button';
-                            btn.className = `list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 ${disabled}`;
-                            btn.innerHTML = `
-                                <div>
-                                    <span class="fw-semibold">${escapeHtml(p.name)}</span>
-                                    <small class="text-muted ms-2 font-monospace">${escapeHtml(p.sku || '')}</small>
-                                    <small class="text-muted">${label}</small>
-                                </div>
-                                <div class="text-end">
-                                    <span class="fw-bold text-primary">$${formatNumber(p.sale_price)}</span>
-                                    <small class="text-muted d-block">Stock: ${p.stock}</small>
-                                </div>
-                            `;
-                            if (!inCart) {
-                                btn.addEventListener('click', () => addToCart(p));
-                            }
-                            searchResults.appendChild(btn);
-                        });
-                    }
-                    searchResults.style.display = 'block';
-                });
-        }, 300);
+            executeProductSearch(q, false);
+        }, 180);
     });
+
+    // ── Soporte Enter (Lectores de código de barras) y flechas de teclado ──
+    searchInput.addEventListener('keydown', function (e) {
+        const items = searchResults.querySelectorAll('.product-result-item:not(.opacity-50)');
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (items.length > 0) {
+                highlightedProductIndex = (highlightedProductIndex + 1) % items.length;
+                updateProductHighlight(items);
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (items.length > 0) {
+                highlightedProductIndex = (highlightedProductIndex - 1 + items.length) % items.length;
+                updateProductHighlight(items);
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            clearTimeout(searchTimeout);
+
+            if (searchResults.style.display === 'block' && highlightedProductIndex >= 0 && items[highlightedProductIndex]) {
+                items[highlightedProductIndex].click();
+            } else {
+                executeProductSearch(this.value, true);
+            }
+        } else if (e.key === 'Escape') {
+            searchResults.style.display = 'none';
+            highlightedProductIndex = -1;
+        }
+    });
+
+    function updateProductHighlight(items) {
+        items.forEach((it, idx) => {
+            if (idx === highlightedProductIndex) {
+                it.classList.add('active', 'bg-primary-subtle', 'text-primary');
+                it.scrollIntoView({ block: 'nearest' });
+            } else {
+                it.classList.remove('active', 'bg-primary-subtle', 'text-primary');
+            }
+        });
+    }
 
     // Close search results on click outside
     document.addEventListener('click', function (e) {
@@ -1027,71 +1148,99 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     let customerSearchTimeout = null;
+    let activeCustomerAbort = null;
+    const customerSearchCache = new Map();
+
     customerSearchInput.addEventListener('input', function() {
         const query = this.value.trim();
         clearTimeout(customerSearchTimeout);
 
         if (query.length < 3) {
+            if (activeCustomerAbort) {
+                activeCustomerAbort.abort();
+                activeCustomerAbort = null;
+            }
             customerSearchResults.classList.add('d-none');
             customerSearchResults.innerHTML = '';
             return;
         }
 
+        const cacheKey = query.toLowerCase();
+        if (customerSearchCache.has(cacheKey)) {
+            renderCustomerSearchResults(customerSearchCache.get(cacheKey));
+            return;
+        }
+
         customerSearchTimeout = setTimeout(() => {
+            if (activeCustomerAbort) {
+                activeCustomerAbort.abort();
+            }
+            activeCustomerAbort = new AbortController();
+
             fetch(`{{ route('customers.search') }}?q=${encodeURIComponent(query)}`, {
+                signal: activeCustomerAbort.signal,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(res => res.json())
             .then(data => {
-                customerSearchResults.innerHTML = '';
-                if (!Array.isArray(data) || data.length === 0) {
-                    const emptyItem = document.createElement('div');
-                    emptyItem.className = 'list-group-item text-muted small py-2';
-                    emptyItem.textContent = 'No se encontraron clientes con ese documento o nombre';
-                    customerSearchResults.appendChild(emptyItem);
-                } else {
-                    data.forEach(cust => {
-                        const btn = document.createElement('button');
-                        btn.type = 'button';
-                        btn.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2';
-
-                        const infoDiv = document.createElement('div');
-                        infoDiv.className = 'text-truncate me-2 text-start';
-
-                        const nameSpan = document.createElement('span');
-                        nameSpan.className = 'fw-semibold d-block text-truncate';
-                        nameSpan.textContent = cust.name;
-
-                        const docSpan = document.createElement('small');
-                        docSpan.className = 'text-muted font-monospace';
-                        docSpan.textContent = cust.document ? `Doc: ${cust.document}` : '';
-
-                        infoDiv.appendChild(nameSpan);
-                        infoDiv.appendChild(docSpan);
-
-                        btn.appendChild(infoDiv);
-
-                        if (cust.phone) {
-                            const phoneSpan = document.createElement('small');
-                            phoneSpan.className = 'badge bg-light text-secondary border';
-                            phoneSpan.textContent = cust.phone;
-                            btn.appendChild(phoneSpan);
-                        }
-
-                        btn.addEventListener('click', function() {
-                            selectCustomer(cust.id, cust.name, cust.document);
-                        });
-
-                        customerSearchResults.appendChild(btn);
-                    });
-                }
-                customerSearchResults.classList.remove('d-none');
+                activeCustomerAbort = null;
+                customerSearchCache.set(cacheKey, data);
+                renderCustomerSearchResults(data);
             })
-            .catch(() => {
-                customerSearchResults.classList.add('d-none');
+            .catch(err => {
+                if (err.name !== 'AbortError') {
+                    activeCustomerAbort = null;
+                    customerSearchResults.classList.add('d-none');
+                }
             });
-        }, 280);
+        }, 180);
     });
+
+    function renderCustomerSearchResults(data) {
+        customerSearchResults.innerHTML = '';
+        if (!Array.isArray(data) || data.length === 0) {
+            const emptyItem = document.createElement('div');
+            emptyItem.className = 'list-group-item text-muted small py-2';
+            emptyItem.textContent = 'No se encontraron clientes con ese documento o nombre';
+            customerSearchResults.appendChild(emptyItem);
+        } else {
+            data.forEach(cust => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2';
+
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'text-truncate me-2 text-start';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'fw-semibold d-block text-truncate';
+                nameSpan.textContent = cust.name;
+
+                const docSpan = document.createElement('small');
+                docSpan.className = 'text-muted font-monospace';
+                docSpan.textContent = cust.document ? `Doc: ${cust.document}` : '';
+
+                infoDiv.appendChild(nameSpan);
+                infoDiv.appendChild(docSpan);
+
+                btn.appendChild(infoDiv);
+
+                if (cust.phone) {
+                    const phoneSpan = document.createElement('small');
+                    phoneSpan.className = 'badge bg-light text-secondary border';
+                    phoneSpan.textContent = cust.phone;
+                    btn.appendChild(phoneSpan);
+                }
+
+                btn.addEventListener('click', function() {
+                    selectCustomer(cust.id, cust.name, cust.document);
+                });
+
+                customerSearchResults.appendChild(btn);
+            });
+        }
+        customerSearchResults.classList.remove('d-none');
+    }
 
     // Cerrar resultados al hacer click afuera
     document.addEventListener('click', function(e) {

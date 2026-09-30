@@ -15,12 +15,18 @@ class ProductSearchController extends Controller
      */
     public function __invoke(Request $request): JsonResponse
     {
+        $rawSearch = trim((string) $request->input('q', ''));
+
         $query = Product::where('is_active', true);
 
-        if ($search = $request->input('q')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%");
+        if ($rawSearch !== '') {
+            $escaped = addcslashes($rawSearch, '%_\\');
+
+            $query->where(function ($q) use ($escaped, $rawSearch) {
+                // Si coincide exactamente con SKU, búsqueda directa indexada
+                $q->where('sku', $rawSearch)
+                  ->orWhere('name', 'like', "%{$escaped}%")
+                  ->orWhere('sku', 'like', "%{$escaped}%");
             });
         }
 
@@ -29,6 +35,7 @@ class ProductSearchController extends Controller
             ->limit(15)
             ->get();
 
-        return response()->json($products);
+        return response()->json($products)
+            ->header('Cache-Control', 'private, max-age=5');
     }
 }

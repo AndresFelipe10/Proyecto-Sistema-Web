@@ -294,6 +294,33 @@
 
     <!-- Bootstrap 5 JS Bundle (incluye Popper para dropdowns y offcanvas) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Feedback táctil inmediato en formularios para evitar dobles envíos y sensación de lentitud
+        document.addEventListener('submit', function (e) {
+            const form = e.target;
+            if (form.hasAttribute('data-no-disable')) return;
+            const submitBtn = form.querySelector('button[type="submit"]:not([disabled])');
+            if (submitBtn) {
+                setTimeout(() => {
+                    submitBtn.disabled = true;
+                    submitBtn.dataset.originalHtml = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Procesando...';
+                }, 0);
+            }
+        });
+
+        // Restaurar estado si el usuario navega hacia atrás desde la caché del navegador
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted) {
+                document.querySelectorAll('button[type="submit"][disabled]').forEach(btn => {
+                    btn.disabled = false;
+                    if (btn.dataset.originalHtml) {
+                        btn.innerHTML = btn.dataset.originalHtml;
+                    }
+                });
+            }
+        });
+    </script>
     @stack('scripts')
 </body>
 </html>
