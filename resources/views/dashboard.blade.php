@@ -32,6 +32,51 @@
         </div>
     </div>
 
+    {{-- Módulo Operativo de Restaurante (Bloque R-D) --}}
+    @if(!empty($is_restaurant))
+        <div class="col-sm-6 col-xl-6">
+            <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm border-start border-4 border-warning">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Mesas Activas / Ocupadas</span>
+                        <h3 class="fw-bold mb-0 mt-1 text-dark">
+                            {{ $occupied_tables }} <span class="fs-6 fw-normal text-muted">/ {{ $total_tables }} mesas</span>
+                        </h3>
+                        <small class="text-muted">
+                            <a href="{{ route('restaurant.tables.index') }}" class="text-decoration-none fw-semibold text-warning">
+                                Ver mapa de salón &rarr;
+                            </a>
+                        </small>
+                    </div>
+                    <div class="bg-warning-subtle text-warning p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-aspect-ratio fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-6">
+            <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm border-start border-4 border-info">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold text-uppercase">Domicilios en Curso</span>
+                        <h3 class="fw-bold mb-0 mt-1 text-info">
+                            {{ $active_deliveries }} <span class="fs-6 fw-normal text-muted">{{ $active_deliveries === 1 ? 'orden activa' : 'órdenes activas' }}</span>
+                        </h3>
+                        <small class="text-muted">
+                            <a href="{{ route('restaurant.orders.deliveries') }}" class="text-decoration-none fw-semibold text-info">
+                                Ver tablero de despachos &rarr;
+                            </a>
+                        </small>
+                    </div>
+                    <div class="bg-info-subtle text-info p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                        <i class="bi bi-bicycle fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Tarjetas KPI --}}
     @if(!empty($isAdmin))
         {{-- Tarjetas Financieras (Exclusivo Administrador) --}}

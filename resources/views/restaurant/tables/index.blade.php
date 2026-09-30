@@ -120,7 +120,7 @@
                                                 <i class="bi bi-pencil me-2 text-primary"></i> Editar Mesa
                                             </a>
                                         </li>
-                                        @if(!$isOccupied)
+                                        @if(!$isOccupied && !$isBilled)
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
                                                 <form action="{{ route('restaurant.tables.destroy', $table) }}" method="POST" onsubmit="return confirm('¿Seguro que deseas eliminar esta mesa?');">
@@ -146,7 +146,7 @@
                                 <i class="bi bi-person me-1"></i>Capacidad: {{ $table->capacity }} personas
                             </p>
 
-                            @if($isOccupied && $activeOrder)
+                            @if(($isOccupied || $isBilled) && $activeOrder)
                                 <div class="bg-light rounded-3 p-2 mb-3 text-start small">
                                     <div class="d-flex justify-content-between mb-1">
                                         <span class="text-muted">Comanda:</span>

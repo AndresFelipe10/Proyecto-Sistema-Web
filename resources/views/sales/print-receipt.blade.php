@@ -234,6 +234,12 @@
                 <span>-${{ number_format($sale->discount, 0, ',', '.') }}</span>
             </div>
         @endif
+        @if($sale->delivery_fee > 0)
+            <div class="row">
+                <span>Domicilio / Flete:</span>
+                <span>${{ number_format($sale->delivery_fee, 0, ',', '.') }}</span>
+            </div>
+        @endif
         <div class="row total-row">
             <span>TOTAL:</span>
             <span>${{ number_format($sale->total, 0, ',', '.') }}</span>

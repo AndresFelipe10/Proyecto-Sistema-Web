@@ -44,7 +44,7 @@ class RestaurantTable extends Model
     public function activeOrder(): HasOne
     {
         return $this->hasOne(RestaurantOrder::class, 'table_id')
-            ->whereIn('status', ['open', 'in_kitchen', 'dispatched', 'delivered'])
+            ->whereIn('status', ['open', 'in_kitchen', 'dispatched', 'delivered', 'billed'])
             ->latestOfMany();
     }
 

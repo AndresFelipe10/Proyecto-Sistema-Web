@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreignId('sale_id')->nullable()->constrained('sales')->nullOnDelete();
             $table->string('order_number', 30);
             $table->enum('order_type', ['table', 'delivery', 'takeout'])->default('table');
-            $table->enum('status', ['open', 'in_kitchen', 'dispatched', 'delivered', 'closed', 'cancelled'])->default('open');
+            $table->enum('status', ['open', 'in_kitchen', 'dispatched', 'delivered', 'billed', 'closed', 'cancelled'])->default('open');
             $table->foreignId('customer_id')->nullable()->constrained('customers')->nullOnDelete();
             $table->string('customer_name', 150)->nullable();
             $table->string('delivery_phone', 30)->nullable();

@@ -486,6 +486,66 @@ class ReportService
         $totalRevenue = (float) $sales->sum('total');
         $salesCount = $sales->count();
 
+        // Discriminación por Canal de Venta (Salón, Domicilios, Para Llevar, Retail)
+        $channels = [
+            'table' => [
+                'name' => 'Ventas de Salón (Mesas)',
+                'icon' => 'bi-aspect-ratio',
+                'color' => 'primary',
+                'count' => 0,
+                'total' => 0.00,
+            ],
+            'delivery' => [
+                'name' => 'Ventas por Domicilios (Delivery)',
+                'icon' => 'bi-bicycle',
+                'color' => 'info',
+                'count' => 0,
+                'total' => 0.00,
+            ],
+            'takeout' => [
+                'name' => 'Ventas Para Llevar (Takeout)',
+                'icon' => 'bi-bag',
+                'color' => 'secondary',
+                'count' => 0,
+                'total' => 0.00,
+            ],
+            'retail' => [
+                'name' => 'Ventas de Mostrador / Retail',
+                'icon' => 'bi-shop',
+                'color' => 'success',
+                'count' => 0,
+                'total' => 0.00,
+            ],
+        ];
+
+        $totalDeliveryFee = 0.00;
+
+        foreach ($sales as $sale) {
+            $type = $sale->order_type ?: 'retail';
+            if (!isset($channels[$type])) {
+                $channels[$type] = [
+                    'name' => ucfirst($type),
+                    'icon' => 'bi-tag',
+                    'color' => 'secondary',
+                    'count' => 0,
+                    'total' => 0.00,
+                ];
+            }
+            $channels[$type]['count']++;
+            $channels[$type]['total'] = round($channels[$type]['total'] + (float) $sale->total, 2);
+
+            $totalDeliveryFee = round($totalDeliveryFee + (float) ($sale->delivery_fee ?? 0.00), 2);
+        }
+
+        // Conciliación de Efectivo Físico vs Dinero Digital
+        $cashInDrawer = (float) ($byMethod['cash']['amount'] ?? 0.00);
+        $digitalMoney = round(
+            (float) ($byMethod['transfer']['amount'] ?? 0.00) +
+            (float) ($byMethod['card']['amount'] ?? 0.00) +
+            (float) ($byMethod['other']['amount'] ?? 0.00),
+            2
+        );
+
         $cashiers = \App\Models\User::whereHas('businesses', function ($q) use ($businessId) {
             $q->where('businesses.id', $businessId);
         })->orderBy('name')->get();
@@ -494,6 +554,10 @@ class ReportService
             'sales' => $sales,
             'cashiers' => $cashiers,
             'by_method' => $byMethod,
+            'channels' => $channels,
+            'total_delivery_fee' => $totalDeliveryFee,
+            'cash_in_drawer' => $cashInDrawer,
+            'digital_money' => $digitalMoney,
             'total_revenue' => $totalRevenue,
             'sales_count' => $salesCount,
             'period_type' => $periodType,

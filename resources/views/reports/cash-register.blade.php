@@ -217,6 +217,97 @@
     </div>
 </div>
 
+@if($currentBusiness->isRestaurant())
+    {{-- MÓDULO RESTAURANTE: CANALES DE VENTA Y RECAUDO DE FLETES --}}
+    <div class="row g-3 mb-4">
+        {{-- Tarjeta: Desglose por Canales de Venta --}}
+        <div class="col-lg-8">
+            <div class="card card-custom p-4 bg-white border-0 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-dark">
+                        <i class="bi bi-diagram-3 text-primary me-2"></i>Discriminación por Canal de Venta
+                    </h5>
+                    <span class="badge bg-light text-dark border">Vertical Restaurante</span>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4 col-sm-6">
+                        <div class="p-3 rounded-3 bg-light border border-primary-subtle">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-aspect-ratio text-primary fs-5"></i>
+                                <span class="fw-semibold text-dark">Ventas Salón (Mesas)</span>
+                            </div>
+                            <h4 class="fw-bold text-primary mb-0">${{ number_format($channels['table']['total'], 0, ',', '.') }}</h4>
+                            <small class="text-muted">{{ $channels['table']['count'] }} comandas liquidadas</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="p-3 rounded-3 bg-light border border-info-subtle">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-bicycle text-info fs-5"></i>
+                                <span class="fw-semibold text-dark">Ventas Domicilios</span>
+                            </div>
+                            <h4 class="fw-bold text-info mb-0">${{ number_format($channels['delivery']['total'], 0, ',', '.') }}</h4>
+                            <small class="text-muted">{{ $channels['delivery']['count'] }} pedidos entregados</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="p-3 rounded-3 bg-light border border-secondary-subtle">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-bag text-secondary fs-5"></i>
+                                <span class="fw-semibold text-dark">Ventas Para Llevar</span>
+                            </div>
+                            <h4 class="fw-bold text-dark mb-0">${{ number_format($channels['takeout']['total'], 0, ',', '.') }}</h4>
+                            <small class="text-muted">{{ $channels['takeout']['count'] }} órdenes en mostrador</small>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Recaudo de Domicilios / Fletes (Cuadre con Repartidores) --}}
+                <div class="mt-3 p-3 bg-info-subtle rounded-3 border border-info text-info-emphasis d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <i class="bi bi-cash-stack fs-5 me-2 align-middle"></i>
+                        <strong class="align-middle">Recaudo Total por Fletes / Domicilios:</strong>
+                        <span class="d-block small text-muted mt-1">Monto acumulado por fletes para liquidación y cuadre con repartidores.</span>
+                    </div>
+                    <div class="text-end">
+                        <span class="h4 fw-bold text-dark mb-0">${{ number_format($total_delivery_fee, 0, ',', '.') }}</span>
+                        <span class="d-block small text-muted font-monospace">SUM(delivery_fee)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Tarjeta: Conciliación de Efectivo Físico vs Dinero Digital --}}
+        <div class="col-lg-4">
+            <div class="card card-custom p-4 bg-white border-0 shadow-sm h-100">
+                <h5 class="fw-bold mb-3 text-dark">
+                    <i class="bi bi-arrow-left-right text-success me-2"></i>Conciliación de Arqueo
+                </h5>
+                <div class="list-group list-group-flush mb-3">
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                        <div>
+                            <span class="fw-semibold text-dark d-block"><i class="bi bi-cash me-1 text-success"></i>Efectivo en Gaveta</span>
+                            <small class="text-muted">Total billetes restando vueltos</small>
+                        </div>
+                        <span class="fw-bold font-monospace text-success fs-6">${{ number_format($cash_in_drawer, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                        <div>
+                            <span class="fw-semibold text-dark d-block"><i class="bi bi-phone me-1 text-info"></i>Dinero Digital (Apps / Bancos)</span>
+                            <small class="text-muted">Nequi, Daviplata, Tarjetas</small>
+                        </div>
+                        <span class="fw-bold font-monospace text-info fs-6">${{ number_format($digital_money, 0, ',', '.') }}</span>
+                    </div>
+                </div>
+                <div class="border-top pt-2 d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-dark">Total Conciliado:</span>
+                    <span class="fw-bold font-monospace fs-5 text-primary">${{ number_format($total_revenue, 0, ',', '.') }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
 {{-- Cuadre Discriminado por Métodos de Pago --}}
 <div class="card card-custom p-4 bg-white border-0 shadow-sm mb-4">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -363,6 +454,20 @@
                                 <a href="{{ route('sales.show', $sale) }}" class="fw-bold text-decoration-none font-monospace">
                                     {{ $sale->invoice_number }}
                                 </a>
+                                @if($currentBusiness->isRestaurant() && $sale->order_type && $sale->order_type !== 'retail')
+                                    <div class="mt-1">
+                                        @if($sale->order_type === 'table')
+                                            <span class="badge bg-primary-subtle text-primary border" style="font-size: 0.72rem;">Salón</span>
+                                        @elseif($sale->order_type === 'delivery')
+                                            <span class="badge bg-info-subtle text-info border" style="font-size: 0.72rem;">Domicilio</span>
+                                            @if($sale->delivery_fee > 0)
+                                                <span class="badge bg-light text-dark border" style="font-size: 0.72rem;">+${{ number_format($sale->delivery_fee, 0, ',', '.') }} flete</span>
+                                            @endif
+                                        @elseif($sale->order_type === 'takeout')
+                                            <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 0.72rem;">Para Llevar</span>
+                                        @endif
+                                    </div>
+                                @endif
                             </td>
                             <td class="small">
                                 {{ $sale->sale_date->format('d/m/Y H:i') }}

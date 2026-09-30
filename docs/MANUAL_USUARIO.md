@@ -85,6 +85,50 @@ Después de registrar una venta (o desde el detalle de cualquier venta completad
      - **Stock Crítico y Catálogo**: Alertas de reposición inmediata y total de clientes.
    - **Vendedores / Empleados**: Visualizan un panel 100% operativo (número de ventas realizadas hoy, ventas del mes en transacciones y productos con existencias críticas), manteniendo en reserva confidencial todos los valores monetarios, ingresos y márgenes del negocio.
 
+## Módulo de Restaurante y Gastronomía (solo comercios tipo Restaurante)
+
+Si tu negocio tiene habilitado el perfil de **Restaurante**, dispondrás de módulos y herramientas especializadas:
+
+### 1. Salón y Gestión de Mesas
+1. En el menú lateral, accede a **Salón**.
+2. Podrás visualizar en tiempo real el mapa de mesas con su estado operativo:
+   - **LIBRE (Verde)**: Mesa desocupada lista para clientes. Haz clic en **"Abrir Mesa"** para tomar la primera comanda.
+   - **OCUPADA (Azul)**: Mesa con consumo activo. Puedes consultar los platos ordenados y agregar nuevas tandas de cocina.
+   - **EN COBRO (Amarillo)**: Mesa que ha solicitado la pre-cuenta informativa.
+3. **Comandas por Tandas**: Cada adición de platos se agrupa cronológicamente en tandas (Tanda #1, Tanda #2, etc.), permitiendo enviar únicamente los ítems pendientes a cocina con el botón **"Enviar a Cocina (80 mm)"**.
+
+### 2. Emisión de Pre-cuenta Informativa (80 mm)
+1. Cuando el cliente en mesa solicita la cuenta antes de pagar, haz clic en **"Pre-cuenta (80 mm)"**.
+2. El sistema cambia automáticamente el estado de la mesa y la comanda a **"En Cobro" (`billed`)** y abre la tirilla térmica en formato 80 mm.
+3. **Aviso Legal**: La pre-cuenta incluye la leyenda obligatoria: *"ESTADO DE CONSUMO / PRE-CUENTA — DOCUMENTO INTERNO NO VÁLIDO COMO FACTURA O COMPROBANTE DE VENTA"*. No posee numeración consecutiva fiscal ni validez tributaria.
+
+### 3. Domicilios y Pedidos Para Llevar
+1. En el menú lateral, accede a **Domicilios**.
+2. **Nuevo Pedido**: Haz clic en **"Nuevo Domicilio / Llevar"** e ingresa el cliente, teléfono, dirección de entrega, observaciones y el valor pactado del **Flete de Domicilio ($)**.
+3. **Tablero Kanban de Despacho**: Gestiona las órdenes activas en tres columnas operativas:
+   - **En Cocina / Preparación**
+   - **En Despacho / Con Repartidor**
+   - **Entregado (Pendiente de Liquidar)**
+4. **Tirilla de Despacho (80 mm)**: Genera el ticket térmico con recuadro destacado de entrega y monto total contraentrega para el domiciliario.
+
+### 4. Liquidación, Cobro y Cierre de Mesa
+1. Al momento de cobrar una comanda de salón o domicilio, haz clic en **"Cobrar / Facturar"**.
+2. Se desplegará la pasarela integrada de cobro:
+   - **Cliente**: Asigna un cliente registrado o déjalo por defecto como **Consumidor Final DIAN (`222222222222`)**.
+   - **Descuentos**: Ingresa el porcentaje de descuento si aplica.
+   - **Flete de Domicilio**: Se adiciona automáticamente al total en órdenes de tipo delivery.
+   - **Pasarela de Pagos Mixtos**: Puedes dividir la cuenta entre 1 y 5 líneas de pago (Efectivo, Nequi/Transferencia, Tarjeta o Datafono). Para el efectivo dispones de atajos rápidos ($20.000, $50.000, $100.000, Exacto) y cálculo automático del cambio/vuelto.
+3. Al hacer clic en **"Confirmar Pago y Generar Factura"**:
+   - Se crea la factura legal consecutiva inmutable (`VTA-YYYYMM-XXXX`).
+   - Se descuentan automáticamente los insumos e ingredientes del inventario de acuerdo con las recetas de cada plato.
+   - La comanda se cierra (`closed`) y la mesa se libera automáticamente a **LIBRE (`available`)**.
+
+### 5. Cuadre de Caja Diario Adaptativo para Restaurantes
+1. En el menú **Cuadre de Caja**, los restaurantes disfrutan de un desglose especializado:
+   - **Discriminación por Canal de Venta**: Total vendido en *Ventas Salón (Mesas)*, *Ventas Domicilios* y *Ventas Para Llevar*.
+   - **Recaudo de Domicilios / Fletes**: Fila dedicada con la suma exacta de los fletes cobrados en el día/turno, facilitando la rendición de cuentas con los mensajeros.
+   - **Conciliación de Arqueo**: Total en *Efectivo Físico en Gaveta* (restando vueltos) frente a *Dinero Digital* (Nequi, Daviplata, Tarjetas).
+
 ## Soporte y Recuperación de Clave
 
 - Si olvidaste tu contraseña o requieres soporte para tu negocio, utiliza el enlace directo de **WhatsApp** en la pantalla de inicio de sesión o comunícate con la línea oficial de soporte.

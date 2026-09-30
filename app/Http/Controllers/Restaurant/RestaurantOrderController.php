@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Restaurant\AddOrderItemsRequest;
 use App\Http\Requests\Restaurant\StoreDeliveryOrderRequest;
 use App\Http\Requests\Restaurant\StoreRestaurantOrderRequest;
+use App\Models\Customer;
 use App\Models\Product;
 use App\Models\RestaurantOrder;
 use App\Models\RestaurantTable;
@@ -84,7 +85,9 @@ class RestaurantOrderController extends Controller
 
         $batches = $order->items->groupBy('batch_number');
 
-        return view('restaurant.orders.show', compact('order', 'products', 'batches'));
+        $customers = Customer::where('is_active', true)->orderBy('name')->get();
+
+        return view('restaurant.orders.show', compact('order', 'products', 'batches', 'customers'));
     }
 
     /**
@@ -200,5 +203,28 @@ class RestaurantOrderController extends Controller
         $order->load(['items.product', 'user', 'customer', 'business']);
 
         return view('restaurant.orders.dispatch-ticket', compact('order'));
+    }
+
+    /**
+     * Issue pre-bill informational ticket (80mm) and mark order/table as billed.
+     */
+    public function preBill(Request $request, RestaurantOrder $order): View
+    {
+        Gate::authorize('view', $order);
+
+        if (! in_array($order->status, ['closed', 'cancelled'], true)) {
+            $order->update(['status' => 'billed']);
+
+            if ($order->table_id) {
+                $table = RestaurantTable::where('business_id', $order->business_id)->find($order->table_id);
+                if ($table) {
+                    $table->update(['status' => 'billed']);
+                }
+            }
+        }
+
+        $order->load(['items.product', 'user', 'table', 'business']);
+
+        return view('restaurant.orders.pre-bill-ticket', compact('order'));
     }
 }

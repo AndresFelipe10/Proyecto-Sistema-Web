@@ -20,11 +20,14 @@ class Sale extends Model
         'customer_id',
         'customer_name',
         'customer_document',
+        'restaurant_order_id',
+        'order_type',
         'invoice_number',
         'sale_date',
         'subtotal',
         'discount',
         'discount_percentage',
+        'delivery_fee',
         'total',
         'payment_method',
         'status',
@@ -38,6 +41,7 @@ class Sale extends Model
             'subtotal' => 'decimal:2',
             'discount' => 'decimal:2',
             'discount_percentage' => 'decimal:2',
+            'delivery_fee' => 'float',
             'total' => 'decimal:2',
         ];
     }
@@ -50,6 +54,11 @@ class Sale extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function restaurantOrder(): BelongsTo
+    {
+        return $this->belongsTo(RestaurantOrder::class, 'restaurant_order_id');
     }
 
     public function details(): HasMany

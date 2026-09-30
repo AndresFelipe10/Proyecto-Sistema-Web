@@ -99,7 +99,38 @@ class DashboardService
             ->limit(5)
             ->get();
 
-        $baseMetrics = [
+        // 7. Métricas Operativas de Restaurante (Bloque R-D)
+        $business = \App\Models\Business::find($businessId);
+        $isRestaurant = $business ? $business->isRestaurant() : false;
+
+        $restaurantMetrics = [];
+        if ($isRestaurant) {
+            $totalTables = \App\Models\RestaurantTable::where('business_id', $businessId)->count();
+            $occupiedTables = \App\Models\RestaurantTable::where('business_id', $businessId)
+                ->whereIn('status', ['occupied', 'billed'])
+                ->count();
+
+            $activeDeliveries = \App\Models\RestaurantOrder::where('business_id', $businessId)
+                ->whereIn('order_type', ['delivery', 'takeout'])
+                ->whereIn('status', ['open', 'in_kitchen', 'dispatched'])
+                ->count();
+
+            $restaurantMetrics = [
+                'is_restaurant' => true,
+                'total_tables' => $totalTables,
+                'occupied_tables' => $occupiedTables,
+                'active_deliveries' => $activeDeliveries,
+            ];
+        } else {
+            $restaurantMetrics = [
+                'is_restaurant' => false,
+                'total_tables' => 0,
+                'occupied_tables' => 0,
+                'active_deliveries' => 0,
+            ];
+        }
+
+        $baseMetrics = array_merge([
             'today_sales_count' => $todaySalesCount,
             'month_sales_count' => $monthSalesCount,
             'total_products' => $totalProducts,
@@ -109,7 +140,7 @@ class DashboardService
             'low_stock_products' => $lowStockProducts,
             'recent_sales' => $recentSales,
             'top_products' => $topProducts,
-        ];
+        ], $restaurantMetrics);
 
         // Métricas Financieras: Exclusivas para Administradores
         if ($isAdmin) {

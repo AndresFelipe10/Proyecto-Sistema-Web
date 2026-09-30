@@ -70,6 +70,9 @@ Reglas de aplicación (Global Scope + Middleware + Policy) → `.agents/rules/02
 - CHECK constraint en `restaurant_tables`: `capacity > 0`.
 - CHECK constraint en `restaurant_orders`: `delivery_fee >= 0`.
 - CHECK constraint en `restaurant_order_items`: `quantity > 0`.
+- CHECK constraint en `sales`: `delivery_fee >= 0`.
+- ENUM en `restaurant_orders.status`: `('open', 'in_kitchen', 'dispatched', 'delivered', 'billed', 'closed', 'cancelled')`.
+- Columnas de Restaurante en `sales`: `restaurant_order_id` (FK nullable), `order_type` (`retail`, `table`, `delivery`, `takeout`), `delivery_fee` (decimal 12,2).
 - Índices en `sale_payments`: `(sale_id)`, `(business_id)`, y compuesto `(business_id, method)`.
 - Índices en `expenses`: `(business_id, issue_date)`, `(business_id, status)`, `(business_id, supplier_id)`.
 - Constraint UNIQUE compuesto en `expenses`: `(business_id, supplier_id, invoice_number)` cuando ambos existan.
@@ -81,6 +84,7 @@ Reglas de aplicación (Global Scope + Middleware + Policy) → `.agents/rules/02
 - Índices en `restaurant_orders`: `(business_id, status)` y `(business_id, order_type)`.
 - Índices en `restaurant_order_items`: `(business_id)`, `(order_id)`, `(product_id)`.
 - Índices en `recipe_items`: `(business_id)`, `(recipe_id)`, `(ingredient_id)`.
+- Índices en `sales`: `(business_id, restaurant_order_id)` y `(business_id, order_type)`.
 - Índice compuesto único en (`business_id`, `sku`) para productos.
 - Índice compuesto único en (`business_id`, `document`) para clientes.
 - Índice en `business_id` en toda tabla tenant-aware, dado que es el filtro más frecuente.

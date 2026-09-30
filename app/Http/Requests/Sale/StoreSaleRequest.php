@@ -50,6 +50,14 @@ class StoreSaleRequest extends FormRequest
             'payments.*.reference' => ['nullable', 'string', 'max:60'],
             'payments.*.cash_received' => ['nullable', 'numeric', 'min:0'],
             'payments.*.change_given' => ['nullable', 'numeric', 'min:0'],
+
+            // Campos de Restaurante (Bloque R-D)
+            'restaurant_order_id' => [
+                'nullable',
+                Rule::exists('restaurant_orders', 'id')->where('business_id', $businessId),
+            ],
+            'order_type' => ['nullable', Rule::in(['retail', 'table', 'delivery', 'takeout'])],
+            'delivery_fee' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 
@@ -60,6 +68,14 @@ class StoreSaleRequest extends FormRequest
     {
         if ($this->has('customer_id') && ($this->input('customer_id') === '' || $this->input('customer_id') === 'null')) {
             $this->merge(['customer_id' => null]);
+        }
+
+        if ($this->has('restaurant_order_id') && ($this->input('restaurant_order_id') === '' || $this->input('restaurant_order_id') === 'null')) {
+            $this->merge(['restaurant_order_id' => null]);
+        }
+
+        if ($this->has('delivery_fee') && ($this->input('delivery_fee') === '' || $this->input('delivery_fee') === null)) {
+            $this->merge(['delivery_fee' => 0.00]);
         }
 
         // Sanitizar referencias en payments si existen

@@ -11,6 +11,12 @@
         <div>
             <h3 class="fw-bold mb-0">Comprobante de Venta</h3>
             <span class="font-monospace text-primary fw-bold">{{ $sale->invoice_number }}</span>
+            @if($sale->order_type && $sale->order_type !== 'retail')
+                <span class="badge bg-light text-dark border ms-2">
+                    <i class="bi bi-egg-fried me-1 text-warning"></i>
+                    @if($sale->order_type === 'table') Salón / Mesa @elseif($sale->order_type === 'delivery') Domicilio @else Para Llevar @endif
+                </span>
+            @endif
         </div>
     </div>
 
@@ -185,6 +191,14 @@
                             <span class="text-muted">Descuento</span>
                             <span class="fw-semibold text-danger">
                                 {{ number_format($sale->discount_percentage, 1) }}% (-${{ number_format($sale->discount, 0, ',', '.') }})
+                            </span>
+                        </div>
+                    @endif
+                    @if ($sale->delivery_fee > 0)
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Domicilio / Flete</span>
+                            <span class="fw-semibold text-dark">
+                                ${{ number_format($sale->delivery_fee, 0, ',', '.') }}
                             </span>
                         </div>
                     @endif

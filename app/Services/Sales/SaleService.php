@@ -73,7 +73,8 @@ class SaleService
             // Calculate discount from percentage (never trust client-sent monetary values)
             $discountPercentage = (float) ($data['discount_percentage'] ?? 0);
             $discount = round($subtotal * ($discountPercentage / 100), 2);
-            $total = $subtotal - $discount;
+            $deliveryFee = isset($data['delivery_fee']) ? max(0, round((float) $data['delivery_fee'], 2)) : 0.00;
+            $total = round($subtotal - $discount + $deliveryFee, 2);
 
             // Generate unique invoice number for this business
             $invoiceNumber = $this->generateInvoiceNumber($businessId);
@@ -177,11 +178,14 @@ class SaleService
                 'customer_id' => $customerId,
                 'customer_name' => $customerName,
                 'customer_document' => $customerDocument,
+                'restaurant_order_id' => $data['restaurant_order_id'] ?? null,
+                'order_type' => $data['order_type'] ?? null,
                 'invoice_number' => $invoiceNumber,
                 'sale_date' => $data['sale_date'],
                 'subtotal' => $subtotal,
                 'discount' => $discount,
                 'discount_percentage' => $discountPercentage,
+                'delivery_fee' => $deliveryFee,
                 'total' => $total,
                 'payment_method' => $derivedPaymentMethod,
                 'status' => 'completed',
@@ -296,7 +300,34 @@ class SaleService
                 }
             }
 
-            return $sale->load('details.product', 'customer', 'user', 'payments');
+            // Close linked restaurant order and free table if applicable
+            if (! empty($data['restaurant_order_id'])) {
+                $restaurantOrder = \App\Models\RestaurantOrder::withoutGlobalScopes()
+                    ->where('business_id', $businessId)
+                    ->lockForUpdate()
+                    ->find($data['restaurant_order_id']);
+
+                if ($restaurantOrder) {
+                    $restaurantOrder->update([
+                        'status' => 'closed',
+                        'sale_id' => $sale->id,
+                        'closed_at' => now(),
+                    ]);
+
+                    if ($restaurantOrder->table_id) {
+                        $table = \App\Models\RestaurantTable::withoutGlobalScopes()
+                            ->where('business_id', $businessId)
+                            ->lockForUpdate()
+                            ->find($restaurantOrder->table_id);
+
+                        if ($table) {
+                            $table->update(['status' => 'available']);
+                        }
+                    }
+                }
+            }
+
+            return $sale->load('details.product', 'customer', 'user', 'payments', 'restaurantOrder');
         });
     }
 
