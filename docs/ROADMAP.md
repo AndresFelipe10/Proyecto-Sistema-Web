@@ -28,6 +28,7 @@ Fases en orden de desarrollo. Ninguna fase comienza sin que la anterior tenga su
 | B-B | Bloque B — Clientes y Consumidor Final (DIAN) | B-A | Consumidor Final DIAN (222222222222), snapshot inmutable en sales, búsqueda/modal POS, rotulación legal | ✅ Completada | Snapshot histórico en ventas, índice compuesto (business_id, document), autocompletado POS XSS-free. |
 | B-C | Bloque C — Múltiples Métodos de Pago por Venta | B-B | Tabla sale_payments, pagos mixtos, validación autoritativa en backend, reportes | ✅ Completada | Enum PaymentMethod, tabla sale_payments aditiva con backfill idempotente, pagos mixtos (hasta 5 líneas, máx 1 efectivo), cálculo autoritativo de cambio/vueltos, interfaz POS reactiva, comprobantes y reportes basados en montos aplicados. |
 | B-D | Bloque D — Gastos, facturas de compra y dashboard | B-C | CRUD gastos, almacenamiento privado con hash, descarga segura nosniff, estado vencida dinámico, métricas financieras protegidas en dashboard, 403 vendedores, backup consolidado | ✅ Completada | Módulo de Gastos exclusivo admin, regla contable de inventario desacoplado, almacenamiento seguro de adjuntos, integración en detalle proveedor, métricas protegidas en Dashboard y API, respaldo consolidado y 218 tests pasando. |
+| R-A | Bloque R-A — Perfil Tenant, Motor de Insumos/Recetas y Precisión Decimal | B-D | Perfil `business_type` (retail vs restaurant), `product_type`, `DECIMAL(12,3)` en stock y movimientos, recetas e insumos con deducción transaccional atómica en `SaleService`, reversión simétrica en anulación, 0 stock negativo y 254 tests en verde | ✅ Completada | Perfil restaurante desacoplado sin regresión para retail, precisión decimal de 3 dígitos, motor de recetas/fórmulas por porción, deducción atómica pesimista de insumos al vender platos, reversión automática en anulaciones y aislamiento multi-tenant estricto. |
 
 ---
 
@@ -38,12 +39,12 @@ Según [`docs/PLAN_PROYECTO.md`](PLAN_PROYECTO.md), el éxito del proyecto se ev
 | Criterio Global | Estado | Evidencia de Cumplimiento |
 |---|:---:|---|
 | **Flujo comercial completo con datos reales** | ✅ Cumplido | Registro → creación de emprendimiento → login → productos → ventas con descuento y stock actualizado → clientes. |
-| **Aislamiento multi-tenant por `business_id`** | ✅ Cumplido | Verificado con suite de tests de aislamiento (`TenantIsolationTest`, `ProductTest`, `SaleTest`, etc.). Ningún tenant accede a datos de otro. |
-| **Concurrencia y consistencia de inventario** | ✅ Cumplido | Bloqueo pesimista probado en `InventoryMovementTest` (stock=1, dos ventas concurrentes: una aprobada, una rechazada sin saldo negativo). |
+| **Aislamiento multi-tenant por `business_id`** | ✅ Cumplido | Verificado con suite de tests de aislamiento (`TenantIsolationTest`, `ProductTest`, `SaleTest`, `RecipeManagementTest`, etc.). Ningún tenant accede a datos de otro. |
+| **Concurrencia y consistencia de inventario** | ✅ Cumplido | Bloqueo pesimista probado en `InventoryMovementTest` y `RecipeInventoryDeductionTest` (stock límite/fraccional, ventas concurrentes: una aprobada, una rechazada sin saldo negativo). |
 | **Alertas de reposición determinísticas** | ✅ Cumplido | Panel inteligente clasifica en Normal, Bajo Stock y Agotado con cálculo de reposición automática. |
 | **Reportes y exportación CSV aislados** | ✅ Cumplido | Generación de reportes de ventas y valoración de stock con exportación CSV validada por tests. |
 | **Consultas en lenguaje natural (IA)** | ✅ Cumplido | Módulo de IA con whitelist de intents, solo lectura, sin SQL arbitrario, `business_id` inyectado por backend y fallback controlado ante fallos. |
 | **Independencia del núcleo frente a IA** | ✅ Cumplido | El núcleo funciona al 100% con `AI_MODULE_ENABLED=false` o sin API key de Gemini. |
 | **Base de datos persistente** | ✅ Cumplido | Volumen Docker `mysql_data` (dev) y `mysql_prod_data` (prod) con scripts automatizados de respaldo y restauración. |
 | **Despliegue sin herramientas técnicas en cliente** | ✅ Cumplido | El usuario final únicamente interactúa mediante navegador web bajo HTTP/HTTPS; toda la infraestructura corre contenerizada. |
-| **Suite global de pruebas pasando** | ✅ Cumplido | **218 tests pasando (983 assertions)** con 0 errores y 0 fallos. |
+| **Suite global de pruebas pasando** | ✅ Cumplido | **254 tests pasando (1171 assertions)** con 0 errores y 0 fallos. |

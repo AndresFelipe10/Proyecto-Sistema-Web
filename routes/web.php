@@ -13,6 +13,7 @@ use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InventoryAlertController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\Superadmin\BusinessController as SuperadminBusinessController;
@@ -76,6 +77,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
         Route::get('/products', [ProductController::class, 'index'])->name('products.index');
         Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
+        Route::get('/recipes', [RecipeController::class, 'index'])->name('recipes.index');
+        Route::get('/recipes/{recipe}', [RecipeController::class, 'show'])->name('recipes.show');
 
         // Inventario (Lectura y Registro de Movimientos para Administrador y Empleado)
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
@@ -139,6 +142,13 @@ Route::middleware('auth')->group(function () {
             Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
             Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
             Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+            // Gestión de Recetas (Escritura y Eliminación)
+            Route::get('/recipes-create', [RecipeController::class, 'create'])->name('recipes.create');
+            Route::post('/recipes', [RecipeController::class, 'store'])->name('recipes.store');
+            Route::get('/recipes/{recipe}/edit', [RecipeController::class, 'edit'])->name('recipes.edit');
+            Route::put('/recipes/{recipe}', [RecipeController::class, 'update'])->name('recipes.update');
+            Route::delete('/recipes/{recipe}', [RecipeController::class, 'destroy'])->name('recipes.destroy');
 
             // Gestión de Clientes (Edición y Eliminación)
             Route::get('/customers/{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit');

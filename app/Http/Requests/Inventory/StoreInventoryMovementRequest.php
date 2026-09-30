@@ -41,8 +41,9 @@ class StoreInventoryMovementRequest extends FormRequest
             ],
             'quantity' => [
                 'required',
-                'integer',
+                'numeric',
                 'min:0',
+                'regex:/^\d+(\.\d{1,3})?$/',
             ],
             'reason' => [
                 'required',

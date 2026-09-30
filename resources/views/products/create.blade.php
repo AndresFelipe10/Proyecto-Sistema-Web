@@ -30,6 +30,36 @@
             <form method="POST" action="{{ route('products.store') }}" novalidate>
                 @csrf
 
+                @if (app(\App\Services\Tenant\TenantManager::class)->get()?->isRestaurant())
+                    <div class="row g-3 mb-3 p-3 bg-light rounded-3 border">
+                        <div class="col-md-6">
+                            <label for="product_type" class="form-label small fw-semibold text-secondary">Tipo de Ítem <span class="text-danger">*</span></label>
+                            <select class="form-select @error('product_type') is-invalid @enderror" id="product_type" name="product_type">
+                                <option value="dish" {{ old('product_type', 'dish') === 'dish' ? 'selected' : '' }}>
+                                    🍲 Plato Preparado (Se vende al cliente, tiene receta)
+                                </option>
+                                <option value="raw_material" {{ old('product_type') === 'raw_material' ? 'selected' : '' }}>
+                                    🥩 Insumo / Materia Prima (Carne, Arroz, Salsas para recetas)
+                                </option>
+                                <option value="standard" {{ old('product_type') === 'standard' ? 'selected' : '' }}>
+                                    🥤 Producto Estándar (Bebidas, Venta directa 1 a 1)
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="base_unit" class="form-label small fw-semibold text-secondary">Unidad Base <span class="text-danger">*</span></label>
+                            <select class="form-select @error('base_unit') is-invalid @enderror" id="base_unit" name="base_unit">
+                                <option value="unit" {{ old('base_unit', 'unit') === 'unit' ? 'selected' : '' }}>Unidades (plato, porción, botella)</option>
+                                <option value="gram" {{ old('base_unit') === 'gram' ? 'selected' : '' }}>Gramos (g) - Para carnes, arroz, vegetales</option>
+                                <option value="milliliter" {{ old('base_unit') === 'milliliter' ? 'selected' : '' }}>Mililitros (ml) - Para aceites, salsas, líquidos</option>
+                            </select>
+                        </div>
+                    </div>
+                @else
+                    <input type="hidden" name="product_type" value="standard">
+                    <input type="hidden" name="base_unit" value="unit">
+                @endif
+
                 <div class="row g-3 mb-3">
                     <div class="col-md-8">
                         <label for="name" class="form-label small fw-semibold text-secondary">Nombre del producto <span class="text-danger">*</span></label>
@@ -104,6 +134,7 @@
                         <label for="stock" class="form-label small fw-semibold text-secondary">Stock Inicial <span class="text-danger">*</span></label>
                         <input type="number" 
                                min="0" 
+                               step="any"
                                class="form-control @error('stock') is-invalid @enderror" 
                                id="stock" 
                                name="stock" 
@@ -115,6 +146,7 @@
                         <label for="min_stock" class="form-label small fw-semibold text-secondary">Stock Mínimo (Alerta de reposición) <span class="text-danger">*</span></label>
                         <input type="number" 
                                min="0" 
+                               step="any"
                                class="form-control @error('min_stock') is-invalid @enderror" 
                                id="min_stock" 
                                name="min_stock" 

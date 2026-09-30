@@ -17,7 +17,7 @@ class InventoryService
     public function registerMovement(
         int|Product $product,
         string $type,
-        int $quantity,
+        float|int $quantity,
         ?string $reason = null,
         ?int $userId = null,
         ?int $saleId = null
@@ -27,28 +27,28 @@ class InventoryService
 
             // Bloqueo pesimista para evitar condiciones de carrera (ej. stock=1, dos ventas concurrentes)
             $lockedProduct = Product::lockForUpdate()->findOrFail($productId);
-            $previousStock = (int) $lockedProduct->stock;
+            $previousStock = (float) $lockedProduct->stock;
 
-            $movementQuantity = $quantity;
+            $movementQuantity = round((float) $quantity, 3);
 
             switch ($type) {
                 case InventoryMovement::TYPE_ENTRY:
-                    $newStock = $previousStock + $quantity;
+                    $newStock = round($previousStock + (float) $quantity, 3);
                     break;
 
                 case InventoryMovement::TYPE_EXIT:
-                    if ($previousStock < $quantity) {
+                    if ($previousStock < (float) $quantity) {
                         throw new InsufficientStockException(
                             availableStock: $previousStock,
-                            requestedQuantity: $quantity
+                            requestedQuantity: (float) $quantity
                         );
                     }
-                    $newStock = $previousStock - $quantity;
+                    $newStock = round($previousStock - (float) $quantity, 3);
                     break;
 
                 case InventoryMovement::TYPE_ADJUSTMENT:
-                    $newStock = $quantity;
-                    $movementQuantity = abs($newStock - $previousStock);
+                    $newStock = round((float) $quantity, 3);
+                    $movementQuantity = round(abs($newStock - $previousStock), 3);
                     break;
 
                 default:

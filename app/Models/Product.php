@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Product extends Model
 {
@@ -17,6 +18,8 @@ class Product extends Model
     protected $fillable = [
         'business_id',
         'category_id',
+        'product_type',
+        'base_unit',
         'name',
         'description',
         'sku',
@@ -32,10 +35,32 @@ class Product extends Model
         return [
             'cost_price' => 'decimal:2',
             'sale_price' => 'decimal:2',
-            'stock' => 'integer',
-            'min_stock' => 'integer',
+            'stock' => 'float',
+            'min_stock' => 'float',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function isDish(): bool
+    {
+        return $this->product_type === 'dish';
+    }
+
+    public function isRawMaterial(): bool
+    {
+        return $this->product_type === 'raw_material';
+    }
+
+    public function isStandard(): bool
+    {
+        return $this->product_type === 'standard' || empty($this->product_type);
+    }
+
+    public function getFormattedStockAttribute(): string
+    {
+        return (float) $this->stock == (int) $this->stock
+            ? (string) (int) $this->stock
+            : rtrim(rtrim(number_format((float) $this->stock, 3, '.', ''), '0'), '.');
     }
 
     public function category(): BelongsTo
@@ -51,5 +76,15 @@ class Product extends Model
     public function inventoryMovements(): HasMany
     {
         return $this->hasMany(InventoryMovement::class);
+    }
+
+    public function recipe(): HasOne
+    {
+        return $this->hasOne(Recipe::class, 'product_id');
+    }
+
+    public function recipeItems(): HasMany
+    {
+        return $this->hasMany(RecipeItem::class, 'ingredient_id');
     }
 }

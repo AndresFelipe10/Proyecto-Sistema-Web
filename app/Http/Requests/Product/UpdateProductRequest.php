@@ -30,6 +30,8 @@ class UpdateProductRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:255'],
+            'product_type' => ['nullable', 'string', Rule::in(['standard', 'raw_material', 'dish'])],
+            'base_unit' => ['nullable', 'string', Rule::in(['unit', 'gram', 'milliliter'])],
             'sku' => [
                 'required',
                 'string',
@@ -45,8 +47,8 @@ class UpdateProductRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:1000'],
             'cost_price' => ['required', 'numeric', 'min:0'],
             'sale_price' => ['required', 'numeric', 'min:0'],
-            'stock' => ['required', 'integer', 'min:0'],
-            'min_stock' => ['required', 'integer', 'min:0'],
+            'stock' => ['required', 'numeric', 'min:0', 'regex:/^\d+(\.\d{1,3})?$/'],
+            'min_stock' => ['required', 'numeric', 'min:0', 'regex:/^\d+(\.\d{1,3})?$/'],
             'is_active' => ['nullable', 'boolean'],
         ];
     }
@@ -58,6 +60,8 @@ class UpdateProductRequest extends FormRequest
     {
         $this->merge([
             'is_active' => $this->boolean('is_active', true),
+            'product_type' => $this->input('product_type') ?: ($this->route('product')?->product_type ?? 'standard'),
+            'base_unit' => $this->input('base_unit') ?: ($this->route('product')?->base_unit ?? 'unit'),
         ]);
     }
 

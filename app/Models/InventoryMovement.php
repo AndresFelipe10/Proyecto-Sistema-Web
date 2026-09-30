@@ -33,9 +33,9 @@ class InventoryMovement extends Model
     protected function casts(): array
     {
         return [
-            'quantity' => 'integer',
-            'previous_stock' => 'integer',
-            'new_stock' => 'integer',
+            'quantity' => 'float',
+            'previous_stock' => 'float',
+            'new_stock' => 'float',
             'movement_date' => 'datetime',
         ];
     }

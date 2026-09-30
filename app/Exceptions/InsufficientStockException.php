@@ -6,32 +6,34 @@ use Exception;
 
 class InsufficientStockException extends Exception
 {
-    protected int $availableStock;
-    protected int $requestedQuantity;
+    protected float|int $availableStock;
+    protected float|int $requestedQuantity;
 
     public function __construct(
         string $message = 'Stock insuficiente para realizar la operación.',
-        int $availableStock = 0,
-        int $requestedQuantity = 0,
+        float|int $availableStock = 0,
+        float|int $requestedQuantity = 0,
         int $code = 0,
         ?Exception $previous = null
     ) {
         $this->availableStock = $availableStock;
         $this->requestedQuantity = $requestedQuantity;
 
-        if ($availableStock > 0 || $requestedQuantity > 0) {
-            $message = "Stock insuficiente. Existencias disponibles: {$availableStock}, Cantidad solicitada: {$requestedQuantity}.";
+        if (($availableStock > 0 || $requestedQuantity > 0) && $message === 'Stock insuficiente para realizar la operación.') {
+            $formattedAvail = (float)$availableStock == (int)$availableStock ? (int)$availableStock : $availableStock;
+            $formattedReq = (float)$requestedQuantity == (int)$requestedQuantity ? (int)$requestedQuantity : $requestedQuantity;
+            $message = "Stock insuficiente. Existencias disponibles: {$formattedAvail}, Cantidad solicitada: {$formattedReq}.";
         }
 
         parent::__construct($message, $code, $previous);
     }
 
-    public function getAvailableStock(): int
+    public function getAvailableStock(): float|int
     {
         return $this->availableStock;
     }
 
-    public function getRequestedQuantity(): int
+    public function getRequestedQuantity(): float|int
     {
         return $this->requestedQuantity;
     }

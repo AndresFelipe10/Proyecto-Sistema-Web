@@ -16,6 +16,7 @@ class Business extends Model
 
     protected $fillable = [
         'name',
+        'business_type',
         'nit',
         'phone',
         'email',
@@ -74,6 +75,16 @@ class Business extends Model
         return $this->status === 'active' && (bool) $this->is_active;
     }
 
+    public function isRestaurant(): bool
+    {
+        return $this->business_type === 'restaurant';
+    }
+
+    public function isRetail(): bool
+    {
+        return $this->business_type === 'retail' || empty($this->business_type);
+    }
+
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'business_user')
@@ -109,5 +120,10 @@ class Business extends Model
     public function inventoryMovements(): HasMany
     {
         return $this->hasMany(InventoryMovement::class);
+    }
+
+    public function recipes(): HasMany
+    {
+        return $this->hasMany(Recipe::class);
     }
 }

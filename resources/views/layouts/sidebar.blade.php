@@ -31,9 +31,18 @@
         {{-- 4. Productos --}}
         <li class="nav-item">
             <a class="nav-link fw-semibold {{ request()->routeIs('products.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('products.index') }}">
-                <i class="bi bi-boxes me-2"></i> Productos
+                <i class="bi bi-boxes me-2"></i> {{ (app(\App\Services\Tenant\TenantManager::class)->get()?->isRestaurant()) ? 'Platos e Insumos' : 'Productos' }}
             </a>
         </li>
+
+        {{-- 4b. Recetas (Solo Restaurante) --}}
+        @if (app(\App\Services\Tenant\TenantManager::class)->get()?->isRestaurant())
+            <li class="nav-item">
+                <a class="nav-link fw-semibold {{ request()->routeIs('recipes.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('recipes.index') }}">
+                    <i class="bi bi-journal-text me-2"></i> Recetas
+                </a>
+            </li>
+        @endif
 
         {{-- 5. Categorías --}}
         <li class="nav-item">

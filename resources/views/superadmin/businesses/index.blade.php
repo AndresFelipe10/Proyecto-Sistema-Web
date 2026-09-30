@@ -59,7 +59,20 @@
                     @endphp
                     <tr>
                         <td class="fw-semibold">
-                            <i class="bi bi-shop text-primary me-2"></i>{{ $biz->name }}
+                            <div>
+                                <i class="bi {{ $biz->isRestaurant() ? 'bi-egg-fried text-warning' : 'bi-shop text-primary' }} me-2"></i>{{ $biz->name }}
+                            </div>
+                            <div class="mt-1">
+                                @if ($biz->isRestaurant())
+                                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25 small px-2 py-0.5">
+                                        <i class="bi bi-fire me-1"></i>Restaurante
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25 small px-2 py-0.5">
+                                        <i class="bi bi-tag me-1"></i>Retail
+                                    </span>
+                                @endif
+                            </div>
                         </td>
                         <td>{{ $biz->nit ?: '—' }}</td>
                         <td>

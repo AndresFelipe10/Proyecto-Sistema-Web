@@ -32,10 +32,24 @@
 
                 <h5 class="fw-bold text-primary mb-3"><i class="bi bi-building me-2"></i>1. Datos del Negocio</h5>
 
-                <div class="mb-3">
-                    <label for="name" class="form-label small fw-semibold text-secondary">Nombre Comercial <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control bg-dark border-secondary text-light @error('name') is-invalid @enderror"
-                           id="name" name="name" value="{{ old('name') }}" placeholder="Ej: Tienda La Colina" required autofocus>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="name" class="form-label small fw-semibold text-secondary">Nombre Comercial <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control bg-dark border-secondary text-light @error('name') is-invalid @enderror"
+                               id="name" name="name" value="{{ old('name') }}" placeholder="Ej: Tienda La Colina" required autofocus>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="business_type" class="form-label small fw-semibold text-secondary">Tipo de Negocio <span class="text-danger">*</span></label>
+                        <select class="form-select bg-dark border-secondary text-light @error('business_type') is-invalid @enderror"
+                                id="business_type" name="business_type" required>
+                            <option value="retail" {{ old('business_type', 'retail') === 'retail' ? 'selected' : '' }}>
+                                Comercio General / Retail (Productos, Stock Directo)
+                            </option>
+                            <option value="restaurant" {{ old('business_type') === 'restaurant' ? 'selected' : '' }}>
+                                Restaurante / Comidas y Bebidas (Mesas, Recetas, Insumos)
+                            </option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="row g-3 mb-3">

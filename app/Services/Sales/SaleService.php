@@ -3,10 +3,12 @@
 namespace App\Services\Sales;
 
 use App\Exceptions\InsufficientStockException;
+use App\Exceptions\Sales\InsufficientIngredientStockException;
 use App\Exceptions\Sales\InvalidSaleItemException;
 use App\Exceptions\Sales\InvalidSalePaymentException;
 use App\Models\InventoryMovement;
 use App\Models\Product;
+use App\Models\Recipe;
 use App\Models\Sale;
 use App\Models\SaleDetail;
 use App\Models\SalePayment;
@@ -230,15 +232,68 @@ class SaleService
                     'subtotal' => $resolved['subtotal'],
                 ]);
 
-                // Decrement stock via InventoryService (pessimistic locking)
-                $this->inventoryService->registerMovement(
-                    product: $resolved['product'],
-                    type: InventoryMovement::TYPE_EXIT,
-                    quantity: $resolved['quantity'],
-                    reason: "Venta #{$invoiceNumber}",
-                    userId: $userId,
-                    saleId: $sale->id,
-                );
+                if ($resolved['product']->isDish()) {
+                    // Plato con receta: resolver la receta activa
+                    $recipe = Recipe::withoutGlobalScopes()
+                        ->where('business_id', $businessId)
+                        ->where('product_id', $resolved['product']->id)
+                        ->where('is_active', true)
+                        ->with('items')
+                        ->first();
+
+                    if (! $recipe || $recipe->items->isEmpty()) {
+                        throw new InvalidSaleItemException(
+                            "El plato '{$resolved['product']->name}' no cuenta con una receta activa configurada."
+                        );
+                    }
+
+                    // Ordenar insumos por ID para prevenir deadlocks
+                    $sortedItems = $recipe->items->sortBy('ingredient_id');
+
+                    foreach ($sortedItems as $recipeItem) {
+                        $requiredQty = round((float) $recipeItem->quantity_per_portion * (float) $resolved['quantity'], 3);
+
+                        // Bloqueo pesimista sobre el insumo
+                        $ingredient = Product::withoutGlobalScopes()
+                            ->where('business_id', $businessId)
+                            ->lockForUpdate()
+                            ->find($recipeItem->ingredient_id);
+
+                        if (! $ingredient) {
+                            throw new InvalidSaleItemException(
+                                "El insumo #{$recipeItem->ingredient_id} de la receta no existe o fue eliminado."
+                            );
+                        }
+
+                        if ((float) $ingredient->stock < $requiredQty) {
+                            throw new InsufficientIngredientStockException(
+                                ingredientName: $ingredient->name,
+                                availableStock: (float) $ingredient->stock,
+                                requestedQuantity: $requiredQty,
+                                unit: $recipeItem->unit
+                            );
+                        }
+
+                        $this->inventoryService->registerMovement(
+                            product: $ingredient,
+                            type: InventoryMovement::TYPE_EXIT,
+                            quantity: $requiredQty,
+                            reason: "receta_venta",
+                            userId: $userId,
+                            saleId: $sale->id,
+                        );
+                    }
+                } else {
+                    // Decrement stock via InventoryService (pessimistic locking) para productos estándar
+                    $this->inventoryService->registerMovement(
+                        product: $resolved['product'],
+                        type: InventoryMovement::TYPE_EXIT,
+                        quantity: $resolved['quantity'],
+                        reason: "Venta #{$invoiceNumber}",
+                        userId: $userId,
+                        saleId: $sale->id,
+                    );
+                }
             }
 
             return $sale->load('details.product', 'customer', 'user', 'payments');
@@ -259,14 +314,40 @@ class SaleService
 
             // Restore stock for each detail line
             foreach ($sale->details as $detail) {
-                $this->inventoryService->registerMovement(
-                    product: $detail->product_id,
-                    type: InventoryMovement::TYPE_ENTRY,
-                    quantity: $detail->quantity,
-                    reason: "Anulación venta #{$sale->invoice_number}",
-                    userId: $userId,
-                    saleId: $sale->id,
-                );
+                $product = Product::withoutGlobalScopes()
+                    ->where('business_id', $sale->business_id)
+                    ->find($detail->product_id);
+
+                if ($product && $product->isDish()) {
+                    $recipe = Recipe::withoutGlobalScopes()
+                        ->where('business_id', $sale->business_id)
+                        ->where('product_id', $product->id)
+                        ->with('items')
+                        ->first();
+
+                    if ($recipe) {
+                        foreach ($recipe->items as $recipeItem) {
+                            $restoreQty = round((float) $recipeItem->quantity_per_portion * (float) $detail->quantity, 3);
+                            $this->inventoryService->registerMovement(
+                                product: $recipeItem->ingredient_id,
+                                type: InventoryMovement::TYPE_ENTRY,
+                                quantity: $restoreQty,
+                                reason: "receta_anulacion",
+                                userId: $userId,
+                                saleId: $sale->id,
+                            );
+                        }
+                    }
+                } else {
+                    $this->inventoryService->registerMovement(
+                        product: $detail->product_id,
+                        type: InventoryMovement::TYPE_ENTRY,
+                        quantity: $detail->quantity,
+                        reason: "Anulación venta #{$sale->invoice_number}",
+                        userId: $userId,
+                        saleId: $sale->id,
+                    );
+                }
             }
 
             $sale->update(['status' => 'cancelled']);

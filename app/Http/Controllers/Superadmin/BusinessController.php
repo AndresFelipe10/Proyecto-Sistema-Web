@@ -64,6 +64,7 @@ class BusinessController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'business_type' => ['nullable', 'string', 'in:retail,restaurant'],
             'nit' => ['nullable', 'string', 'max:30'],
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
@@ -90,6 +91,7 @@ class BusinessController extends Controller
 
             $business = new Business();
             $business->name = $validated['name'];
+            $business->business_type = $validated['business_type'] ?? 'retail';
             $business->nit = $validated['nit'] ?? null;
             $business->phone = $validated['phone'] ?? null;
             $business->email = $validated['email'] ?? null;
@@ -149,6 +151,7 @@ class BusinessController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'business_type' => ['nullable', 'string', 'in:retail,restaurant'],
             'nit' => ['nullable', 'string', 'max:30'],
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
