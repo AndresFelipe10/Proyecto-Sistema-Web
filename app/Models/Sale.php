@@ -28,6 +28,8 @@ class Sale extends Model
         'discount',
         'discount_percentage',
         'delivery_fee',
+        'service_fee',
+        'tax_inc',
         'total',
         'payment_method',
         'status',
@@ -42,6 +44,8 @@ class Sale extends Model
             'discount' => 'decimal:2',
             'discount_percentage' => 'decimal:2',
             'delivery_fee' => 'float',
+            'service_fee' => 'decimal:2',
+            'tax_inc' => 'decimal:2',
             'total' => 'decimal:2',
         ];
     }

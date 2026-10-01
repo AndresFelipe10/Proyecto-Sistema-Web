@@ -18,7 +18,7 @@
                 @method('PUT')
 
                 <div class="mb-3">
-                    <label for="name" class="form-label fw-bold">Nombre o Identificador <span class="text-danger">*</span></label>
+                    <label for="name" class="form-label fw-bold">Nombre o Identificador de la Mesa <span class="text-danger">*</span></label>
                     <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name', $table->name) }}" required>
                     @error('name')
                         <div class="invalid-feedback">{{ $message }}</div>
@@ -26,8 +26,8 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="capacity" class="form-label fw-bold">Capacidad de Personas <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control @error('capacity') is-invalid @enderror" id="capacity" name="capacity" value="{{ old('capacity', $table->capacity) }}" min="1" max="200" required>
+                    <label for="capacity" class="form-label fw-semibold text-secondary">Capacidad de Personas <span class="badge bg-light text-secondary border">Opcional</span></label>
+                    <input type="number" class="form-control @error('capacity') is-invalid @enderror" id="capacity" name="capacity" value="{{ old('capacity', $table->capacity) }}" min="1" max="200" placeholder="Por defecto: 4 personas">
                     @error('capacity')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror

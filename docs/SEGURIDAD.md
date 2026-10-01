@@ -74,6 +74,22 @@ Los siguientes valores críticos NUNCA se confían al cliente y se calculan o re
 ## Aislamiento entre emprendimientos
 Ver `.agents/rules/02-database.md`. Debe estar cubierto por tests desde la Fase 5 del roadmap (`.agents/rules/05-testing.md`).
 
+## Auditoría de Seguridad Integral — Run 4 (Restaurantes, RBAC y Reglas Financieras)
+
+En septiembre de 2026 se ejecutó la cuarta auditoría integral de seguridad conforme a `.agents/skills/security-audit/SKILL.md`, focalizada en las superficies introducidas por el vertical de Restaurante (Bloques R-A a R-H), el aprovisionamiento de colaboradores desde SuperAdmin y las reglas tributarias/financieras.
+
+### Matriz de Hallazgos y Remediaciones (Run 4)
+
+| ID | Severidad | Vulnerabilidad / CWE | Componente / Archivo | Vector de Ataque | Mitigación Aplicada | Estado |
+|---|---|---|---|---|---|---|
+| SEC-RUN4-001 | Alta | Stored DOM XSS (CWE-79) | `resources/views/restaurant/orders/create-delivery.blade.php` | Inyección de payload script/HTML en nombre, dirección o teléfono de cliente devuelto por autocomplete renderizado mediante `innerHTML`. | Reemplazo total de interpolación `innerHTML` por nodos DOM seguros (`document.createElement`) y asignación estricta vía `textContent`. | Resuelto |
+| SEC-RUN4-002 | Media | Stored DOM XSS (CWE-79) | `orders/create.blade.php`, `orders/create-delivery.blade.php`, `orders/show.blade.php` | Nombres o categorías de platos con caracteres HTML interpolados en dropdown reactivo vía `itemBtn.innerHTML`. | Construcción estructurada de elementos DOM con asignación de texto mediante `textContent` para nombres, categorías y precios. | Resuelto |
+| SEC-RUN4-003 | Media | Manipulación Arbitraria de Impuestos y Propinas (CWE-319 / CWE-835) | `app/Services/Sales/SaleService.php` | Envío de `tax_inc` arbitrario o desproporcionado, o inclusión de propinas e INC sobre base de consumo cero (`netFoodBase <= 0`). | Validación matemática autoritativa en backend: si `netFoodBase <= 0`, `service_fee = 0` y `tax_inc = 0`. Si `tax_inc > 0`, se verifica que coincida con el 8% estatutario (Art. 512-1 E.T.) y se fija autoritativamente. | Resuelto |
+| SEC-RUN4-004 | Baja | Defensa en Profundidad en Autorización (CWE-284) | `RestaurantOrderController::addItems` | Dependencia exclusiva de la verificación en `AddOrderItemsRequest` sin chequeo explícito en controlador. | Incorporación de `Gate::authorize('update', $order)` directo en el método del controlador antes de invocar la capa de servicio. | Resuelto |
+| SEC-RUN4-005 | Informativa | Aislamiento Multi-Tenant en Comandas y Salón (CWE-200 / CWE-284) | `RestaurantOrderPolicy`, `RestaurantTablePolicy`, `TenantScope` | Intento de IDOR en rutas de comandas (`show`, `kitchen-ticket`, `pre-bill`, `dispatch-ticket`, `cancel-empty`, `status`) y mesas (`edit`, `update`, `destroy`). | Verificación bidireccional: `TenantScope` prepuesto a `SubstituteBindings` (devuelve 404) y cláusula de Policy obligatoria `$model->business_id !== session('current_business_id')` (devuelve 403). | Verificado Conforme |
+| SEC-RUN4-006 | Informativa | Inmunidad a Escalada de Privilegios en SuperAdmin (CWE-269) | `StoreTenantUserRequest`, `BusinessController::storeUser` | Inyección de `is_superadmin=true` o `role=superadmin` al dar de alta colaboradores de negocio. | `is_superadmin` excluido de `$fillable`, `role` acotado a `admin|employee`, asignación explícita `is_superadmin = false` y `must_change_password = true`. | Verificado Conforme |
+| SEC-RUN4-007 | Informativa | Escape en Plantillas de Impresión Térmica 80 mm (CWE-79) | `kitchen-ticket`, `pre-bill-ticket`, `dispatch-ticket`, `print-receipt` | Inyección de etiquetas maliciosas en notas de cocina, observaciones de mesa o nombres de clientes. | Uso exclusivo de directiva Blade `{{ }}` (escape nativo `htmlspecialchars`) y cero ocurrencias de `{!! !!}` con datos de usuario. | Verificado Conforme |
+
 ## Riesgos específicos del módulo IA
 - **Prompt injection**: mitigado por la whitelist de intents en código, no por instrucciones al modelo.
 - **Evasión de restricciones**: cualquier intent fuera de whitelist se rechaza sin ejecutar consulta.

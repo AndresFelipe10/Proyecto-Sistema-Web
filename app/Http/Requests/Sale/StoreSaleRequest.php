@@ -58,6 +58,8 @@ class StoreSaleRequest extends FormRequest
             ],
             'order_type' => ['nullable', Rule::in(['retail', 'table', 'delivery', 'takeout'])],
             'delivery_fee' => ['nullable', 'numeric', 'min:0'],
+            'service_fee' => ['nullable', 'numeric', 'min:0'],
+            'tax_inc' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 
@@ -76,6 +78,14 @@ class StoreSaleRequest extends FormRequest
 
         if ($this->has('delivery_fee') && ($this->input('delivery_fee') === '' || $this->input('delivery_fee') === null)) {
             $this->merge(['delivery_fee' => 0.00]);
+        }
+
+        if ($this->has('service_fee') && ($this->input('service_fee') === '' || $this->input('service_fee') === null)) {
+            $this->merge(['service_fee' => 0.00]);
+        }
+
+        if ($this->has('tax_inc') && ($this->input('tax_inc') === '' || $this->input('tax_inc') === null)) {
+            $this->merge(['tax_inc' => 0.00]);
         }
 
         // Sanitizar referencias en payments si existen
@@ -140,6 +150,9 @@ class StoreSaleRequest extends FormRequest
             'items.*.product_id' => 'producto',
             'items.*.quantity' => 'cantidad',
             'items.*.unit_price' => 'precio unitario',
+            'delivery_fee' => 'costo de envío o domicilio',
+            'service_fee' => 'servicio o propina voluntaria',
+            'tax_inc' => 'impuesto nacional al consumo',
         ];
     }
 
@@ -154,6 +167,9 @@ class StoreSaleRequest extends FormRequest
             'items.*.product_id.exists' => 'El producto seleccionado no existe o no pertenece a este negocio.',
             'items.*.quantity.min' => 'La cantidad mínima por producto es 1.',
             'items.*.quantity.max' => 'La cantidad máxima por producto es 99999.',
+            'delivery_fee.min' => 'El costo de envío no puede ser negativo.',
+            'service_fee.min' => 'El valor del servicio o propina no puede ser negativo.',
+            'tax_inc.min' => 'El valor del Impuesto al Consumo (INC) no puede ser negativo.',
         ];
     }
 }

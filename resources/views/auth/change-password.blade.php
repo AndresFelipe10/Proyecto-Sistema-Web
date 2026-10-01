@@ -54,6 +54,19 @@
         </div>
     </div>
 
+    <div class="form-check mb-4">
+        <input class="form-check-input @error('accept_terms') is-invalid @enderror" type="checkbox" name="accept_terms" id="accept_terms" value="1" required>
+        <label class="form-check-label small text-secondary" for="accept_terms">
+            He leído y acepto los 
+            <a href="{{ route('legal.terms') }}" target="_blank" class="fw-semibold text-primary">Términos y Condiciones del Servicio</a> 
+            y la 
+            <a href="{{ route('legal.privacy') }}" target="_blank" class="fw-semibold text-primary">Política de Tratamiento de Datos Personales</a>.
+        </label>
+        @error('accept_terms')
+            <div class="text-danger small mt-1">{{ $message }}</div>
+        @enderror
+    </div>
+
     <button type="submit" class="btn btn-primary-custom">
         <i class="bi bi-check-circle me-1"></i> Guardar Nueva Contraseña
     </button>

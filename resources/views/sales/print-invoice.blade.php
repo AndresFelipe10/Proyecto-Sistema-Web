@@ -240,6 +240,18 @@
                         <span>${{ number_format($sale->delivery_fee, 0, ',', '.') }}</span>
                     </div>
                 @endif
+                @if(($sale->service_fee ?? 0) > 0)
+                    <div class="totals-row">
+                        <span>Servicio / Propina</span>
+                        <span>${{ number_format($sale->service_fee, 0, ',', '.') }}</span>
+                    </div>
+                @endif
+                @if(($sale->tax_inc ?? 0) > 0)
+                    <div class="totals-row">
+                        <span>Impuesto al Consumo (INC 8%)</span>
+                        <span>${{ number_format($sale->tax_inc, 0, ',', '.') }}</span>
+                    </div>
+                @endif
                 <div class="totals-row total">
                     <span>Total</span>
                     <span>${{ number_format($sale->total, 0, ',', '.') }}</span>

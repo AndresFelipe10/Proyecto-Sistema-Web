@@ -52,7 +52,12 @@ class RestaurantTableController extends Controller
      */
     public function store(StoreRestaurantTableRequest $request): RedirectResponse
     {
-        RestaurantTable::create($request->validated());
+        $data = $request->validated();
+        if (empty($data['capacity'])) {
+            $data['capacity'] = 4;
+        }
+
+        RestaurantTable::create($data);
 
         return redirect()->route('restaurant.tables.index')
             ->with('success', 'Mesa creada exitosamente.');
@@ -73,7 +78,12 @@ class RestaurantTableController extends Controller
      */
     public function update(UpdateRestaurantTableRequest $request, RestaurantTable $table): RedirectResponse
     {
-        $table->update($request->validated());
+        $data = $request->validated();
+        if (empty($data['capacity'])) {
+            $data['capacity'] = $table->capacity ?: 4;
+        }
+
+        $table->update($data);
 
         return redirect()->route('restaurant.tables.index')
             ->with('success', 'Mesa actualizada correctamente.');

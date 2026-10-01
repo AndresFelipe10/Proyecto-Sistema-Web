@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Superadmin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Superadmin\StoreTenantUserRequest;
 use App\Models\Business;
 use App\Models\Role;
 use App\Models\User;
@@ -288,5 +289,66 @@ class BusinessController extends Controller
         Log::info("Usuario #{$user->id} {$statusText} en el negocio #{$business->id} por el superadministrador #" . auth()->id() . ".");
 
         return back()->with('status', "Estado del usuario {$user->name} en {$business->name} actualizado a {$statusText}.");
+    }
+
+    /**
+     * Show form for registering a new collaborator for a business.
+     */
+    public function createUser(Business $business): View
+    {
+        return view('superadmin.businesses.users-create', [
+            'business' => $business,
+        ]);
+    }
+
+    /**
+     * Store a newly registered collaborator for a business.
+     */
+    public function storeUser(StoreTenantUserRequest $request, Business $business): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $plainPassword = ! empty($validated['password'])
+            ? $validated['password']
+            : Str::password(16, symbols: true);
+
+        $superadminId = auth()->id();
+
+        $user = DB::transaction(function () use ($validated, $plainPassword, $business, $superadminId) {
+            $roleSlug = $validated['role'] === 'admin' ? Role::ROLE_ADMIN : Role::ROLE_EMPLOYEE;
+            $roleName = $validated['role'] === 'admin' ? 'Administrador' : 'Empleado';
+            $roleDesc = $validated['role'] === 'admin'
+                ? 'Acceso y administración total del emprendimiento'
+                : 'Colaborador operativo para ventas y atención diaria';
+
+            $role = Role::firstOrCreate(
+                ['slug' => $roleSlug],
+                ['name' => $roleName, 'description' => $roleDesc]
+            );
+
+            $user = new User();
+            $user->name = $validated['name'];
+            $user->email = strtolower($validated['email']);
+            $user->password = Hash::make($plainPassword);
+            $user->is_superadmin = false;
+            $user->must_change_password = true;
+            $user->save();
+
+            $business->users()->attach($user->id, [
+                'role_id' => $role->id,
+                'is_active' => true,
+            ]);
+
+            Log::info("Colaborador #{$user->id} ({$user->email}) creado con rol '{$roleSlug}' en negocio #{$business->id} ({$business->name}) por superadmin #{$superadminId}.");
+
+            return $user;
+        });
+
+        session()->flash('temp_password', $plainPassword);
+        session()->flash('created_user_email', $user->email);
+        session()->flash('created_user_name', $user->name);
+
+        return redirect()->route('superadmin.businesses.users', $business)
+            ->with('status', "Colaborador '{$user->name}' agregado exitosamente al negocio.");
     }
 }

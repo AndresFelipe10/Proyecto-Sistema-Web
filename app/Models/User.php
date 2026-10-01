@@ -25,6 +25,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'must_change_password',
+        'terms_accepted_at',
+        'terms_accepted_ip',
     ];
 
     /**
@@ -49,6 +52,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_superadmin' => 'boolean',
             'must_change_password' => 'boolean',
+            'terms_accepted_at' => 'datetime',
         ];
     }
 
@@ -134,8 +138,16 @@ class User extends Authenticatable
     /**
      * Check if user is an employee in the currently active tenant business.
      */
-    public function isCurrentEmployee(): bool
+     public function isCurrentEmployee(): bool
+     {
+         return $this->currentRole()?->slug === Role::ROLE_EMPLOYEE;
+     }
+
+    /**
+     * Check if user has accepted the terms of service (Ley 527 de 1999).
+     */
+    public function hasAcceptedTerms(): bool
     {
-        return $this->currentRole()?->slug === Role::ROLE_EMPLOYEE;
+        return ! is_null($this->terms_accepted_at);
     }
 }

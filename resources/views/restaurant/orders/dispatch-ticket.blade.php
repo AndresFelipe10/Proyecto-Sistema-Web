@@ -9,14 +9,19 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            color: #000000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            text-shadow: none !important;
         }
 
         body {
-            font-family: 'Courier New', Courier, monospace;
-            background-color: #f8f9fa;
-            color: #000;
-            font-size: 14px;
-            line-height: 1.3;
+            font-family: 'Courier New', Courier, Consolas, monospace !important;
+            background-color: #fff;
+            color: #000000 !important;
+            font-size: 14px !important;
+            line-height: 1.3 !important;
+            font-weight: 600 !important;
             padding: 10px;
         }
 
@@ -25,23 +30,25 @@
             width: 100%;
             margin: 0 auto;
             background: #fff;
-            padding: 12px 8px;
-            border: 1px dashed #ccc;
+            padding: 12px 6px;
+            border: 1.5px dashed #000;
         }
 
         .header-title {
             text-align: center;
             font-size: 18px;
-            font-weight: 900;
+            font-weight: 900 !important;
             letter-spacing: 1px;
             text-transform: uppercase;
+            color: #000000 !important;
         }
 
         .header-business {
             text-align: center;
             font-size: 15px;
-            font-weight: bold;
+            font-weight: 900 !important;
             margin-bottom: 2px;
+            color: #000000 !important;
         }
 
         .header-phone {
@@ -50,16 +57,19 @@
             margin-bottom: 8px;
             border-bottom: 2px dashed #000;
             padding-bottom: 6px;
+            font-weight: 600 !important;
+            color: #000000 !important;
         }
 
         .order-meta {
             display: flex;
             justify-content: space-between;
             font-size: 13px;
-            font-weight: bold;
+            font-weight: 900 !important;
             margin-bottom: 8px;
-            border-bottom: 1px dashed #000;
+            border-bottom: 1.5px dashed #000;
             padding-bottom: 6px;
+            color: #000000 !important;
         }
 
         /* Marco Destacado de Entrega */
@@ -67,53 +77,60 @@
             border: 2px solid #000;
             padding: 8px;
             margin: 8px 0;
-            background-color: #fcfcfc;
+            background-color: #fff;
+            color: #000000 !important;
         }
 
         .delivery-title {
             font-size: 15px;
-            font-weight: 900;
+            font-weight: 900 !important;
             text-align: center;
             text-transform: uppercase;
-            border-bottom: 1px solid #000;
+            border-bottom: 1.5px solid #000;
             padding-bottom: 4px;
             margin-bottom: 6px;
+            color: #000000 !important;
         }
 
         .delivery-field {
             margin-bottom: 4px;
             font-size: 13px;
+            color: #000000 !important;
         }
 
         .delivery-label {
-            font-weight: bold;
+            font-weight: 900 !important;
             display: inline-block;
+            color: #000000 !important;
         }
 
         .delivery-val {
-            font-weight: 900;
+            font-weight: 900 !important;
             font-size: 14px;
+            color: #000000 !important;
         }
 
         .delivery-val-highlight {
             font-size: 15px;
-            font-weight: 900;
+            font-weight: 900 !important;
             text-transform: uppercase;
             word-break: break-word;
+            color: #000000 !important;
         }
 
         /* Detalle de Platos */
         .items-section {
             margin-top: 8px;
-            border-bottom: 1px dashed #000;
+            border-bottom: 1.5px dashed #000;
             padding-bottom: 8px;
         }
 
         .items-title {
-            font-weight: bold;
+            font-weight: 900 !important;
             font-size: 13px;
             margin-bottom: 4px;
             text-transform: uppercase;
+            color: #000000 !important;
         }
 
         .item-row {
@@ -122,17 +139,22 @@
             align-items: flex-start;
             padding: 4px 0;
             font-size: 13px;
+            font-weight: 600 !important;
+            color: #000000 !important;
         }
 
         .item-qty-name {
-            font-weight: bold;
+            font-weight: 900 !important;
             flex-grow: 1;
+            color: #000000 !important;
         }
 
         .item-notes {
             margin-left: 15px;
             font-size: 12px;
             font-style: italic;
+            font-weight: 600 !important;
+            color: #000000 !important;
         }
 
         /* Totales y Liquidación Contraentrega */
@@ -146,6 +168,8 @@
             justify-content: space-between;
             font-size: 13px;
             margin-bottom: 3px;
+            font-weight: 600 !important;
+            color: #000000 !important;
         }
 
         .cod-box {
@@ -153,29 +177,33 @@
             padding: 8px;
             margin-top: 8px;
             text-align: center;
-            background-color: #eee;
+            background-color: #fff;
+            color: #000000 !important;
         }
 
         .cod-label {
             font-size: 13px;
-            font-weight: 900;
+            font-weight: 900 !important;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            color: #000000 !important;
         }
 
         .cod-amount {
             font-size: 22px;
-            font-weight: 900;
+            font-weight: 900 !important;
             margin-top: 3px;
+            color: #000000 !important;
         }
 
         .footer-note {
             text-align: center;
             font-size: 11px;
             margin-top: 14px;
-            border-top: 1px dashed #000;
+            border-top: 1.5px dashed #000;
             padding-top: 6px;
-            font-style: italic;
+            font-weight: 600 !important;
+            color: #000000 !important;
         }
 
         .no-print {
@@ -184,8 +212,8 @@
         }
 
         .btn-print {
-            background-color: #0d6efd;
-            color: #fff;
+            background-color: #1B2A49;
+            color: #fff !important;
             padding: 8px 16px;
             border: none;
             border-radius: 4px;
@@ -194,10 +222,14 @@
             font-weight: bold;
             margin-right: 8px;
         }
+        .btn-print:hover {
+            background-color: #E8A317;
+            color: #1B2A49 !important;
+        }
 
         .btn-back {
             background-color: #6c757d;
-            color: #fff;
+            color: #fff !important;
             padding: 8px 16px;
             border: none;
             border-radius: 4px;
@@ -208,10 +240,39 @@
         }
 
         @media print {
+            * {
+                color: #000000 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                text-shadow: none !important;
+            }
+
             body {
+                font-family: 'Courier New', Courier, Consolas, monospace !important;
+                font-size: 13px !important;
+                line-height: 1.25 !important;
+                font-weight: 600 !important;
                 background-color: #fff;
                 padding: 0;
                 margin: 0;
+            }
+
+            h1, h2, h3, h4, h5, .fw-bold, strong, b, .total-line {
+                font-weight: 900 !important;
+            }
+
+            .text-muted, .text-secondary {
+                color: #000000 !important;
+            }
+
+            table, th, td {
+                color: #000000 !important;
+                font-weight: 600 !important;
+            }
+
+            hr, .border-top, .border-bottom {
+                border-color: #000000 !important;
+                border-width: 1.5px !important;
             }
 
             .ticket-container {
@@ -236,7 +297,7 @@
 <body>
     <div class="no-print">
         <button class="btn-print" onclick="window.print()">Imprimir Tirilla Despacho</button>
-        <a href="{{ route('restaurant.orders.deliveries') }}" class="btn-back">Volver al Tablero</a>
+        <a href="{{ route('restaurant.orders.deliveries') }}" class="btn-back">&larr; Volver al Tablero</a>
     </div>
 
     <div class="ticket-container">
@@ -269,7 +330,12 @@
 
             <div class="delivery-field">
                 <span class="delivery-label">Cliente:</span>
-                <span class="delivery-val">{{ $order->customer_name ?? 'Consumidor Final' }}</span>
+                <span class="delivery-val">{{ $order->customer_name ?? ($order->customer->name ?? 'Consumidor Final') }}</span>
+            </div>
+
+            <div class="delivery-field">
+                <span class="delivery-label">Atendido por:</span>
+                <span class="delivery-val">{{ $order->user->name ?? 'Usuario' }}</span>
             </div>
 
             @if($order->delivery_phone)
@@ -339,5 +405,11 @@
             Documento interno de control operativo.
         </div>
     </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            window.print();
+        });
+    </script>
 </body>
 </html>

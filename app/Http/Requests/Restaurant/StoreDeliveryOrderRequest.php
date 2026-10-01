@@ -32,8 +32,13 @@ class StoreDeliveryOrderRequest extends FormRequest
                 'integer',
                 Rule::exists('customers', 'id')->where(fn ($query) => $query->where('business_id', $businessId)),
             ],
-            'customer_name' => ['nullable', 'string', 'max:150'],
-            'delivery_phone' => ['nullable', 'string', 'max:30'],
+            'customer_name' => ['required', 'string', 'max:150'],
+            'delivery_phone' => [
+                Rule::requiredIf($this->input('order_type') === 'delivery'),
+                'nullable',
+                'string',
+                'max:30',
+            ],
             'delivery_address' => [
                 Rule::requiredIf($this->input('order_type') === 'delivery'),
                 'nullable',
@@ -59,7 +64,9 @@ class StoreDeliveryOrderRequest extends FormRequest
     {
         return [
             'order_type.in' => 'El tipo de pedido debe ser a domicilio o para llevar.',
+            'customer_name.required' => 'El nombre del cliente es obligatorio para pedidos a domicilio o para llevar.',
             'delivery_address.required' => 'La dirección de entrega es obligatoria para pedidos a domicilio.',
+            'delivery_phone.required' => 'El teléfono de contacto es obligatorio para pedidos a domicilio.',
             'delivery_fee.min' => 'El costo de envío no puede ser negativo.',
             'delivery_fee.numeric' => 'El costo de envío debe ser un valor numérico.',
             'items.*.product_id.exists' => 'Uno de los platos o productos seleccionados no existe o está inactivo.',

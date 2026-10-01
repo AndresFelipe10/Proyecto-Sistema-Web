@@ -143,9 +143,11 @@ class DeliveryOrderTest extends TestCase
 
         $order = RestaurantOrder::where('business_id', $this->restaurantA->id)->first();
         $this->assertNotNull($order);
-        $response->assertRedirect(route('restaurant.orders.show', $order));
+        $response->assertRedirect(route('restaurant.orders.deliveries'));
+        $response->assertSessionHas('print_kitchen_ticket_id', $order->id);
 
         $this->assertEquals('delivery', $order->order_type);
+        $this->assertEquals($this->employeeA->id, $order->user_id);
         $this->assertEquals('Andrea Morales', $order->customer_name);
         $this->assertEquals('3167778899', $order->delivery_phone);
         $this->assertEquals('Calle 9 # 45-12, Apto 501', $order->delivery_address);
@@ -340,5 +342,90 @@ class DeliveryOrderTest extends TestCase
             'customer_name' => 'Retail No Permitido',
         ]);
         $response->assertForbidden();
+    }
+
+    public function test_delivery_order_creation_persists_registered_customer_id_and_details(): void
+    {
+        $customer = Customer::create([
+            'business_id' => $this->restaurantA->id,
+            'name' => 'Valentina Restrepo',
+            'document' => '1144887766',
+            'phone' => '3161234567',
+            'address' => 'Av. San Joaquín # 12-45',
+            'is_active' => true,
+        ]);
+
+        $initialCustomerCount = Customer::count();
+
+        $this->actingAs($this->adminA);
+
+        $payload = [
+            'order_type' => 'delivery',
+            'customer_id' => $customer->id,
+            'customer_name' => $customer->name,
+            'delivery_phone' => $customer->phone,
+            'delivery_address' => $customer->address,
+            'delivery_notes' => 'Casa de rejas negras',
+            'delivery_fee' => 4500,
+            'items' => [
+                [
+                    'product_id' => $this->dish1->id,
+                    'quantity' => 2,
+                    'notes' => 'Bien asada',
+                ],
+            ],
+        ];
+
+        $response = $this->post(route('restaurant.orders.store-delivery'), $payload);
+
+        $response->assertRedirect(route('restaurant.orders.deliveries'));
+        $this->assertEquals($initialCustomerCount, Customer::count(), 'No se deben duplicar registros de clientes.');
+
+        $order = RestaurantOrder::where('customer_id', $customer->id)->first();
+        $this->assertNotNull($order);
+        $this->assertEquals('delivery', $order->order_type);
+        $this->assertEquals($customer->id, $order->customer_id);
+        $this->assertEquals('Valentina Restrepo', $order->customer_name);
+        $this->assertEquals('3161234567', $order->delivery_phone);
+        $this->assertEquals('Av. San Joaquín # 12-45', $order->delivery_address);
+        $this->assertEquals(4500.00, (float) $order->delivery_fee);
+    }
+
+    public function test_takeout_order_creation_with_registered_customer_id(): void
+    {
+        $customer = Customer::create([
+            'business_id' => $this->restaurantA->id,
+            'name' => 'Andrés Gómez',
+            'document' => '94556677',
+            'phone' => '3187654321',
+            'address' => 'Pasoancho # 50-20',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->employeeA);
+
+        $payload = [
+            'order_type' => 'takeout',
+            'customer_id' => $customer->id,
+            'customer_name' => $customer->name,
+            'delivery_phone' => $customer->phone,
+            'notes' => 'Recoge en 20 minutos',
+            'items' => [
+                [
+                    'product_id' => $this->dish1->id,
+                    'quantity' => 1,
+                ],
+            ],
+        ];
+
+        $response = $this->post(route('restaurant.orders.store-delivery'), $payload);
+
+        $response->assertRedirect(route('restaurant.orders.deliveries'));
+
+        $order = RestaurantOrder::where('customer_id', $customer->id)->where('order_type', 'takeout')->first();
+        $this->assertNotNull($order);
+        $this->assertEquals('takeout', $order->order_type);
+        $this->assertEquals($customer->id, $order->customer_id);
+        $this->assertEquals(0.00, (float) $order->delivery_fee);
     }
 }

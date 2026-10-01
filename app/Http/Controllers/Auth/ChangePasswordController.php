@@ -29,11 +29,14 @@ class ChangePasswordController extends Controller
         $request->validate([
             'current_password' => ['required', 'string'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'accept_terms' => ['required', 'accepted'],
         ], [
             'current_password.required' => 'Debes ingresar tu contraseña actual o temporal.',
             'password.required' => 'Debes ingresar una nueva contraseña.',
             'password.min' => 'La nueva contraseña debe tener al menos 8 caracteres.',
             'password.confirmed' => 'La confirmación de la nueva contraseña no coincide.',
+            'accept_terms.required' => 'Debes leer y aceptar los Términos y Condiciones y la Política de Tratamiento de Datos Personales para continuar.',
+            'accept_terms.accepted' => 'Debes leer y aceptar los Términos y Condiciones y la Política de Tratamiento de Datos Personales para continuar.',
         ]);
 
         if (! Hash::check($request->current_password, $user->password)) {
@@ -48,9 +51,12 @@ class ChangePasswordController extends Controller
             ]);
         }
 
-        $user->password = Hash::make($request->password);
-        $user->must_change_password = false;
-        $user->save();
+        $user->update([
+            'password' => Hash::make($request->password),
+            'must_change_password' => false,
+            'terms_accepted_at' => now(),
+            'terms_accepted_ip' => $request->ip(),
+        ]);
 
         $request->session()->regenerate();
 

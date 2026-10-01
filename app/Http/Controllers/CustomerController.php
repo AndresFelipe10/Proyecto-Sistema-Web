@@ -33,7 +33,8 @@ class CustomerController extends Controller
             ->where(function ($query) use ($escaped) {
                 $query->whereRaw("document LIKE ? ESCAPE '!'", ["{$escaped}%"])
                       ->orWhereRaw("identification_number LIKE ? ESCAPE '!'", ["{$escaped}%"])
-                      ->orWhereRaw("name LIKE ? ESCAPE '!'", ["%{$escaped}%"]);
+                      ->orWhereRaw("name LIKE ? ESCAPE '!'", ["%{$escaped}%"])
+                      ->orWhereRaw("phone LIKE ? ESCAPE '!'", ["%{$escaped}%"]);
             })
             ->orderByRaw("CASE 
                 WHEN document LIKE ? ESCAPE '!' THEN 1 
@@ -42,7 +43,7 @@ class CustomerController extends Controller
             END", ["{$escaped}%", "{$escaped}%"])
             ->orderBy('name')
             ->limit(10)
-            ->get(['id', 'name', 'document', 'phone']);
+            ->get(['id', 'name', 'document', 'phone', 'address']);
 
         return response()->json($customers);
     }

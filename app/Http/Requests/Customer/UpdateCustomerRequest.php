@@ -44,7 +44,7 @@ class UpdateCustomerRequest extends FormRequest
                     ->ignore($customer ? $customer->id : null),
             ],
             'identification_number' => ['nullable', 'string', 'max:30'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'email' => ['nullable', 'email', 'max:150'],
             'phone' => ['nullable', 'string', 'max:30', 'regex:/^[\d\s+\-()]{7,20}$/'],
             'address' => ['nullable', 'string', 'max:255'],
             'is_active' => ['nullable', 'boolean'],

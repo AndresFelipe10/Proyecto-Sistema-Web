@@ -154,8 +154,10 @@ class BusinessTypeProfileTest extends TestCase
             ->get(route('dashboard'));
 
         $response->assertStatus(200);
-        $response->assertSee('Platos e Insumos');
-        $response->assertSee('Recetas');
+        $response->assertSee('Menú / Productos');
+        $response->assertSee('Categorías');
+        $response->assertDontSee('Recetas');
+        $response->assertDontSee('<i class="bi bi-cart-check me-2"></i> Ventas', false);
     }
 
     public function test_sidebar_shows_standard_retail_links_for_retail_tenant(): void
@@ -165,7 +167,10 @@ class BusinessTypeProfileTest extends TestCase
             ->get(route('dashboard'));
 
         $response->assertStatus(200);
+        $response->assertSee('<i class="bi bi-cart-check me-2"></i> Ventas', false);
         $response->assertSee('Productos');
+        $response->assertSee('Categorías');
+        $response->assertDontSee('Menú / Productos');
         $response->assertDontSee('Recetas');
     }
 }

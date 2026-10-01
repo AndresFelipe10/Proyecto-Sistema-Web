@@ -17,6 +17,7 @@ class RestaurantOrder extends Model
     protected $fillable = [
         'business_id',
         'table_id',
+        'guest_count',
         'user_id',
         'sale_id',
         'order_number',
@@ -37,6 +38,7 @@ class RestaurantOrder extends Model
     protected function casts(): array
     {
         return [
+            'guest_count' => 'integer',
             'delivery_fee' => 'float',
             'subtotal' => 'float',
             'total' => 'float',
@@ -108,5 +110,29 @@ class RestaurantOrder extends Model
     public function isCancelled(): bool
     {
         return $this->status === 'cancelled';
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return match ($this->status) {
+            'open' => 'Abierta / En preparación',
+            'in_kitchen' => 'En Cocina',
+            'dispatched' => 'En Camino / Despachada',
+            'delivered' => 'Entregada',
+            'billed' => 'En Cobro / Pre-cuenta emitida',
+            'closed' => 'Cerrada / Pagada',
+            'cancelled' => 'Anulada',
+            default => ucfirst($this->status),
+        };
+    }
+
+    public function getOrderTypeLabelAttribute(): string
+    {
+        return match ($this->order_type) {
+            'table' => 'Mesa / Salón',
+            'delivery' => 'Domicilio',
+            'takeout' => 'Para Llevar / Recoger',
+            default => ucfirst($this->order_type),
+        };
     }
 }

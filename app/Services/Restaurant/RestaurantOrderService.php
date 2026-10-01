@@ -38,6 +38,7 @@ class RestaurantOrderService
                 'order_type' => 'table',
                 'status' => 'open',
                 'customer_name' => $data['customer_name'] ?? null,
+                'guest_count' => ! empty($data['guest_count']) ? (int) $data['guest_count'] : null,
                 'notes' => $data['notes'] ?? null,
                 'subtotal' => 0.00,
                 'total' => 0.00,
@@ -209,6 +210,34 @@ class RestaurantOrderService
             }
 
             $order->update(['status' => $newStatus]);
+
+            return $order->fresh();
+        });
+    }
+
+    /**
+     * Cancel an empty order and release its assigned table.
+     */
+    public function cancelEmptyOrder(RestaurantOrder $order): RestaurantOrder
+    {
+        return DB::transaction(function () use ($order) {
+            if ($order->status !== 'open') {
+                throw ValidationException::withMessages([
+                    'order' => 'Solo se pueden cancelar comandas en estado abierto.',
+                ]);
+            }
+
+            if ($order->items()->count() > 0) {
+                throw ValidationException::withMessages([
+                    'order' => 'No se puede cancelar una comanda que contiene platos registrados. Anule o elimine los consumos primero.',
+                ]);
+            }
+
+            $order->update(['status' => 'cancelled']);
+
+            if ($order->table_id && $order->table) {
+                $order->table->update(['status' => 'available']);
+            }
 
             return $order->fresh();
         });

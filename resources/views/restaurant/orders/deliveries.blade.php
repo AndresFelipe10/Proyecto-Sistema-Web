@@ -192,4 +192,13 @@
         </div>
     </div>
 </div>
+
+@if(session('print_kitchen_ticket_id'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const printUrl = "{{ route('restaurant.orders.kitchen-ticket', session('print_kitchen_ticket_id')) }}";
+            window.open(printUrl, '_blank', 'width=450,height=650,scrollbars=yes');
+        });
+    </script>
+@endif
 @endsection

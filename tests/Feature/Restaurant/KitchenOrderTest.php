@@ -373,4 +373,110 @@ class KitchenOrderTest extends TestCase
         ]);
         $response->assertForbidden();
     }
+
+    public function test_admin_and_employee_can_cancel_empty_order_and_frees_table(): void
+    {
+        // Mesa ocupada por orden vacía
+        $this->tableA->update(['status' => 'occupied']);
+
+        $order = RestaurantOrder::create([
+            'business_id' => $this->restaurantA->id,
+            'table_id' => $this->tableA->id,
+            'user_id' => $this->adminA->id,
+            'order_number' => 'ORD-EMPTY-01',
+            'order_type' => 'table',
+            'status' => 'open',
+            'subtotal' => 0.00,
+            'total' => 0.00,
+        ]);
+
+        $this->actingAs($this->adminA);
+
+        $response = $this->post(route('restaurant.orders.cancel-empty', $order));
+
+        $response->assertRedirect(route('restaurant.orders.index'));
+        $response->assertSessionHas('status');
+
+        $order->refresh();
+        $this->tableA->refresh();
+
+        $this->assertEquals('cancelled', $order->status);
+        $this->assertEquals('available', $this->tableA->status);
+    }
+
+    public function test_cannot_cancel_order_with_items_via_cancel_empty(): void
+    {
+        $this->tableA->update(['status' => 'occupied']);
+
+        $order = RestaurantOrder::create([
+            'business_id' => $this->restaurantA->id,
+            'table_id' => $this->tableA->id,
+            'user_id' => $this->adminA->id,
+            'order_number' => 'ORD-WITH-ITEMS',
+            'order_type' => 'table',
+            'status' => 'open',
+            'subtotal' => 15000.00,
+            'total' => 15000.00,
+        ]);
+
+        // Plato asociado a la orden
+        \App\Models\RestaurantOrderItem::create([
+            'business_id' => $this->restaurantA->id,
+            'order_id' => $order->id,
+            'product_id' => $this->dishA->id,
+            'quantity' => 1,
+            'unit_price' => 15000.00,
+            'subtotal' => 15000.00,
+            'status' => 'pending',
+            'batch_number' => 1,
+        ]);
+
+        $this->actingAs($this->employeeA);
+
+        $response = $this->post(route('restaurant.orders.cancel-empty', $order));
+
+        $response->assertSessionHas('error');
+
+        $order->refresh();
+        $this->tableA->refresh();
+
+        $this->assertEquals('open', $order->status);
+        $this->assertEquals('occupied', $this->tableA->status);
+    }
+
+    public function test_orders_index_segments_today_and_past_orders(): void
+    {
+        $todayOrder = RestaurantOrder::create([
+            'business_id' => $this->restaurantA->id,
+            'user_id' => $this->adminA->id,
+            'order_number' => 'ORD-TODAY-01',
+            'order_type' => 'table',
+            'status' => 'open',
+            'subtotal' => 0.00,
+            'total' => 0.00,
+        ]);
+
+        $pastOrder = RestaurantOrder::create([
+            'business_id' => $this->restaurantA->id,
+            'user_id' => $this->adminA->id,
+            'order_number' => 'ORD-PAST-01',
+            'order_type' => 'table',
+            'status' => 'closed',
+            'subtotal' => 25000.00,
+            'total' => 25000.00,
+        ]);
+        $pastOrder->forceFill(['created_at' => now('America/Bogota')->subDays(2)])->save();
+
+        $this->actingAs($this->adminA);
+
+        $response = $this->get(route('restaurant.orders.index'));
+
+        $response->assertStatus(200);
+        $response->assertViewHas('todayOrders', function ($orders) use ($todayOrder, $pastOrder) {
+            return $orders->contains('id', $todayOrder->id) && ! $orders->contains('id', $pastOrder->id);
+        });
+        $response->assertViewHas('pastOrders', function ($orders) use ($todayOrder, $pastOrder) {
+            return $orders->contains('id', $pastOrder->id) && ! $orders->contains('id', $todayOrder->id);
+        });
+    }
 }

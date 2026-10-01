@@ -12,6 +12,9 @@
             <p class="text-muted small mb-0">Gestión de mesas en tiempo real y asignación rápida de comandas.</p>
         </div>
         <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#kitchenConfigModal" title="Configuración de Comandas">
+                <i class="bi bi-gear-fill me-1"></i> Configuración
+            </button>
             <a href="{{ route('restaurant.orders.index') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-receipt me-1"></i> Ver Comandas
             </a>
@@ -94,7 +97,7 @@
             </div>
         </div>
     @else
-        <div class="row g-4">
+        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-xl-6 g-2 g-md-3">
             @foreach($tables as $table)
                 @php
                     $isAvailable = $table->status === 'available';
@@ -102,80 +105,83 @@
                     $isBilled = $table->status === 'billed';
                     $activeOrder = $table->activeOrder;
                 @endphp
-                <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
-                    <div class="card h-100 shadow-sm rounded-4 border-2 transition-all {{ $isAvailable ? 'border-success' : ($isOccupied ? 'border-primary' : 'border-warning') }}">
-                        <div class="card-header bg-white border-0 pt-3 pb-2 d-flex justify-content-between align-items-center">
-                            <span class="badge rounded-pill px-3 py-1 fw-bold {{ $isAvailable ? 'bg-success text-white' : ($isOccupied ? 'bg-primary text-white' : 'bg-warning text-dark') }}">
+                <div class="col">
+                    <div class="card h-100 shadow-sm rounded-3 border-2 transition-all {{ $isAvailable ? 'border-success' : ($isOccupied ? 'border-primary' : 'border-warning') }}">
+                        <div class="card-header bg-white border-0 p-2 d-flex justify-content-between align-items-center">
+                            <span class="badge px-2 py-1 fw-bold {{ $isAvailable ? 'bg-success text-white' : ($isOccupied ? 'bg-primary text-white' : 'bg-warning text-dark') }}" style="font-size: 0.68rem;">
                                 {{ $isAvailable ? 'LIBRE' : ($isOccupied ? 'OCUPADA' : 'EN COBRO') }}
                             </span>
 
-                            @can('update', $table)
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-light rounded-circle text-muted" type="button" data-bs-toggle="dropdown">
-                                        <i class="bi bi-three-dots-vertical"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
-                                        <li>
-                                            <a class="dropdown-item py-2" href="{{ route('restaurant.tables.edit', $table) }}">
-                                                <i class="bi bi-pencil me-2 text-primary"></i> Editar Mesa
-                                            </a>
-                                        </li>
-                                        @if(!$isOccupied && !$isBilled)
-                                            <li><hr class="dropdown-divider"></li>
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="badge bg-light text-secondary border small px-1.5 py-0.5" title="Capacidad: {{ $table->capacity }} personas" style="font-size: 0.68rem;">
+                                    <i class="bi bi-person"></i>{{ $table->capacity }}
+                                </span>
+
+                                @can('update', $table)
+                                    <div class="dropdown">
+                                        <button class="btn btn-xs btn-light rounded-circle text-muted p-0 d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;" type="button" data-bs-toggle="dropdown" aria-label="Opciones de mesa">
+                                            <i class="bi bi-three-dots-vertical" style="font-size: 0.75rem;"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
                                             <li>
-                                                <form action="{{ route('restaurant.tables.destroy', $table) }}" method="POST" onsubmit="return confirm('¿Seguro que deseas eliminar esta mesa?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="dropdown-item text-danger py-2">
-                                                        <i class="bi bi-trash me-2"></i> Eliminar
-                                                    </button>
-                                                </form>
+                                                <a class="dropdown-item py-1.5 small" href="{{ route('restaurant.tables.edit', $table) }}">
+                                                    <i class="bi bi-pencil me-1.5 text-primary"></i> Editar Mesa
+                                                </a>
                                             </li>
-                                        @endif
-                                    </ul>
-                                </div>
-                            @endcan
+                                            @if(!$isOccupied && !$isBilled)
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                <li>
+                                                    <form action="{{ route('restaurant.tables.destroy', $table) }}" method="POST" onsubmit="return confirm('¿Seguro que deseas eliminar esta mesa?');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="dropdown-item text-danger py-1.5 small">
+                                                            <i class="bi bi-trash me-1.5"></i> Eliminar
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            @endif
+                                        </ul>
+                                    </div>
+                                @endcan
+                            </div>
                         </div>
 
-                        <div class="card-body text-center py-3">
-                            <div class="mb-2">
-                                <i class="bi bi-aspect-ratio fs-1 {{ $isAvailable ? 'text-success' : ($isOccupied ? 'text-primary' : 'text-warning') }}"></i>
+                        <div class="card-body text-center p-2 d-flex flex-column justify-content-between">
+                            <div class="mb-1">
+                                <i class="bi bi-aspect-ratio fs-4 {{ $isAvailable ? 'text-success' : ($isOccupied ? 'text-primary' : 'text-warning') }}"></i>
+                                <h6 class="fw-bold text-dark mb-0 text-truncate px-1" title="{{ $table->name }}">{{ $table->name }}</h6>
                             </div>
-                            <h4 class="fw-bold text-dark mb-1">{{ $table->name }}</h4>
-                            <p class="text-muted small mb-3">
-                                <i class="bi bi-person me-1"></i>Capacidad: {{ $table->capacity }} personas
-                            </p>
 
                             @if(($isOccupied || $isBilled) && $activeOrder)
-                                <div class="bg-light rounded-3 p-2 mb-3 text-start small">
-                                    <div class="d-flex justify-content-between mb-1">
-                                        <span class="text-muted">Comanda:</span>
-                                        <span class="fw-bold text-dark">{{ $activeOrder->order_number }}</span>
+                                <div class="bg-light rounded-2 p-1.5 mb-1 text-start small border" style="font-size: 0.75rem;">
+                                    <div class="d-flex justify-content-between align-items-center mb-0.5">
+                                        <span class="fw-bold text-dark text-truncate" style="max-width: 65px;" title="{{ $activeOrder->order_number }}">#{{ $activeOrder->order_number }}</span>
+                                        <span class="fw-bold text-primary">${{ number_format($activeOrder->total, 0, ',', '.') }}</span>
                                     </div>
-                                    <div class="d-flex justify-content-between mb-1">
-                                        <span class="text-muted">Mesero:</span>
-                                        <span class="fw-semibold text-truncate" style="max-width: 120px;">{{ $activeOrder->user->name ?? 'N/A' }}</span>
+                                    <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 0.7rem;">
+                                        <span class="text-truncate" style="max-width: 65px;" title="{{ !empty($activeOrder->customer_name) ? $activeOrder->customer_name : ($activeOrder->user->name ?? 'Usuario') }}">
+                                            <i class="bi bi-person-badge"></i> {{ !empty($activeOrder->customer_name) ? $activeOrder->customer_name : ($activeOrder->user->name ?? 'Usuario') }}
+                                        </span>
+                                        <span class="text-secondary fw-semibold">
+                                            <i class="bi bi-clock"></i> {{ $activeOrder->created_at->diffForHumans(null, true) }}
+                                        </span>
                                     </div>
-                                    <div class="d-flex justify-content-between mb-1">
-                                        <span class="text-muted">Tiempo:</span>
-                                        <span class="text-secondary fw-semibold">{{ $activeOrder->created_at->diffForHumans(null, true) }}</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between border-top pt-1 mt-1">
-                                        <span class="fw-bold text-dark">Total:</span>
-                                        <span class="fw-bold text-primary">${{ number_format($activeOrder->total, 2) }}</span>
-                                    </div>
+                                </div>
+                            @else
+                                <div class="py-1 text-muted small" style="font-size: 0.72rem;">
+                                    <span class="text-success"><i class="bi bi-check2"></i> Disponible</span>
                                 </div>
                             @endif
                         </div>
 
-                        <div class="card-footer bg-white border-0 pt-0 pb-3">
+                        <div class="card-footer bg-white border-0 p-2 pt-0">
                             @if($isAvailable)
-                                <a href="{{ route('restaurant.orders.create', ['table_id' => $table->id]) }}" class="btn btn-outline-success w-100 fw-bold py-2">
-                                    <i class="bi bi-plus-lg me-1"></i> Abrir Mesa
+                                <a href="{{ route('restaurant.orders.create', ['table_id' => $table->id]) }}" class="btn btn-sm btn-outline-success w-100 fw-bold d-flex align-items-center justify-content-center py-2" style="min-height: 38px; font-size: 0.8rem;">
+                                    <i class="bi bi-plus-lg me-1"></i> + Abrir Mesa
                                 </a>
                             @elseif($activeOrder)
-                                <a href="{{ route('restaurant.orders.show', $activeOrder) }}" class="btn btn-primary w-100 fw-bold py-2">
-                                    <i class="bi bi-receipt me-1"></i> Ver / Editar Comanda
+                                <a href="{{ route('restaurant.orders.show', $activeOrder) }}" class="btn btn-sm btn-primary w-100 fw-bold d-flex align-items-center justify-content-center py-2" style="min-height: 38px; font-size: 0.8rem;">
+                                    <i class="bi bi-receipt me-1"></i> Ver Comanda
                                 </a>
                             @endif
                         </div>
@@ -185,4 +191,6 @@
         </div>
     @endif
 </div>
+
+@include('restaurant.partials.kitchen-config-modal')
 @endsection

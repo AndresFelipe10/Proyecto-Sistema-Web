@@ -3,12 +3,11 @@
 namespace App\Services\Sales;
 
 use App\Exceptions\InsufficientStockException;
-use App\Exceptions\Sales\InsufficientIngredientStockException;
 use App\Exceptions\Sales\InvalidSaleItemException;
 use App\Exceptions\Sales\InvalidSalePaymentException;
+use App\Models\Business;
 use App\Models\InventoryMovement;
 use App\Models\Product;
-use App\Models\Recipe;
 use App\Models\Sale;
 use App\Models\SaleDetail;
 use App\Models\SalePayment;
@@ -41,6 +40,11 @@ class SaleService
     public function processSale(array $data, int $businessId, int $userId): Sale
     {
         return DB::transaction(function () use ($data, $businessId, $userId) {
+            $business = Business::withoutGlobalScopes()->find($businessId);
+            $isRestaurantSale = ($business && $business->isRestaurant())
+                || !empty($data['restaurant_order_id'])
+                || (isset($data['order_type']) && $data['order_type'] !== 'direct');
+
             $subtotal = 0;
             $resolvedItems = [];
 
@@ -70,11 +74,45 @@ class SaleService
                 ];
             }
 
-            // Calculate discount from percentage (never trust client-sent monetary values)
+            // Blindaje normativo colombiano de liquidación (Gastronomía y Restaurantes):
+            // 1. Base Gravable / Consumo neto = Subtotal - Descuento (Art. 512-1 del Estatuto Tributario).
+            // 2. Propina Voluntaria / Servicio (Ley 1935 de 2018 y Circular Única SIC):
+            //    Liberalidad voluntaria del consumidor (sugerida hasta el 10%) con destino exclusivo a los trabajadores.
+            //    Regla inmutable: La propina NO hace parte de la base gravable del INC ni del IVA. La propina no causa impuestos.
+            // 3. Impuesto Nacional al Consumo - INC 8% (Art. 512-1 E.T.):
+            //    Grava exclusivamente el expendio de comidas y bebidas (Base Gravable = Subtotal - Descuento).
+            //    Regla inmutable: El INC NO se calcula sobre la propina ni sobre el flete/costo de domicilio (delivery_fee).
+            // 4. Independencia de bases: ni la propina grava el impuesto, ni el impuesto grava la propina.
+            // Total a Liquidar = Base Gravable (Subtotal - Descuento) + Domicilio + Servicio + INC.
             $discountPercentage = (float) ($data['discount_percentage'] ?? 0);
             $discount = round($subtotal * ($discountPercentage / 100), 2);
+            $netFoodBase = max(0, round($subtotal - $discount, 2));
+
             $deliveryFee = isset($data['delivery_fee']) ? max(0, round((float) $data['delivery_fee'], 2)) : 0.00;
-            $total = round($subtotal - $discount + $deliveryFee, 2);
+            $serviceFee = isset($data['service_fee']) ? max(0, round((float) $data['service_fee'], 2)) : 0.00;
+            $taxInc = isset($data['tax_inc']) ? max(0, round((float) $data['tax_inc'], 2)) : 0.00;
+
+            // Validación matemática estricta y autoritativa de tributos y propinas (Art. 512-1 E.T. y Ley 1935/2018):
+            if ($netFoodBase <= 0) {
+                $serviceFee = 0.00;
+                $taxInc = 0.00;
+            } else {
+                if ($taxInc > 0) {
+                    $expectedInc = round($netFoodBase * 0.08, 2);
+                    if (abs($taxInc - $expectedInc) > 1.00) {
+                        throw new InvalidSaleItemException(
+                            "El valor del Impuesto Nacional al Consumo (INC) debe ser del 8% sobre la base neta (\${$expectedInc})."
+                        );
+                    }
+                    $taxInc = $expectedInc;
+                }
+
+                if ($serviceFee > 0 && $serviceFee > max(1000000, $netFoodBase * 2)) {
+                    throw new InvalidSaleItemException('El valor de la propina voluntaria excede el límite permitido para la venta.');
+                }
+            }
+
+            $total = round($netFoodBase + $deliveryFee + $serviceFee + $taxInc, 2);
 
             // Generate unique invoice number for this business
             $invoiceNumber = $this->generateInvoiceNumber($businessId);
@@ -186,6 +224,8 @@ class SaleService
                 'discount' => $discount,
                 'discount_percentage' => $discountPercentage,
                 'delivery_fee' => $deliveryFee,
+                'service_fee' => $serviceFee,
+                'tax_inc' => $taxInc,
                 'total' => $total,
                 'payment_method' => $derivedPaymentMethod,
                 'status' => 'completed',
@@ -226,7 +266,7 @@ class SaleService
                 }
             }
 
-            // Create detail lines and decrement stock
+            // Create detail lines and decrement stock (only for retail sales)
             foreach ($resolvedItems as $resolved) {
                 SaleDetail::create([
                     'sale_id' => $sale->id,
@@ -236,59 +276,9 @@ class SaleService
                     'subtotal' => $resolved['subtotal'],
                 ]);
 
-                if ($resolved['product']->isDish()) {
-                    // Plato con receta: resolver la receta activa
-                    $recipe = Recipe::withoutGlobalScopes()
-                        ->where('business_id', $businessId)
-                        ->where('product_id', $resolved['product']->id)
-                        ->where('is_active', true)
-                        ->with('items')
-                        ->first();
-
-                    if (! $recipe || $recipe->items->isEmpty()) {
-                        throw new InvalidSaleItemException(
-                            "El plato '{$resolved['product']->name}' no cuenta con una receta activa configurada."
-                        );
-                    }
-
-                    // Ordenar insumos por ID para prevenir deadlocks
-                    $sortedItems = $recipe->items->sortBy('ingredient_id');
-
-                    foreach ($sortedItems as $recipeItem) {
-                        $requiredQty = round((float) $recipeItem->quantity_per_portion * (float) $resolved['quantity'], 3);
-
-                        // Bloqueo pesimista sobre el insumo
-                        $ingredient = Product::withoutGlobalScopes()
-                            ->where('business_id', $businessId)
-                            ->lockForUpdate()
-                            ->find($recipeItem->ingredient_id);
-
-                        if (! $ingredient) {
-                            throw new InvalidSaleItemException(
-                                "El insumo #{$recipeItem->ingredient_id} de la receta no existe o fue eliminado."
-                            );
-                        }
-
-                        if ((float) $ingredient->stock < $requiredQty) {
-                            throw new InsufficientIngredientStockException(
-                                ingredientName: $ingredient->name,
-                                availableStock: (float) $ingredient->stock,
-                                requestedQuantity: $requiredQty,
-                                unit: $recipeItem->unit
-                            );
-                        }
-
-                        $this->inventoryService->registerMovement(
-                            product: $ingredient,
-                            type: InventoryMovement::TYPE_EXIT,
-                            quantity: $requiredQty,
-                            reason: "receta_venta",
-                            userId: $userId,
-                            saleId: $sale->id,
-                        );
-                    }
-                } else {
-                    // Decrement stock via InventoryService (pessimistic locking) para productos estándar
+                // En restaurantes los platos preparados no descuentan inventario físico estricto.
+                // En comercios Retail, se descuenta con bloqueo pesimista y verificación de existencias.
+                if (! $isRestaurantSale) {
                     $this->inventoryService->registerMovement(
                         product: $resolved['product'],
                         type: InventoryMovement::TYPE_EXIT,
@@ -343,33 +333,14 @@ class SaleService
         return DB::transaction(function () use ($sale, $userId) {
             $sale->load('details');
 
-            // Restore stock for each detail line
-            foreach ($sale->details as $detail) {
-                $product = Product::withoutGlobalScopes()
-                    ->where('business_id', $sale->business_id)
-                    ->find($detail->product_id);
+            $business = Business::withoutGlobalScopes()->find($sale->business_id);
+            $isRestaurantSale = ($business && $business->isRestaurant())
+                || !empty($sale->restaurant_order_id)
+                || ($sale->order_type !== null && $sale->order_type !== 'direct');
 
-                if ($product && $product->isDish()) {
-                    $recipe = Recipe::withoutGlobalScopes()
-                        ->where('business_id', $sale->business_id)
-                        ->where('product_id', $product->id)
-                        ->with('items')
-                        ->first();
-
-                    if ($recipe) {
-                        foreach ($recipe->items as $recipeItem) {
-                            $restoreQty = round((float) $recipeItem->quantity_per_portion * (float) $detail->quantity, 3);
-                            $this->inventoryService->registerMovement(
-                                product: $recipeItem->ingredient_id,
-                                type: InventoryMovement::TYPE_ENTRY,
-                                quantity: $restoreQty,
-                                reason: "receta_anulacion",
-                                userId: $userId,
-                                saleId: $sale->id,
-                            );
-                        }
-                    }
-                } else {
+            // Restore stock for each detail line only if NOT a restaurant sale
+            if (! $isRestaurantSale) {
+                foreach ($sale->details as $detail) {
                     $this->inventoryService->registerMovement(
                         product: $detail->product_id,
                         type: InventoryMovement::TYPE_ENTRY,

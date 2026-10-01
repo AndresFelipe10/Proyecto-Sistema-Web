@@ -61,10 +61,17 @@
 @endsection
 
 @section('footer')
-    ¿Quieres PuntoStock para tu negocio? 
-    <a href="https://wa.me/{{ config('app.support_whatsapp', '573163765939') }}?text={{ urlencode('Hola, quiero información sobre PuntoStock para mi negocio.') }}" 
-       target="_blank" rel="noopener noreferrer" 
-       class="text-primary text-decoration-none fw-semibold">
-        <i class="bi bi-whatsapp me-1"></i>Escríbenos
-    </a>
+    <div class="mb-2">
+        ¿Quieres PuntoStock para tu negocio? 
+        <a href="https://wa.me/{{ config('app.support_whatsapp', '573163765939') }}?text={{ urlencode('Hola, quiero información sobre PuntoStock para mi negocio.') }}" 
+           target="_blank" rel="noopener noreferrer" 
+           class="text-primary text-decoration-none fw-semibold">
+            <i class="bi bi-whatsapp me-1"></i>Escríbenos
+        </a>
+    </div>
+    <div class="small text-muted pt-2 border-top">
+        <a href="{{ route('legal.terms') }}" class="text-secondary text-decoration-none me-2">Términos y Condiciones</a>
+        <span>•</span>
+        <a href="{{ route('legal.privacy') }}" class="text-secondary text-decoration-none ms-2">Privacidad y Cookies</a>
+    </div>
 @endsection

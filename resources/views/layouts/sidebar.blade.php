@@ -7,12 +7,14 @@
             </a>
         </li>
 
-        {{-- 2. Ventas --}}
-        <li class="nav-item">
-            <a class="nav-link fw-semibold {{ request()->routeIs('sales.*') && !request()->routeIs('reports.cash-register') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('sales.index') }}">
-                <i class="bi bi-cart-check me-2"></i> Ventas
-            </a>
-        </li>
+        {{-- 2. Ventas (Solo para Comercio / Retail; en Restaurantes las ventas se canalizan por Salón/Mesas, Comandas y Domicilios) --}}
+        @if (! app(\App\Services\Tenant\TenantManager::class)->get()?->isRestaurant())
+            <li class="nav-item">
+                <a class="nav-link fw-semibold {{ request()->routeIs('sales.*') && !request()->routeIs('reports.cash-register') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('sales.index') }}">
+                    <i class="bi bi-cart-check me-2"></i> Ventas
+                </a>
+            </li>
+        @endif
 
         {{-- Módulo Restaurante: Salón y Comandas (Solo Restaurante) --}}
         @if (app(\App\Services\Tenant\TenantManager::class)->get()?->isRestaurant())
@@ -40,35 +42,44 @@
             </a>
         </li>
 
-        {{-- 3. Inventario --}}
-        <li class="nav-item">
-            <a class="nav-link fw-semibold {{ request()->routeIs('inventory.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('inventory.index') }}">
-                <i class="bi bi-arrow-left-right me-2"></i> Inventario
-            </a>
-        </li>
-
-        {{-- 4. Productos --}}
-        <li class="nav-item">
-            <a class="nav-link fw-semibold {{ request()->routeIs('products.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('products.index') }}">
-                <i class="bi bi-boxes me-2"></i> {{ (app(\App\Services\Tenant\TenantManager::class)->get()?->isRestaurant()) ? 'Platos e Insumos' : 'Productos' }}
-            </a>
-        </li>
-
-        {{-- 4b. Recetas (Solo Restaurante) --}}
-        @if (app(\App\Services\Tenant\TenantManager::class)->get()?->isRestaurant())
+        {{-- 3. Inventario (Solo Administrador) --}}
+        @if (auth()->check() && auth()->user()->isCurrentAdmin())
             <li class="nav-item">
-                <a class="nav-link fw-semibold {{ request()->routeIs('recipes.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('recipes.index') }}">
-                    <i class="bi bi-journal-text me-2"></i> Recetas
+                <a class="nav-link fw-semibold {{ request()->routeIs('inventory.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('inventory.index') }}">
+                    <i class="bi bi-arrow-left-right me-2"></i> Inventario
                 </a>
             </li>
         @endif
 
-        {{-- 5. Categorías --}}
-        <li class="nav-item">
-            <a class="nav-link fw-semibold {{ request()->routeIs('categories.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('categories.index') }}">
-                <i class="bi bi-tags me-2"></i> Categorías
-            </a>
-        </li>
+        @if (auth()->check() && auth()->user()->isCurrentAdmin())
+            @if (app(\App\Services\Tenant\TenantManager::class)->get()?->isRestaurant())
+                {{-- Catálogo para Restaurante: Menú / Productos y Categorías --}}
+                <li class="nav-item">
+                    <a class="nav-link fw-semibold {{ request()->routeIs('products.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('products.index') }}">
+                        <i class="bi bi-book-half me-2"></i> Menú / Productos
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link fw-semibold {{ request()->routeIs('categories.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('categories.index') }}">
+                        <i class="bi bi-tags me-2"></i> Categorías
+                    </a>
+                </li>
+            @else
+                {{-- 4. Productos (Comercio / Retail) --}}
+                <li class="nav-item">
+                    <a class="nav-link fw-semibold {{ request()->routeIs('products.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('products.index') }}">
+                        <i class="bi bi-boxes me-2"></i> Productos
+                    </a>
+                </li>
+
+                {{-- 5. Categorías (Comercio / Retail) --}}
+                <li class="nav-item">
+                    <a class="nav-link fw-semibold {{ request()->routeIs('categories.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('categories.index') }}">
+                        <i class="bi bi-tags me-2"></i> Categorías
+                    </a>
+                </li>
+            @endif
+        @endif
 
         {{-- 6. Clientes --}}
         <li class="nav-item">
@@ -77,12 +88,14 @@
             </a>
         </li>
 
-        {{-- 7. Proveedores --}}
-        <li class="nav-item">
-            <a class="nav-link fw-semibold {{ request()->routeIs('suppliers.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('suppliers.index') }}">
-                <i class="bi bi-truck me-2"></i> Proveedores
-            </a>
-        </li>
+        {{-- 7. Proveedores (Solo Administrador) --}}
+        @if (auth()->check() && auth()->user()->isCurrentAdmin())
+            <li class="nav-item">
+                <a class="nav-link fw-semibold {{ request()->routeIs('suppliers.*') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('suppliers.index') }}">
+                    <i class="bi bi-truck me-2"></i> Proveedores
+                </a>
+            </li>
+        @endif
 
         {{-- 8. Gastos (Solo Administrador) --}}
         @if (auth()->check() && auth()->user()->isCurrentAdmin())

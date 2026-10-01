@@ -56,24 +56,34 @@ class DashboardService
             ->where('is_active', true)
             ->count();
 
-        // 4. Alertas de Stock Crítico (stock <= min_stock)
-        $lowStockQuery = Product::where('business_id', $businessId)
-            ->where('is_active', true)
-            ->whereColumn('stock', '<=', 'min_stock');
+        // 4. Resolución de tipo de negocio
+        $business = \App\Models\Business::find($businessId);
+        $isRestaurant = $business ? $business->isRestaurant() : false;
 
-        $lowStockCount = (int) (clone $lowStockQuery)->count();
-        $outOfStockCount = (int) Product::where('business_id', $businessId)
-            ->where('is_active', true)
-            ->where('stock', '<=', 0)
-            ->count();
+        // 5. Alertas de Stock Crítico (stock <= min_stock) - Exclusivo Comercio (Retail)
+        if ($isRestaurant) {
+            $lowStockCount = 0;
+            $outOfStockCount = 0;
+            $lowStockProducts = collect();
+        } else {
+            $lowStockQuery = Product::where('business_id', $businessId)
+                ->where('is_active', true)
+                ->whereColumn('stock', '<=', 'min_stock');
 
-        $lowStockProducts = (clone $lowStockQuery)
-            ->with('category')
-            ->orderBy('stock', 'asc')
-            ->limit(5)
-            ->get();
+            $lowStockCount = (int) (clone $lowStockQuery)->count();
+            $outOfStockCount = (int) Product::where('business_id', $businessId)
+                ->where('is_active', true)
+                ->where('stock', '<=', 0)
+                ->count();
 
-        // 5. Ventas Recientes
+            $lowStockProducts = (clone $lowStockQuery)
+                ->with('category')
+                ->orderBy('stock', 'asc')
+                ->limit(5)
+                ->get();
+        }
+
+        // 6. Ventas Recientes
         $recentSales = Sale::where('business_id', $businessId)
             ->with(['customer', 'user'])
             ->latest('sale_date')
@@ -81,7 +91,7 @@ class DashboardService
             ->limit(5)
             ->get();
 
-        // 6. Top 5 Productos Más Vendidos
+        // 7. Top 5 Productos Más Vendidos
         $topProducts = SaleDetail::join('sales', 'sale_details.sale_id', '=', 'sales.id')
             ->join('products', 'sale_details.product_id', '=', 'products.id')
             ->where('sales.business_id', $businessId)
@@ -99,10 +109,7 @@ class DashboardService
             ->limit(5)
             ->get();
 
-        // 7. Métricas Operativas de Restaurante (Bloque R-D)
-        $business = \App\Models\Business::find($businessId);
-        $isRestaurant = $business ? $business->isRestaurant() : false;
-
+        // 8. Métricas Operativas de Restaurante (Bloque R-D)
         $restaurantMetrics = [];
         if ($isRestaurant) {
             $totalTables = \App\Models\RestaurantTable::where('business_id', $businessId)->count();

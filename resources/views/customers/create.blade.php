@@ -75,7 +75,7 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label for="email" class="form-label small fw-semibold text-secondary">Correo Electrónico</label>
+                        <label for="email" class="form-label small fw-semibold text-secondary">Correo Electrónico (Opcional)</label>
                         <input type="email" 
                                class="form-control @error('email') is-invalid @enderror" 
                                id="email" 
@@ -98,6 +98,11 @@
                 <div class="mb-4 form-check form-switch">
                     <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" {{ old('is_active', '1') == '1' ? 'checked' : '' }}>
                     <label class="form-check-label small fw-semibold text-secondary" for="is_active">Cliente activo</label>
+                </div>
+
+                <div class="alert alert-light border small text-muted mb-3">
+                    <i class="bi bi-shield-check me-1 text-primary"></i>
+                    El comercio certifica que cuenta con la autorización del titular para la recolección y tratamiento de sus datos de contacto conforme a la Ley 1581 de 2012 de Habeas Data.
                 </div>
 
                 <div class="d-flex justify-content-end gap-2">

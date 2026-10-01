@@ -58,4 +58,16 @@ class RestaurantOrderPolicy
 
         return $user->isCurrentAdmin();
     }
+
+    /**
+     * Determine whether the user can cancel an empty order.
+     */
+    public function cancelEmpty(User $user, RestaurantOrder $order): bool
+    {
+        if ((int) $order->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
+        return $user->isCurrentAdmin() || $user->isCurrentEmployee();
+    }
 }

@@ -291,4 +291,63 @@ class DashboardTest extends TestCase
         $response->assertSee('$40.000');
         $response->assertDontSee('$160.000');
     }
+
+    public function test_restaurant_dashboard_omits_stock_alerts_while_retail_dashboard_displays_them(): void
+    {
+        // 1. Retail: Producto con stock crítico
+        Product::withoutGlobalScopes()->create([
+            'business_id' => $this->businessA->id,
+            'name' => 'Camisa Polo Retail',
+            'sku' => 'POLO-001',
+            'cost_price' => 20000,
+            'sale_price' => 50000,
+            'stock' => 0,
+            'min_stock' => 5,
+            'is_active' => true,
+        ]);
+
+        $retailResponse = $this->actingAs($this->adminUserA)
+            ->withSession(['current_business_id' => $this->businessA->id])
+            ->get('/dashboard');
+
+        $retailResponse->assertStatus(200);
+        $retailResponse->assertSee('Alertas de Stock');
+        $retailResponse->assertSee('Stock Crítico');
+        $retailResponse->assertViewHas('low_stock_count', 1);
+        $retailResponse->assertViewHas('is_restaurant', false);
+
+        // 2. Restaurante: Plato con stock 0 (no maneja inventario físico de cocina)
+        $restaurantBusiness = Business::create([
+            'name' => 'Restaurante El Gourmet',
+            'business_type' => 'restaurant',
+            'status' => 'active',
+            'is_active' => true,
+        ]);
+        $restaurantAdmin = User::factory()->create();
+        $restaurantBusiness->users()->attach($restaurantAdmin->id, ['role_id' => $this->adminRole->id, 'is_active' => true]);
+
+        Product::withoutGlobalScopes()->create([
+            'business_id' => $restaurantBusiness->id,
+            'name' => 'Lomo al Trapo',
+            'sku' => 'PLT-LOMO-01',
+            'cost_price' => 15000,
+            'sale_price' => 45000,
+            'stock' => 0,
+            'min_stock' => 5,
+            'is_active' => true,
+        ]);
+
+        $restaurantResponse = $this->actingAs($restaurantAdmin)
+            ->withSession(['current_business_id' => $restaurantBusiness->id])
+            ->get('/dashboard');
+
+        $restaurantResponse->assertStatus(200);
+        $restaurantResponse->assertViewHas('is_restaurant', true);
+        $restaurantResponse->assertViewHas('low_stock_count', 0);
+        $this->assertCount(0, $restaurantResponse->viewData('low_stock_products'));
+        $restaurantResponse->assertDontSee('Alertas de Stock');
+        $restaurantResponse->assertDontSee('Stock Crítico');
+        $restaurantResponse->assertSee('Platos Más Vendidos');
+        $restaurantResponse->assertSee('Mesas Activas / Ocupadas');
+    }
 }

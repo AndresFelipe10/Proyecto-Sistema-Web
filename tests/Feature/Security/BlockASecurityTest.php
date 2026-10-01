@@ -249,6 +249,7 @@ class BlockASecurityTest extends TestCase
             'current_password' => 'temporal1234',
             'password' => 'temporal1234',
             'password_confirmation' => 'temporal1234',
+            'accept_terms' => 1,
         ]);
         $responseSame->assertSessionHasErrors('password');
         $this->assertTrue((bool) $user->fresh()->must_change_password);
@@ -258,6 +259,7 @@ class BlockASecurityTest extends TestCase
             'current_password' => 'erronea1234',
             'password' => 'nuevaPasswordSegura123',
             'password_confirmation' => 'nuevaPasswordSegura123',
+            'accept_terms' => 1,
         ]);
         $responseWrongCurrent->assertSessionHasErrors('current_password');
         $this->assertTrue((bool) $user->fresh()->must_change_password);
@@ -267,6 +269,7 @@ class BlockASecurityTest extends TestCase
             'current_password' => 'temporal1234',
             'password' => 'nuevaPasswordSegura123',
             'password_confirmation' => 'nuevaPasswordSegura123',
+            'accept_terms' => 1,
         ]);
 
         $responseOk->assertRedirect(route('dashboard'));

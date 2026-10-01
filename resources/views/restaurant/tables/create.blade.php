@@ -17,16 +17,18 @@
                 @csrf
 
                 <div class="mb-3">
-                    <label for="name" class="form-label fw-bold">Nombre o Identificador <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" placeholder="Ej: Mesa 1, Barra, Terraza 4" required autofocus>
+                    <label for="name" class="form-label fw-bold">Nombre o Identificador de la Mesa <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-lg @error('name') is-invalid @enderror" id="name" name="name" value="{{ old('name') }}" placeholder="Ej: Mesa 1, Mesa 2, Barra, Terraza A" required autofocus>
+                    <div class="form-text">Identificador visible de la mesa para el salón y las comandas.</div>
                     @error('name')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
 
                 <div class="mb-4">
-                    <label for="capacity" class="form-label fw-bold">Capacidad de Personas <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control @error('capacity') is-invalid @enderror" id="capacity" name="capacity" value="{{ old('capacity', 4) }}" min="1" max="200" required>
+                    <label for="capacity" class="form-label fw-semibold text-secondary">Capacidad de Personas <span class="badge bg-light text-secondary border">Opcional</span></label>
+                    <input type="number" class="form-control @error('capacity') is-invalid @enderror" id="capacity" name="capacity" value="{{ old('capacity') }}" min="1" max="200" placeholder="Por defecto: 4 personas">
+                    <div class="form-text">Si no se especifica, el sistema asignará 4 comensales por defecto.</div>
                     @error('capacity')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror

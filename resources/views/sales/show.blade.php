@@ -202,6 +202,22 @@
                             </span>
                         </div>
                     @endif
+                    @if (($sale->service_fee ?? 0) > 0)
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Servicio / Propina</span>
+                            <span class="fw-semibold text-dark">
+                                ${{ number_format($sale->service_fee, 0, ',', '.') }}
+                            </span>
+                        </div>
+                    @endif
+                    @if (($sale->tax_inc ?? 0) > 0)
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Impuesto al Consumo (INC 8%)</span>
+                            <span class="fw-semibold text-dark">
+                                ${{ number_format($sale->tax_inc, 0, ',', '.') }}
+                            </span>
+                        </div>
+                    @endif
                     <hr>
                     <div class="d-flex justify-content-between">
                         <span class="fw-bold fs-5">Total</span>

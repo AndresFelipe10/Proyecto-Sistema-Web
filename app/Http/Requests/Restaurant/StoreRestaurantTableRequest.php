@@ -31,7 +31,7 @@ class StoreRestaurantTableRequest extends FormRequest
                 'max:50',
                 Rule::unique('restaurant_tables', 'name')->where(fn ($query) => $query->where('business_id', $businessId)),
             ],
-            'capacity' => ['required', 'integer', 'min:1', 'max:200'],
+            'capacity' => ['nullable', 'integer', 'min:1', 'max:200'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }

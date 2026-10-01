@@ -122,10 +122,6 @@ class Business extends Model
         return $this->hasMany(InventoryMovement::class);
     }
 
-    public function recipes(): HasMany
-    {
-        return $this->hasMany(Recipe::class);
-    }
 
     public function restaurantTables(): HasMany
     {

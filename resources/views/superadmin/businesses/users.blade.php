@@ -8,10 +8,30 @@
         <h3 class="fw-bold mb-1">Usuarios de {{ $business->name }}</h3>
         <p class="text-secondary small mb-0">Listado de colaboradores vinculados a este negocio</p>
     </div>
-    <a href="{{ route('superadmin.businesses.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-        <i class="bi bi-arrow-left me-1"></i> Volver a Negocios
-    </a>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ route('superadmin.businesses.users.create', $business) }}" class="btn btn-primary fw-semibold">
+            <i class="bi bi-person-plus me-1"></i> + Agregar Colaborador
+        </a>
+        <a href="{{ route('superadmin.businesses.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Volver a Negocios
+        </a>
+    </div>
 </div>
+
+@if (session('temp_password'))
+    <div class="alert alert-success border-0 shadow-sm d-flex align-items-center mb-4 text-white" style="background-color: #198754;">
+        <i class="bi bi-key-fill fs-2 me-3"></i>
+        <div class="flex-grow-1">
+            <h5 class="fw-bold mb-1">¡Colaborador Registrado con Éxito!</h5>
+            <p class="mb-0">
+                Credenciales para entregar al comercio: 
+                <strong>{{ session('created_user_email') }}</strong> &bull; 
+                Contraseña temporal: <code class="fs-6 fw-bold bg-dark text-warning px-2 py-1 rounded">{{ session('temp_password') }}</code>
+                <span class="badge bg-warning text-dark ms-2">Debe cambiarla al primer inicio de sesión</span>
+            </p>
+        </div>
+    </div>
+@endif
 
 <div class="card card-dark overflow-hidden">
     <div class="table-responsive">

@@ -23,6 +23,12 @@ class RestaurantTable extends Model
         'is_active',
     ];
 
+    protected $attributes = [
+        'capacity' => 4,
+        'status' => 'available',
+        'is_active' => true,
+    ];
+
     protected function casts(): array
     {
         return [
@@ -61,5 +67,15 @@ class RestaurantTable extends Model
     public function isBilled(): bool
     {
         return $this->status === 'billed';
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return match ($this->status) {
+            'available' => 'Disponible / Libre',
+            'occupied' => 'Ocupada',
+            'billed' => 'En Cobro / Pre-cuenta emitida',
+            default => ucfirst($this->status),
+        };
     }
 }

@@ -231,4 +231,26 @@ class CustomerTest extends TestCase
         $response->assertSee('Cliente Exclusivo Empresa A');
         $response->assertDontSee('Cliente Exclusivo Empresa B');
     }
+
+    public function test_customer_can_be_created_with_null_or_empty_email(): void
+    {
+        $response = $this->actingAs($this->adminUser)
+            ->withSession(['current_business_id' => $this->businessA->id])
+            ->post(route('customers.store'), [
+                'name' => 'Cliente Sin Email',
+                'document' => '1144998877',
+                'phone' => '3159988776',
+                'email' => '',
+                'address' => 'Barrio Granada, Cali',
+                'is_active' => '1',
+            ]);
+
+        $response->assertRedirect(route('customers.index'));
+        $this->assertDatabaseHas('customers', [
+            'business_id' => $this->businessA->id,
+            'name' => 'Cliente Sin Email',
+            'document' => '1144998877',
+            'email' => null,
+        ]);
+    }
 }

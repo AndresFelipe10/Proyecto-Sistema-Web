@@ -36,7 +36,7 @@ class UpdateRestaurantTableRequest extends FormRequest
                     ->where(fn ($query) => $query->where('business_id', $businessId))
                     ->ignore($table->id),
             ],
-            'capacity' => ['required', 'integer', 'min:1', 'max:200'],
+            'capacity' => ['nullable', 'integer', 'min:1', 'max:200'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }

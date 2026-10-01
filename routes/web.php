@@ -12,8 +12,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InventoryAlertController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\LegalController;
 use App\Http\Controllers\ProductController;
-use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Restaurant\RestaurantOrderController;
 use App\Http\Controllers\Restaurant\RestaurantTableController;
@@ -33,6 +33,10 @@ Route::get('/', function () {
 
     return redirect()->route('login');
 });
+
+// Rutas públicas legales y normativas (Ley 527/1999 y Ley 1581/2012)
+Route::get('/terminos-y-condiciones', [LegalController::class, 'terms'])->name('legal.terms');
+Route::get('/politica-de-privacidad', [LegalController::class, 'privacy'])->name('legal.privacy');
 
 // Rutas de invitados (no autenticados)
 Route::middleware('guest')->group(function () {
@@ -67,6 +71,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/businesses/{business}/reset-password', [SuperadminBusinessController::class, 'resetAdminPassword'])->name('businesses.resetPassword');
         Route::post('/businesses/{business}/renew-subscription', [SuperadminBusinessController::class, 'renewSubscription'])->name('businesses.renewSubscription');
         Route::get('/businesses/{business}/users', [SuperadminBusinessController::class, 'users'])->name('businesses.users');
+        Route::get('/businesses/{business}/users/create', [SuperadminBusinessController::class, 'createUser'])->name('businesses.users.create');
+        Route::post('/businesses/{business}/users', [SuperadminBusinessController::class, 'storeUser'])->name('businesses.users.store');
         Route::post('/businesses/{business}/users/{user}/toggle-status', [SuperadminBusinessController::class, 'toggleUserStatus'])->name('businesses.toggleUserStatus');
     });
 
@@ -79,8 +85,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
         Route::get('/products', [ProductController::class, 'index'])->name('products.index');
         Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
-        Route::get('/recipes', [RecipeController::class, 'index'])->name('recipes.index');
-        Route::get('/recipes/{recipe}', [RecipeController::class, 'show'])->name('recipes.show');
 
         // Módulo Restaurante: Salón, Mesas y Comandas (Solo comercios tipo Restaurante)
         Route::middleware('restaurant')->prefix('restaurant')->name('restaurant.')->group(function () {
@@ -104,6 +108,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/orders/{order}/items', [RestaurantOrderController::class, 'addItems'])->name('orders.items.store');
             Route::match(['get', 'post'], '/orders/{order}/kitchen-ticket', [RestaurantOrderController::class, 'kitchenTicket'])->name('orders.kitchen-ticket');
             Route::match(['get', 'post'], '/orders/{order}/pre-bill', [RestaurantOrderController::class, 'preBill'])->name('orders.prebill');
+            Route::post('/orders/{order}/cancel-empty', [RestaurantOrderController::class, 'cancelEmpty'])->name('orders.cancel-empty');
 
             // Domicilios y Despacho
             Route::get('/deliveries', [RestaurantOrderController::class, 'deliveries'])->name('orders.deliveries');
@@ -175,13 +180,6 @@ Route::middleware('auth')->group(function () {
             Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
             Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
             Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
-
-            // Gestión de Recetas (Escritura y Eliminación)
-            Route::get('/recipes-create', [RecipeController::class, 'create'])->name('recipes.create');
-            Route::post('/recipes', [RecipeController::class, 'store'])->name('recipes.store');
-            Route::get('/recipes/{recipe}/edit', [RecipeController::class, 'edit'])->name('recipes.edit');
-            Route::put('/recipes/{recipe}', [RecipeController::class, 'update'])->name('recipes.update');
-            Route::delete('/recipes/{recipe}', [RecipeController::class, 'destroy'])->name('recipes.destroy');
 
             // Gestión de Clientes (Edición y Eliminación)
             Route::get('/customers/{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit');

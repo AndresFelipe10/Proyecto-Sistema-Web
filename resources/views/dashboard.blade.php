@@ -148,36 +148,38 @@
             </div>
         </div>
 
-        <div class="col-sm-6">
-            <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted small fw-semibold text-uppercase">Stock Crítico</span>
-                        <h3 class="fw-bold mb-0 mt-1 {{ $low_stock_count > 0 ? 'text-danger' : 'text-secondary' }}">
-                            {{ $low_stock_count }}
-                        </h3>
-                        <small class="text-muted">
-                            @if($out_of_stock_count > 0)
-                                <span class="text-danger fw-semibold">{{ $out_of_stock_count }} agotados</span>
-                            @else
-                                {{ $low_stock_count > 0 ? 'requieren reposición' : 'sin alertas de stock' }}
-                            @endif
-                        </small>
-                    </div>
-                    <div class="{{ $low_stock_count > 0 ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary' }} p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-                        <i class="bi bi-exclamation-triangle fs-4"></i>
+        @if(empty($is_restaurant))
+            <div class="col-sm-6">
+                <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small fw-semibold text-uppercase">Stock Crítico</span>
+                            <h3 class="fw-bold mb-0 mt-1 {{ $low_stock_count > 0 ? 'text-danger' : 'text-secondary' }}">
+                                {{ $low_stock_count }}
+                            </h3>
+                            <small class="text-muted">
+                                @if($out_of_stock_count > 0)
+                                    <span class="text-danger fw-semibold">{{ $out_of_stock_count }} agotados</span>
+                                @else
+                                    {{ $low_stock_count > 0 ? 'requieren reposición' : 'sin alertas de stock' }}
+                                @endif
+                            </small>
+                        </div>
+                        <div class="{{ $low_stock_count > 0 ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary' }} p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                            <i class="bi bi-exclamation-triangle fs-4"></i>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        @endif
 
-        <div class="col-sm-6">
+        <div class="{{ empty($is_restaurant) ? 'col-sm-6' : 'col-12' }}">
             <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <span class="text-muted small fw-semibold text-uppercase">Catálogo y Clientes</span>
+                        <span class="text-muted small fw-semibold text-uppercase">{{ !empty($is_restaurant) ? 'Menú y Clientes' : 'Catálogo y Clientes' }}</span>
                         <h3 class="fw-bold mb-0 mt-1 text-dark">
-                            {{ $total_products }}
+                            {{ $total_products }} <span class="fs-6 fw-normal text-muted">{{ !empty($is_restaurant) ? 'platos y bebidas' : 'productos' }}</span>
                         </h3>
                         <small class="text-muted">{{ $total_customers }} clientes activos</small>
                     </div>
@@ -189,7 +191,7 @@
         </div>
     @else
         {{-- Tarjetas Operativas (Vendedores / Colaboradores) --}}
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 {{ !empty($is_restaurant) ? 'col-xl-4' : 'col-xl-3' }}">
             <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
@@ -206,7 +208,7 @@
             </div>
         </div>
 
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 {{ !empty($is_restaurant) ? 'col-xl-4' : 'col-xl-3' }}">
             <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
@@ -223,36 +225,38 @@
             </div>
         </div>
 
-        <div class="col-sm-6 col-xl-3">
-            <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted small fw-semibold text-uppercase">Stock Crítico</span>
-                        <h3 class="fw-bold mb-0 mt-1 {{ $low_stock_count > 0 ? 'text-danger' : 'text-secondary' }}">
-                            {{ $low_stock_count }}
-                        </h3>
-                        <small class="text-muted">
-                            @if($out_of_stock_count > 0)
-                                <span class="text-danger fw-semibold">{{ $out_of_stock_count }} agotados</span>
-                            @else
-                                {{ $low_stock_count > 0 ? 'requieren reposición' : 'sin alertas de stock' }}
-                            @endif
-                        </small>
-                    </div>
-                    <div class="{{ $low_stock_count > 0 ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary' }} p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
-                        <i class="bi bi-exclamation-triangle fs-4"></i>
+        @if(empty($is_restaurant))
+            <div class="col-sm-6 col-xl-3">
+                <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small fw-semibold text-uppercase">Stock Crítico</span>
+                            <h3 class="fw-bold mb-0 mt-1 {{ $low_stock_count > 0 ? 'text-danger' : 'text-secondary' }}">
+                                {{ $low_stock_count }}
+                            </h3>
+                            <small class="text-muted">
+                                @if($out_of_stock_count > 0)
+                                    <span class="text-danger fw-semibold">{{ $out_of_stock_count }} agotados</span>
+                                @else
+                                    {{ $low_stock_count > 0 ? 'requieren reposición' : 'sin alertas de stock' }}
+                                @endif
+                            </small>
+                        </div>
+                        <div class="{{ $low_stock_count > 0 ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary' }} p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 52px; height: 52px;">
+                            <i class="bi bi-exclamation-triangle fs-4"></i>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        @endif
 
-        <div class="col-sm-6 col-xl-3">
+        <div class="col-sm-6 {{ !empty($is_restaurant) ? 'col-xl-4' : 'col-xl-3' }}">
             <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <span class="text-muted small fw-semibold text-uppercase">Catálogo y Clientes</span>
+                        <span class="text-muted small fw-semibold text-uppercase">{{ !empty($is_restaurant) ? 'Menú y Clientes' : 'Catálogo y Clientes' }}</span>
                         <h3 class="fw-bold mb-0 mt-1 text-dark">
-                            {{ $total_products }}
+                            {{ $total_products }} <span class="fs-6 fw-normal text-muted">{{ !empty($is_restaurant) ? 'platos y bebidas' : 'productos' }}</span>
                         </h3>
                         <small class="text-muted">{{ $total_customers }} clientes activos</small>
                     </div>
@@ -385,45 +389,47 @@
 
     {{-- Columna Derecha: Alertas de Stock y Top Productos --}}
     <div class="col-lg-5 d-flex flex-column gap-4">
-        {{-- Stock Crítico / Alertas --}}
-        <div class="card card-custom bg-white border-0 shadow-sm">
-            <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold mb-0">Alertas de Stock</h5>
-                <a href="{{ route('inventory.index') }}" class="text-primary small fw-semibold text-decoration-none">
-                    Inventario <i class="bi bi-chevron-right"></i>
-                </a>
-            </div>
-            <div class="card-body px-4 pb-4">
-                @if($low_stock_products->isEmpty())
-                    <div class="text-center py-3 text-success">
-                        <i class="bi bi-check-circle-fill fs-3 d-block mb-1"></i>
-                        <p class="mb-0 fw-semibold">¡Inventario en orden!</p>
-                        <small class="text-muted">No tienes productos con existencias críticas.</small>
-                    </div>
-                @else
-                    <div class="list-group list-group-flush">
-                        @foreach($low_stock_products as $product)
-                            <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="fw-semibold text-dark">{{ $product->name }}</div>
-                                    <small class="text-muted">SKU: {{ $product->sku }} | Min: {{ $product->min_stock }}</small>
+        {{-- Stock Crítico / Alertas (Exclusivo Comercio / Retail) --}}
+        @if(empty($is_restaurant))
+            <div class="card card-custom bg-white border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0">Alertas de Stock</h5>
+                    <a href="{{ route('inventory.index') }}" class="text-primary small fw-semibold text-decoration-none">
+                        Inventario <i class="bi bi-chevron-right"></i>
+                    </a>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    @if($low_stock_products->isEmpty())
+                        <div class="text-center py-3 text-success">
+                            <i class="bi bi-check-circle-fill fs-3 d-block mb-1"></i>
+                            <p class="mb-0 fw-semibold">¡Inventario en orden!</p>
+                            <small class="text-muted">No tienes productos con existencias críticas.</small>
+                        </div>
+                    @else
+                        <div class="list-group list-group-flush">
+                            @foreach($low_stock_products as $product)
+                                <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold text-dark">{{ $product->name }}</div>
+                                        <small class="text-muted">SKU: {{ $product->sku }} | Min: {{ $product->min_stock }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge {{ $product->stock <= 0 ? 'bg-danger' : 'bg-warning text-dark' }} rounded-pill px-3 py-1">
+                                            {{ $product->stock }} disp.
+                                        </span>
+                                    </div>
                                 </div>
-                                <div class="text-end">
-                                    <span class="badge {{ $product->stock <= 0 ? 'bg-danger' : 'bg-warning text-dark' }} rounded-pill px-3 py-1">
-                                        {{ $product->stock }} disp.
-                                    </span>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
             </div>
-        </div>
+        @endif
 
-        {{-- Top 5 Productos Más Vendidos --}}
+        {{-- Top 5 Productos / Platos Más Vendidos --}}
         <div class="card card-custom bg-white border-0 shadow-sm">
             <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2">
-                <h5 class="fw-bold mb-0">Más Vendidos</h5>
+                <h5 class="fw-bold mb-0">{{ !empty($is_restaurant) ? 'Platos Más Vendidos' : 'Más Vendidos' }}</h5>
             </div>
             <div class="card-body px-4 pb-4">
                 @if($top_products->isEmpty())

@@ -274,4 +274,23 @@ class RestaurantTableTest extends TestCase
             'status' => 'occupied',
         ]);
     }
+
+    public function test_can_create_table_with_only_name_and_defaults_capacity_to_4(): void
+    {
+        $this->actingAs($this->adminA);
+
+        $response = $this->post(route('restaurant.tables.store'), [
+            'name' => 'Terraza 5',
+            // capacity omitido intencionalmente
+        ]);
+
+        $response->assertRedirect(route('restaurant.tables.index'));
+
+        $this->assertDatabaseHas('restaurant_tables', [
+            'business_id' => $this->restaurantA->id,
+            'name' => 'Terraza 5',
+            'capacity' => 4,
+            'status' => 'available',
+        ]);
+    }
 }

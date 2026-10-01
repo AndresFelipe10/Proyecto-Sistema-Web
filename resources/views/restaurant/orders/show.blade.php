@@ -3,6 +3,14 @@
 @section('title', "Comanda {$order->order_number}")
 
 @section('content')
+@php
+    $groupedProducts = $groupedProducts ?? $products->groupBy(fn($p) => $p->category?->name ?? 'General / Sin Categoría');
+    $waiterName = ($order->order_type === 'table' && !empty($order->customer_name))
+        ? $order->customer_name
+        : ($order->user->name ?? 'Usuario');
+    $clientName = $order->customer?->name
+        ?? ($order->order_type !== 'table' && !empty($order->customer_name) ? $order->customer_name : 'Consumidor Final');
+@endphp
 <div class="container-fluid py-3" style="max-width: 1200px;">
     {{-- Header de la Comanda --}}
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -34,16 +42,22 @@
                     @endif
                 </h1>
                 <p class="text-muted small mb-0">
-                    Mesero / Atendido por: <strong>{{ $order->user->name ?? 'N/A' }}</strong> &bull;
+                    Mesero / Atendido por: <strong>{{ $waiterName }}</strong> &bull;
                     Apertura: {{ $order->created_at->format('d/m/Y H:i') }} ({{ $order->created_at->diffForHumans() }})
-                    @if($order->customer_name)
-                        &bull; Cliente: <strong>{{ $order->customer_name }}</strong>
+                    &bull; Cliente: <strong>{{ $clientName }}</strong>
+                    @if($order->guest_count)
+                        &bull; Personas: <strong>{{ $order->guest_count }}</strong>
                     @endif
                 </p>
             </div>
         </div>
 
         <div class="d-flex flex-wrap gap-2">
+            {{-- Acceso a Configuración de Impresión de Comandas --}}
+            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#kitchenConfigModal" title="Configuración de Comandas">
+                <i class="bi bi-gear-fill me-1"></i> Configuración
+            </button>
+
             {{-- Botón Enviar a Cocina / Imprimir Ticket --}}
             @php
                 $hasPendingKitchen = $order->items->where('printed_to_kitchen', false)->where('status', '!=', 'cancelled')->count() > 0;
@@ -65,6 +79,16 @@
                 <a href="{{ route('restaurant.orders.prebill', $order) }}" target="_blank" class="btn btn-outline-warning text-dark fw-bold">
                     <i class="bi bi-file-earmark-text me-1"></i> Pre-cuenta (80mm)
                 </a>
+            @endif
+
+            {{-- Botón Cancelar Comanda Vacía --}}
+            @if($order->status === 'open' && $order->items->isEmpty())
+                <form action="{{ route('restaurant.orders.cancel-empty', $order) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Confirmas que deseas cancelar esta comanda vacía y liberar la mesa?');">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-danger fw-semibold">
+                        <i class="bi bi-x-circle me-1"></i> Cancelar Comanda Vacía
+                    </button>
+                </form>
             @endif
 
             {{-- Botón Cobrar / Facturar --}}
@@ -119,8 +143,17 @@
                 <div class="card-body p-4">
                     @if($order->items->isEmpty())
                         <div class="text-center py-5 text-muted">
-                            <i class="bi bi-cart-x fs-1 d-block mb-2"></i>
-                            <p class="mb-0">No hay platos agregados a esta comanda aún.</p>
+                            <i class="bi bi-cart-x fs-1 d-block mb-2 text-secondary"></i>
+                            <p class="mb-2 fw-semibold">No hay platos agregados a esta comanda aún.</p>
+                            @if($order->status === 'open')
+                                <p class="small text-muted mb-3">Si esta comanda fue abierta por error, puedes anularla y liberar la mesa inmediatamente.</p>
+                                <form action="{{ route('restaurant.orders.cancel-empty', $order) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Confirmas que deseas cancelar esta comanda vacía y liberar la mesa?');">
+                                    @csrf
+                                    <button type="submit" class="btn btn-outline-danger btn-sm px-3">
+                                        <i class="bi bi-x-circle me-1"></i> Cancelar Comanda Vacía
+                                    </button>
+                                </form>
+                            @endif
                         </div>
                     @else
                         @foreach($batches as $batchNumber => $items)
@@ -199,6 +232,9 @@
                     </div>
 
                     <div class="card-body p-4">
+                        @php
+                            $groupedProducts = $products->groupBy(fn($p) => $p->category?->name ?? 'General / Sin Categoría');
+                        @endphp
                         <form action="{{ route('restaurant.orders.items.store', $order) }}" method="POST" id="addItemsForm">
                             @csrf
 
@@ -207,18 +243,30 @@
                                     <div class="row g-2 align-items-center">
                                         <div class="col-12 col-md-5">
                                             <label class="form-label small fw-semibold">Plato / Producto <span class="text-danger">*</span></label>
-                                            <select class="form-select form-select-sm" name="items[0][product_id]" required>
-                                                <option value="" disabled selected>-- Seleccionar --</option>
-                                                @foreach($products as $prod)
-                                                    <option value="{{ $prod->id }}">
-                                                        {{ $prod->name }} (${{ number_format($prod->sale_price, 2) }})
-                                                    </option>
+                                            <div class="position-relative mb-1">
+                                                <input type="text" class="form-control form-control-sm product-search-input" placeholder="🔍 Escribe para buscar plato o bebida..." autocomplete="off">
+                                                <div class="product-dropdown-list list-group position-absolute w-100 shadow-lg border rounded-3 overflow-auto d-none" style="max-height: 220px; z-index: 1050; top: 100%; left: 0; background: #fff;"></div>
+                                            </div>
+                                            <select class="form-select form-select-sm product-select" name="items[0][product_id]" required>
+                                                <option value="" disabled selected>-- O selecciona del menú agrupado --</option>
+                                                @foreach($groupedProducts as $categoryName => $catProducts)
+                                                    <optgroup label="{{ $categoryName }}">
+                                                        @foreach($catProducts as $prod)
+                                                            <option value="{{ $prod->id }}" data-category="{{ $categoryName }}" data-price="{{ $prod->sale_price }}">
+                                                                {{ $prod->name }} (${{ number_format($prod->sale_price, 2) }})
+                                                            </option>
+                                                        @endforeach
+                                                    </optgroup>
                                                 @endforeach
                                             </select>
                                         </div>
                                         <div class="col-6 col-md-2">
                                             <label class="form-label small fw-semibold">Cantidad <span class="text-danger">*</span></label>
-                                            <input type="number" step="any" min="0.001" value="1" class="form-control form-select-sm" name="items[0][quantity]" required>
+                                            <div class="input-group input-group-sm" style="max-width: 130px;">
+                                                <button type="button" class="btn btn-outline-secondary btn-qty-minus fw-bold px-2">−</button>
+                                                <input type="number" name="items[0][quantity]" class="form-control text-center input-qty" value="1" min="1" max="999" required>
+                                                <button type="button" class="btn btn-outline-secondary btn-qty-plus fw-bold px-2">+</button>
+                                            </div>
                                         </div>
                                         <div class="col-6 col-md-4">
                                             <label class="form-label small fw-semibold">Observación</label>
@@ -233,12 +281,12 @@
                                 </div>
                             </div>
 
-                            <div class="d-flex justify-content-between align-items-center pt-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-add-more-row">
-                                    <i class="bi bi-plus-lg me-1"></i> Otra Línea
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-3 border-top">
+                                <button type="button" class="btn btn-outline-primary fw-semibold px-3 py-2 d-inline-flex align-items-center" id="btn-add-more-row" style="min-height: 44px;">
+                                    <i class="bi bi-plus-circle fs-5 me-2"></i> + Agregar otro plato
                                 </button>
-                                <button type="submit" class="btn btn-primary px-4 fw-bold">
-                                    <i class="bi bi-check-lg me-1"></i> Confirmar y Agregar
+                                <button type="submit" class="btn btn-primary px-4 py-2 fw-bold d-inline-flex align-items-center shadow-sm" style="min-height: 44px;">
+                                    <i class="bi bi-send-check fs-5 me-2"></i> Confirmar y Enviar a Cocina
                                 </button>
                             </div>
                         </form>
@@ -397,6 +445,50 @@
                         </div>
                     </div>
 
+                    {{-- Opciones Fiscales y Propinas (Servicio e INC) --}}
+                    <div class="card border p-3 mb-3 rounded-3 bg-white">
+                        <div class="row g-3">
+                            {{-- Servicio Voluntario / Propina --}}
+                            <div class="col-12 col-md-6 border-end-md">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="switch_service_fee" role="switch">
+                                    <label class="form-check-label fw-semibold small text-dark" for="switch_service_fee">
+                                        <i class="bi bi-heart text-danger me-1"></i> Incluir Servicio / Propina (10%)
+                                    </label>
+                                </div>
+                                <div id="service_fee_container" class="d-none">
+                                    <div class="input-group input-group-sm mb-1">
+                                        <span class="input-group-text bg-light small">Tarifa:</span>
+                                        <input type="number" step="0.5" min="0" max="100" id="service_fee_pct" class="form-control text-end fw-bold" value="10" style="max-width: 75px;">
+                                        <span class="input-group-text bg-light">%</span>
+                                        <span class="input-group-text bg-light">$</span>
+                                        <input type="number" step="0.01" min="0" name="service_fee" id="settlement_service_fee" class="form-control text-end fw-bold" value="0.00">
+                                    </div>
+                                    <small class="text-muted d-block" style="font-size: 0.72rem;">Sugerido 10% voluntario sobre el consumo</small>
+                                </div>
+                            </div>
+
+                            {{-- Impuesto Nacional al Consumo (INC) --}}
+                            <div class="col-12 col-md-6">
+                                <div class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="switch_tax_inc" role="switch">
+                                    <label class="form-check-label fw-semibold small text-dark" for="switch_tax_inc">
+                                        <i class="bi bi-receipt text-primary me-1"></i> Aplicar Impuesto al Consumo (INC 8%)
+                                    </label>
+                                </div>
+                                <div id="tax_inc_container" class="d-none">
+                                    <div class="input-group input-group-sm mb-1">
+                                        <span class="input-group-text bg-light small">Tarifa:</span>
+                                        <input type="text" class="form-control bg-light text-center fw-bold" value="8%" readonly style="max-width: 75px;">
+                                        <span class="input-group-text bg-light">$</span>
+                                        <input type="number" step="0.01" min="0" name="tax_inc" id="settlement_tax_inc" class="form-control text-end fw-bold" value="0.00" readonly>
+                                    </div>
+                                    <small class="text-muted d-block" style="font-size: 0.72rem;">8% sobre la base gravable de alimentos y bebidas</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     {{-- Resumen de Cálculo Autoritativo --}}
                     <div class="card bg-light border-0 p-3 mb-3 rounded-3">
                         <div class="d-flex justify-content-between small mb-1">
@@ -413,6 +505,14 @@
                                 <span class="fw-semibold text-dark" id="display_delivery_fee">+${{ number_format($order->delivery_fee, 2) }}</span>
                             </div>
                         @endif
+                        <div class="d-flex justify-content-between small mb-1" id="row_service_fee" style="display: none !important;">
+                            <span class="text-muted">Servicio / Propina (<span id="display_service_pct_label">10%</span>):</span>
+                            <span class="fw-semibold text-dark" id="display_service_fee">+$0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-1" id="row_tax_inc" style="display: none !important;">
+                            <span class="text-muted">Impuesto al Consumo (INC 8%):</span>
+                            <span class="fw-semibold text-dark" id="display_tax_inc">+$0.00</span>
+                        </div>
                         <hr class="my-2">
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="fw-bold fs-6 text-dark">Total a Liquidar:</span>
@@ -508,23 +608,36 @@
 </div>
 @endif
 
+@if(!in_array($order->status, ['closed', 'cancelled']))
 <template id="more-row-template">
     <div class="card bg-light border-0 mb-3 new-item-row p-3 rounded-3">
         <div class="row g-2 align-items-center">
             <div class="col-12 col-md-5">
                 <label class="form-label small fw-semibold">Plato / Producto <span class="text-danger">*</span></label>
-                <select class="form-select form-select-sm" name="items[INDEX][product_id]" required>
-                    <option value="" disabled selected>-- Seleccionar --</option>
-                    @foreach($products as $prod)
-                        <option value="{{ $prod->id }}">
-                            {{ $prod->name }} (${{ number_format($prod->sale_price, 2) }})
-                        </option>
+                <div class="position-relative mb-1">
+                    <input type="text" class="form-control form-control-sm product-search-input" placeholder="🔍 Escribe para buscar plato o bebida..." autocomplete="off">
+                    <div class="product-dropdown-list list-group position-absolute w-100 shadow-lg border rounded-3 overflow-auto d-none" style="max-height: 220px; z-index: 1050; top: 100%; left: 0; background: #fff;"></div>
+                </div>
+                <select class="form-select form-select-sm product-select" name="items[INDEX][product_id]" required>
+                    <option value="" disabled selected>-- O selecciona del menú agrupado --</option>
+                    @foreach($groupedProducts as $categoryName => $catProducts)
+                        <optgroup label="{{ $categoryName }}">
+                            @foreach($catProducts as $prod)
+                                <option value="{{ $prod->id }}" data-category="{{ $categoryName }}" data-price="{{ $prod->sale_price }}">
+                                    {{ $prod->name }} (${{ number_format($prod->sale_price, 2) }})
+                                </option>
+                            @endforeach
+                        </optgroup>
                     @endforeach
                 </select>
             </div>
             <div class="col-6 col-md-2">
                 <label class="form-label small fw-semibold">Cantidad <span class="text-danger">*</span></label>
-                <input type="number" step="any" min="0.001" value="1" class="form-control form-select-sm" name="items[INDEX][quantity]" required>
+                <div class="input-group input-group-sm" style="max-width: 130px;">
+                    <button type="button" class="btn btn-outline-secondary btn-qty-minus fw-bold px-2">−</button>
+                    <input type="number" name="items[INDEX][quantity]" class="form-control text-center input-qty" value="1" min="1" max="999" required>
+                    <button type="button" class="btn btn-outline-secondary btn-qty-plus fw-bold px-2">+</button>
+                </div>
             </div>
             <div class="col-6 col-md-4">
                 <label class="form-label small fw-semibold">Observación</label>
@@ -538,9 +651,243 @@
         </div>
     </div>
 </template>
+@endif
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // Manejo de botones de cantidad (+ / -)
+    function attachQuantityControls(row) {
+        const btnMinus = row.querySelector('.btn-qty-minus');
+        const btnPlus = row.querySelector('.btn-qty-plus');
+        const qtyInput = row.querySelector('.input-qty');
+        if (!btnMinus || !btnPlus || !qtyInput) return;
+
+        btnMinus.addEventListener('click', function () {
+            let val = parseInt(qtyInput.value) || 1;
+            if (val > 1) {
+                qtyInput.value = val - 1;
+                qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
+                qtyInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+
+        btnPlus.addEventListener('click', function () {
+            let val = parseInt(qtyInput.value) || 1;
+            qtyInput.value = val + 1;
+            qtyInput.dispatchEvent(new Event('input', { bubbles: true }));
+            qtyInput.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+    }
+
+    // Manejo de filtrado rápido y combobox instantáneo de platos
+    function attachProductSearch(row) {
+        const searchInput = row.querySelector('.product-search-input');
+        const select = row.querySelector('.product-select');
+        const dropdown = row.querySelector('.product-dropdown-list');
+        if (!searchInput || !select || !dropdown) return;
+
+        // Normalización insensible a mayúsculas y acentos
+        function normalizeStr(str) {
+            return (str || '')
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toLowerCase();
+        }
+
+        // Extraer lista de opciones
+        const productsList = [];
+        select.querySelectorAll('option').forEach(opt => {
+            if (opt.value) {
+                const rawText = opt.textContent.trim();
+                const category = opt.getAttribute('data-category') || opt.closest('optgroup')?.label || 'General';
+                const price = opt.getAttribute('data-price') || '';
+                const cleanName = rawText.replace(/\s*\(\$[\d,\.]+\)\s*$/, '').trim();
+                productsList.push({
+                    id: opt.value,
+                    fullName: rawText,
+                    name: cleanName,
+                    category: category,
+                    price: price
+                });
+            }
+        });
+
+        let highlightedIndex = -1;
+
+        function updateHighlight(items) {
+            items.forEach((it, idx) => {
+                if (idx === highlightedIndex) {
+                    it.classList.add('active', 'bg-primary-subtle');
+                    it.scrollIntoView({ block: 'nearest' });
+                } else {
+                    it.classList.remove('active', 'bg-primary-subtle');
+                }
+            });
+        }
+
+        function renderMatches(q) {
+            dropdown.innerHTML = '';
+            highlightedIndex = -1;
+            if (!q) {
+                dropdown.classList.add('d-none');
+                return;
+            }
+
+            const normalizedQ = normalizeStr(q);
+            const matches = productsList.filter(p => 
+                normalizeStr(p.name).includes(normalizedQ) || 
+                normalizeStr(p.category).includes(normalizedQ)
+            );
+
+            if (matches.length === 0) {
+                const emptyItem = document.createElement('div');
+                emptyItem.className = 'list-group-item text-muted small py-3 px-3 text-center';
+                emptyItem.textContent = 'No se encontraron platos coincidentes';
+                dropdown.appendChild(emptyItem);
+                dropdown.classList.remove('d-none');
+                return;
+            }
+
+            matches.forEach((p, idx) => {
+                const itemBtn = document.createElement('button');
+                itemBtn.type = 'button';
+                itemBtn.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center text-start py-2 px-3 border-0 border-bottom product-result-item';
+                itemBtn.style.minHeight = '44px';
+                itemBtn.dataset.index = idx;
+
+                const leftDiv = document.createElement('div');
+                leftDiv.className = 'pe-2';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'fw-semibold text-dark d-block';
+                nameSpan.textContent = p.name;
+                leftDiv.appendChild(nameSpan);
+
+                if (p.category) {
+                    const catBadge = document.createElement('span');
+                    catBadge.className = 'badge bg-light text-secondary border';
+                    catBadge.style.fontSize = '0.72rem';
+                    catBadge.textContent = p.category;
+                    leftDiv.appendChild(catBadge);
+                }
+
+                const rightDiv = document.createElement('div');
+                rightDiv.className = 'text-end fw-bold text-primary small';
+                rightDiv.textContent = p.price ? '$' + Number(p.price).toLocaleString('es-CO', {minimumFractionDigits: 2}) : '';
+
+                itemBtn.appendChild(leftDiv);
+                itemBtn.appendChild(rightDiv);
+
+                function selectItem() {
+                    select.value = p.id;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                    searchInput.value = p.fullName;
+                    dropdown.classList.add('d-none');
+                    highlightedIndex = -1;
+
+                    const qtyInput = row.querySelector('.input-qty');
+                    const notesInput = row.querySelector('input[name*="[notes]"]');
+                    if (qtyInput) {
+                        qtyInput.focus();
+                        try {
+                            qtyInput.select();
+                        } catch (err) {}
+                    } else if (notesInput) {
+                        notesInput.focus();
+                    }
+                }
+
+                itemBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectItem();
+                });
+
+                itemBtn.addEventListener('mouseenter', function () {
+                    highlightedIndex = idx;
+                    const items = dropdown.querySelectorAll('button.product-result-item');
+                    updateHighlight(items);
+                });
+
+                dropdown.appendChild(itemBtn);
+            });
+
+            dropdown.classList.remove('d-none');
+        }
+
+        searchInput.addEventListener('input', function () {
+            renderMatches(this.value.trim());
+        });
+
+        searchInput.addEventListener('focus', function () {
+            if (this.value.trim().length > 0) {
+                renderMatches(this.value.trim());
+            }
+        });
+
+        searchInput.addEventListener('keydown', function (e) {
+            const items = dropdown.querySelectorAll('button.product-result-item');
+            const isVisible = !dropdown.classList.contains('d-none') && items.length > 0;
+
+            if (e.key === 'ArrowDown' || e.keyCode === 40) {
+                if (isVisible) {
+                    e.preventDefault();
+                    if (highlightedIndex < items.length - 1) {
+                        highlightedIndex++;
+                    } else {
+                        highlightedIndex = 0;
+                    }
+                    updateHighlight(items);
+                }
+            } else if (e.key === 'ArrowUp' || e.keyCode === 38) {
+                if (isVisible) {
+                    e.preventDefault();
+                    if (highlightedIndex > 0) {
+                        highlightedIndex--;
+                    } else {
+                        highlightedIndex = items.length - 1;
+                    }
+                    updateHighlight(items);
+                }
+            } else if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault(); // Prevenir estrictamente el submit accidental del formulario
+                if (isVisible) {
+                    const targetBtn = (highlightedIndex >= 0 && items[highlightedIndex])
+                        ? items[highlightedIndex]
+                        : items[0];
+                    if (targetBtn) {
+                        targetBtn.click();
+                    }
+                }
+            } else if (e.key === 'Escape' || e.keyCode === 27) {
+                dropdown.classList.add('d-none');
+                highlightedIndex = -1;
+            }
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!row.contains(e.target)) {
+                dropdown.classList.add('d-none');
+                highlightedIndex = -1;
+            }
+        });
+
+        select.addEventListener('change', function () {
+            const opt = select.options[select.selectedIndex];
+            if (opt && opt.value) {
+                searchInput.value = opt.textContent.trim();
+            }
+            dropdown.classList.add('d-none');
+            highlightedIndex = -1;
+        });
+    }
+
+    // Inicializar controles en filas existentes
+    document.querySelectorAll('.new-item-row').forEach(row => {
+        attachQuantityControls(row);
+        attachProductSearch(row);
+    });
+
     // 1. Manejo de líneas dinámicas para agregar platos
     const container = document.getElementById('new-items-container');
     const template = document.getElementById('more-row-template');
@@ -557,6 +904,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 row.remove();
             });
 
+            attachQuantityControls(row);
+            attachProductSearch(row);
+
             container.appendChild(clone);
             rowIndex++;
         });
@@ -570,6 +920,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const displayDiscount = document.getElementById('display_discount');
     const displayDiscountLabel = document.getElementById('display_discount_pct_label');
     const displayTotal = document.getElementById('display_total');
+
+    const switchServiceFee = document.getElementById('switch_service_fee');
+    const serviceFeeContainer = document.getElementById('service_fee_container');
+    const serviceFeePctInput = document.getElementById('service_fee_pct');
+    const serviceFeeInput = document.getElementById('settlement_service_fee');
+    const rowServiceFee = document.getElementById('row_service_fee');
+    const displayServiceFee = document.getElementById('display_service_fee');
+    const displayServicePctLabel = document.getElementById('display_service_pct_label');
+
+    const switchTaxInc = document.getElementById('switch_tax_inc');
+    const taxIncContainer = document.getElementById('tax_inc_container');
+    const taxIncInput = document.getElementById('settlement_tax_inc');
+    const rowTaxInc = document.getElementById('row_tax_inc');
+    const displayTaxInc = document.getElementById('display_tax_inc');
+
     const paymentsContainer = document.getElementById('paymentsContainer');
     const btnAddPaymentLine = document.getElementById('btnAddPaymentLine');
     const balanceAlert = document.getElementById('paymentBalanceAlert');
@@ -584,10 +949,57 @@ document.addEventListener('DOMContentLoaded', function () {
         return '$' + amount.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    function recalculateTotal() {
+    function recalculateTotal(source) {
+        // Blindaje normativo colombiano de liquidación (Gastronomía y Restaurantes):
+        // 1. Base Gravable / Consumo neto = Subtotal - Descuento (Art. 512-1 del Estatuto Tributario).
+        // 2. Propina Voluntaria / Servicio (Ley 1935 de 2018 y Circular Única SIC):
+        //    Liberalidad de los trabajadores. NO hace parte de la base gravable de INC ni IVA (no causa impuestos).
+        // 3. Impuesto Nacional al Consumo - INC 8% (Art. 512-1 E.T.):
+        //    Grava exclusivamente el consumo neto de alimentos y bebidas. NO grava propina ni domicilio.
+        // 4. Total a Liquidar = Base Gravable + Domicilio + Servicio + INC.
         const discountPct = parseFloat(discountInput?.value || 0) || 0;
         const discountAmount = Math.round(subtotal * (discountPct / 100) * 100) / 100;
-        currentTotal = Math.max(0, Math.round((subtotal - discountAmount + deliveryFee) * 100) / 100);
+        const netFoodBase = Math.max(0, Math.round((subtotal - discountAmount) * 100) / 100);
+
+        // Servicio / Propina (Ley 1935 de 2018 - 10% sugerido editable o monto en pesos)
+        let serviceFee = 0;
+        if (switchServiceFee?.checked) {
+            serviceFeeContainer?.classList.remove('d-none');
+            if (source === 'service_amount') {
+                serviceFee = Math.max(0, parseFloat(serviceFeeInput?.value || 0) || 0);
+                if (netFoodBase > 0) {
+                    const derivedPct = Math.round((serviceFee / netFoodBase) * 1000) / 10;
+                    if (serviceFeePctInput) serviceFeePctInput.value = derivedPct;
+                }
+            } else {
+                const servicePct = parseFloat(serviceFeePctInput?.value || 10) || 0;
+                serviceFee = Math.round(netFoodBase * (servicePct / 100) * 100) / 100;
+                if (serviceFeeInput) serviceFeeInput.value = serviceFee.toFixed(2);
+            }
+            if (rowServiceFee) rowServiceFee.style.setProperty('display', 'flex', 'important');
+            if (displayServiceFee) displayServiceFee.textContent = '+' + formatMoney(serviceFee);
+            if (displayServicePctLabel) displayServicePctLabel.textContent = (parseFloat(serviceFeePctInput?.value || 10)) + '%';
+        } else {
+            serviceFeeContainer?.classList.add('d-none');
+            if (serviceFeeInput) serviceFeeInput.value = '0.00';
+            if (rowServiceFee) rowServiceFee.style.setProperty('display', 'none', 'important');
+        }
+
+        // Impuesto Nacional al Consumo (INC 8%)
+        let taxInc = 0;
+        if (switchTaxInc?.checked) {
+            taxIncContainer?.classList.remove('d-none');
+            taxInc = Math.round(netFoodBase * 0.08 * 100) / 100;
+            if (taxIncInput) taxIncInput.value = taxInc.toFixed(2);
+            if (rowTaxInc) rowTaxInc.style.setProperty('display', 'flex', 'important');
+            if (displayTaxInc) displayTaxInc.textContent = '+' + formatMoney(taxInc);
+        } else {
+            taxIncContainer?.classList.add('d-none');
+            if (taxIncInput) taxIncInput.value = '0.00';
+            if (rowTaxInc) rowTaxInc.style.setProperty('display', 'none', 'important');
+        }
+
+        currentTotal = Math.max(0, Math.round((subtotal - discountAmount + deliveryFee + serviceFee + taxInc) * 100) / 100);
 
         if (displayDiscount) {
             displayDiscount.textContent = '-' + formatMoney(discountAmount);
@@ -710,8 +1122,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (discountInput) {
-        discountInput.addEventListener('input', recalculateTotal);
+        discountInput.addEventListener('input', () => recalculateTotal('discount'));
     }
+
+    switchServiceFee?.addEventListener('change', () => recalculateTotal('service_switch'));
+    serviceFeePctInput?.addEventListener('input', () => recalculateTotal('service_pct'));
+    serviceFeeInput?.addEventListener('input', () => recalculateTotal('service_amount'));
+
+    switchTaxInc?.addEventListener('change', () => recalculateTotal('tax_switch'));
 
     // Inicializar primera línea de pago
     const initialLine = paymentsContainer?.querySelector('.payment-line');
@@ -825,4 +1243,25 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
+
+@include('restaurant.partials.kitchen-config-modal')
+
+@if(session('print_kitchen_ticket_id'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                const autoPrint = localStorage.getItem('puntostock_auto_print_kitchen') !== 'disabled';
+                if (autoPrint) {
+                    const printUrl = "{{ route('restaurant.orders.kitchen-ticket', session('print_kitchen_ticket_id')) }}";
+                    const popup = window.open(printUrl, '_blank', 'width=450,height=650,scrollbars=yes');
+                    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+                        console.info('Aviso: La ventana emergente de impresión automática fue bloqueada por el navegador. El botón de impresión manual está disponible.');
+                    }
+                }
+            } catch (e) {
+                console.warn('Impresión automática de cocina no ejecutada:', e);
+            }
+        });
+    </script>
+@endif
 @endsection

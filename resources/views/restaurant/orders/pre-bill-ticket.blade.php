@@ -9,14 +9,19 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            color: #000000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            text-shadow: none !important;
         }
 
         body {
-            font-family: 'Courier New', Courier, monospace;
-            background-color: #f8f9fa;
-            color: #000;
-            font-size: 13px;
-            line-height: 1.3;
+            font-family: 'Courier New', Courier, Consolas, monospace !important;
+            background-color: #fff;
+            color: #000000 !important;
+            font-size: 13px !important;
+            line-height: 1.3 !important;
+            font-weight: 600 !important;
             padding: 10px;
         }
 
@@ -25,45 +30,52 @@
             width: 100%;
             margin: 0 auto;
             background: #fff;
-            padding: 12px 8px;
-            border: 1px dashed #ccc;
+            padding: 12px 6px;
+            border: 1.5px dashed #000;
         }
 
         .business-name {
             text-align: center;
             font-size: 17px;
-            font-weight: 900;
+            font-weight: 900 !important;
             text-transform: uppercase;
+            color: #000000 !important;
         }
 
         .business-nit {
             text-align: center;
             font-size: 12px;
             margin-bottom: 6px;
+            font-weight: 600 !important;
+            color: #000000 !important;
         }
 
         .ticket-title {
             text-align: center;
             font-size: 15px;
-            font-weight: bold;
-            border-top: 1px dashed #000;
-            border-bottom: 1px dashed #000;
+            font-weight: 900 !important;
+            border-top: 1.5px dashed #000;
+            border-bottom: 1.5px dashed #000;
             padding: 4px 0;
             margin: 6px 0;
             letter-spacing: 0.5px;
+            color: #000000 !important;
         }
 
         .meta-info {
             font-size: 12px;
             margin-bottom: 8px;
-            border-bottom: 1px solid #000;
+            border-bottom: 1.5px solid #000;
             padding-bottom: 6px;
+            font-weight: 600 !important;
+            color: #000000 !important;
         }
 
         .meta-row {
             display: flex;
             justify-content: space-between;
             margin-bottom: 2px;
+            color: #000000 !important;
         }
 
         /* Tabla de consumo */
@@ -72,17 +84,22 @@
             border-collapse: collapse;
             font-size: 12px;
             margin-bottom: 8px;
+            color: #000000 !important;
         }
 
         .items-table th {
-            border-bottom: 1px dashed #000;
+            border-bottom: 1.5px dashed #000;
             text-align: left;
             padding-bottom: 3px;
+            font-weight: 900 !important;
+            color: #000000 !important;
         }
 
         .items-table td {
             padding: 4px 0;
             vertical-align: top;
+            font-weight: 600 !important;
+            color: #000000 !important;
         }
 
         .text-end {
@@ -95,43 +112,58 @@
 
         /* Totales */
         .totals-section {
-            border-top: 1px dashed #000;
+            border-top: 1.5px dashed #000;
             padding-top: 6px;
             font-size: 13px;
+            font-weight: 600 !important;
+            color: #000000 !important;
         }
 
         .total-row {
             display: flex;
             justify-content: space-between;
             margin-bottom: 3px;
+            color: #000000 !important;
         }
 
         .grand-total {
-            font-size: 18px;
-            font-weight: 900;
-            border-top: 1px solid #000;
+            font-size: 17px;
+            font-weight: 900 !important;
+            border-top: 1.5px solid #000;
             border-bottom: 2px solid #000;
             padding: 6px 0;
             margin-top: 4px;
+            color: #000000 !important;
+        }
+
+        .tip-box {
+            border: 1px dashed #000;
+            padding: 6px;
+            margin-top: 8px;
+            background: #fff;
+            color: #000000 !important;
+            font-size: 12px;
         }
 
         /* Leyenda legal obligatoria */
         .legal-notice {
-            margin-top: 12px;
-            padding: 8px 4px;
+            margin-top: 10px;
+            padding: 6px 4px;
             border: 2px solid #000;
             text-align: center;
-            font-weight: 900;
+            font-weight: 900 !important;
             font-size: 11px;
             line-height: 1.25;
             text-transform: uppercase;
+            color: #000000 !important;
         }
 
         .footer-note {
             text-align: center;
             font-size: 11px;
             margin-top: 10px;
-            color: #444;
+            font-weight: 600 !important;
+            color: #000000 !important;
         }
 
         .no-print {
@@ -140,8 +172,8 @@
         }
 
         .btn-print {
-            background-color: #0d6efd;
-            color: #fff;
+            background-color: #1B2A49;
+            color: #fff !important;
             padding: 8px 16px;
             border: none;
             border-radius: 4px;
@@ -150,10 +182,14 @@
             font-weight: bold;
             margin-right: 8px;
         }
+        .btn-print:hover {
+            background-color: #E8A317;
+            color: #1B2A49 !important;
+        }
 
         .btn-back {
             background-color: #6c757d;
-            color: #fff;
+            color: #fff !important;
             padding: 8px 16px;
             border: none;
             border-radius: 4px;
@@ -164,10 +200,39 @@
         }
 
         @media print {
+            * {
+                color: #000000 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                text-shadow: none !important;
+            }
+
             body {
+                font-family: 'Courier New', Courier, Consolas, monospace !important;
+                font-size: 13px !important;
+                line-height: 1.25 !important;
+                font-weight: 600 !important;
                 background-color: #fff;
                 padding: 0;
                 margin: 0;
+            }
+
+            h1, h2, h3, h4, h5, .fw-bold, strong, b, .total-line {
+                font-weight: 900 !important;
+            }
+
+            .text-muted, .text-secondary {
+                color: #000000 !important;
+            }
+
+            table, th, td {
+                color: #000000 !important;
+                font-weight: 600 !important;
+            }
+
+            hr, .border-top, .border-bottom {
+                border-color: #000000 !important;
+                border-width: 1.5px !important;
             }
 
             .ticket-container {
@@ -192,7 +257,7 @@
 <body>
     <div class="no-print">
         <button class="btn-print" onclick="window.print()">Imprimir Pre-cuenta</button>
-        <a href="{{ route('restaurant.orders.show', $order) }}" class="btn-back">Volver a la Comanda</a>
+        <a href="{{ route('restaurant.orders.show', $order) }}" class="btn-back">&larr; Volver a la Comanda</a>
     </div>
 
     <div class="ticket-container">
@@ -219,18 +284,22 @@
                 <strong>{{ $order->order_number }}</strong>
             </div>
             <div class="meta-row">
-                <span>MESERO:</span>
-                <span>{{ $order->user->name ?? 'N/A' }}</span>
+                <span>ATENDIDO POR:</span>
+                <span>{{ ($order->order_type === 'table' && !empty($order->customer_name)) ? $order->customer_name : ($order->user->name ?? 'Usuario') }}</span>
             </div>
             <div class="meta-row">
                 <span>FECHA:</span>
                 <span>{{ now()->format('d/m/Y H:i') }}</span>
             </div>
-            @if($order->customer_name)
-                <div class="meta-row">
-                    <span>CLIENTE:</span>
-                    <span>{{ $order->customer_name }}</span>
-                </div>
+            <div class="meta-row">
+                <span>CLIENTE:</span>
+                <span>{{ $order->customer?->name ?? ($order->order_type !== 'table' && !empty($order->customer_name) ? $order->customer_name : 'Consumidor Final') }}</span>
+            </div>
+            @if($order->guest_count)
+            <div class="meta-row">
+                <span>PERSONAS:</span>
+                <strong>{{ $order->guest_count }}</strong>
+            </div>
             @endif
         </div>
 
@@ -261,6 +330,11 @@
         </table>
 
         {{-- Totales --}}
+        @php
+            $suggestedTip = round($order->subtotal * 0.10);
+            $totalWithTip = round($order->subtotal + $order->delivery_fee + $suggestedTip);
+        @endphp
+
         <div class="totals-section">
             <div class="total-row">
                 <span>Subtotal Consumo:</span>
@@ -269,25 +343,47 @@
 
             @if($order->delivery_fee > 0)
                 <div class="total-row">
-                    <span>Servicio Entrega:</span>
+                    <span>Servicio Entrega / Domicilio:</span>
                     <strong>${{ number_format($order->delivery_fee, 0, ',', '.') }}</strong>
                 </div>
             @endif
 
             <div class="total-row grand-total">
-                <span>TOTAL A PAGAR:</span>
+                <span>SUBTOTAL A PAGAR:</span>
                 <span>${{ number_format($order->total, 0, ',', '.') }}</span>
+            </div>
+
+            {{-- Desglose sugerido de propina voluntaria (10%) --}}
+            <div class="tip-box">
+                <div class="total-row" style="margin-bottom: 2px;">
+                    <span>+ Propina Sugerida (10%):</span>
+                    <strong>${{ number_format($suggestedTip, 0, ',', '.') }}</strong>
+                </div>
+                <div class="total-row" style="font-weight: 900 !important; font-size: 14px; border-top: 1px dashed #000; padding-top: 3px; margin-top: 3px;">
+                    <span>TOTAL CON PROPINA:</span>
+                    <span>${{ number_format($totalWithTip, 0, ',', '.') }}</span>
+                </div>
+                <div style="font-size: 10px; margin-top: 4px; line-height: 1.2; text-align: justify;">
+                    * La propina es voluntaria y sugerida (10%). Indique al cajero si desea modificar su valor o retirarla antes del pago.
+                </div>
             </div>
         </div>
 
-        {{-- Leyenda legal obligatoria requerida por DIAN y normativa --}}
+        {{-- Leyenda legal obligatoria requerida por DIAN y normativa colombiana --}}
         <div class="legal-notice">
             ESTADO DE CONSUMO / PRE-CUENTA — DOCUMENTO INTERNO NO VÁLIDO COMO FACTURA O COMPROBANTE DE VENTA
         </div>
 
         <div class="footer-note">
-            ¡Gracias por visitarnos!
+            ¡Muchas gracias por su visita!
         </div>
     </div>
+
+    {{-- Auto-impresión térmica inmediata --}}
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            window.print();
+        });
+    </script>
 </body>
 </html>

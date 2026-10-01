@@ -33,6 +33,7 @@ class StoreRestaurantOrderRequest extends FormRequest
                     ->where(fn ($query) => $query->where('business_id', $businessId)->where('is_active', true)),
             ],
             'customer_name' => ['nullable', 'string', 'max:150'],
+            'guest_count' => ['nullable', 'integer', 'min:1', 'max:99'],
             'notes' => ['nullable', 'string', 'max:500'],
             'items' => ['nullable', 'array'],
             'items.*.product_id' => [
@@ -51,6 +52,9 @@ class StoreRestaurantOrderRequest extends FormRequest
         return [
             'table_id.required' => 'Debes seleccionar una mesa válida para abrir la comanda.',
             'table_id.exists' => 'La mesa seleccionada no existe o se encuentra inactiva.',
+            'guest_count.integer' => 'El número de comensales debe ser un número entero.',
+            'guest_count.min' => 'El número de comensales debe ser al menos 1.',
+            'guest_count.max' => 'El número de comensales no puede ser mayor a 99.',
             'items.*.product_id.exists' => 'Uno de los productos o platos seleccionados no existe o está inactivo.',
             'items.*.quantity.min' => 'La cantidad mínima por ítem debe ser mayor a 0.',
         ];
