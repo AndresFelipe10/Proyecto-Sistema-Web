@@ -42,12 +42,35 @@
         {{-- Panel izquierdo: Buscar y agregar productos --}}
         <div class="col-lg-8">
             <div class="card card-custom p-4 mb-4">
-                <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="bi bi-search me-2 text-primary"></i>Agregar Productos</h5>
+                <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="bi bi-cart-plus me-2 text-primary"></i>Agregar Productos</h5>
 
-                <div class="input-group mb-3">
-                    <span class="input-group-text bg-light border-end-0" id="searchScanIconContainer"><i class="bi bi-upc-scan text-muted"></i></span>
-                    <input type="text" id="productSearch" class="form-control border-start-0"
-                           placeholder="Buscar por nombre o SKU..." autocomplete="off">
+                {{-- Selector Dual Sincronizado: Buscador Rápido y Dropdown de Catálogo --}}
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0" id="searchScanIconContainer"><i class="bi bi-upc-scan text-muted"></i></span>
+                            <input type="text" id="productSearch" class="form-control border-start-0"
+                                   placeholder="Buscar por nombre o SKU..." autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-box-seam text-muted"></i></span>
+                            <select id="product_dropdown_pos" class="form-select border-start-0">
+                                <option value="">-- O selecciona un producto del catálogo --</option>
+                                @foreach ($products ?? [] as $prod)
+                                    <option value="{{ $prod->id }}" 
+                                            data-id="{{ $prod->id }}"
+                                            data-name="{{ $prod->name }}"
+                                            data-sku="{{ $prod->sku }}"
+                                            data-price="{{ $prod->sale_price }}"
+                                            data-stock="{{ $prod->stock }}">
+                                        {{ $prod->name }} - ${{ number_format($prod->sale_price, 0, ',', '.') }} (Stock: {{ $prod->formatted_stock ?? $prod->stock }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- Resultados de búsqueda --}}
@@ -458,17 +481,55 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ── Cart management ──
     function addToCart(product) {
-        cart.push({
-            product_id: product.id,
-            name: product.name,
-            sku: product.sku,
-            stock: product.stock,
-            quantity: 1,
-            unit_price: parseFloat(product.sale_price),
-        });
+        const prodId = parseInt(product.id || product.product_id);
+        const existing = cart.find(c => c.product_id === prodId);
+        if (existing) {
+            if (existing.quantity < existing.stock) {
+                existing.quantity += 1;
+            }
+        } else {
+            cart.push({
+                product_id: prodId,
+                name: product.name,
+                sku: product.sku,
+                stock: parseFloat(product.stock),
+                quantity: 1,
+                unit_price: parseFloat(product.sale_price !== undefined ? product.sale_price : product.unit_price),
+            });
+        }
         searchInput.value = '';
         searchResults.style.display = 'none';
         renderCart();
+    }
+    window.addProductToSale = addToCart;
+
+    // ── Selector Dropdown POS sincronizado ──
+    const productDropdownPos = document.getElementById('product_dropdown_pos');
+    if (productDropdownPos) {
+        productDropdownPos.addEventListener('change', function () {
+            const selectedOpt = this.options[this.selectedIndex];
+            if (!selectedOpt || !selectedOpt.value) return;
+
+            const productData = {
+                id: parseInt(selectedOpt.value),
+                name: selectedOpt.dataset.name,
+                sku: selectedOpt.dataset.sku,
+                sale_price: parseFloat(selectedOpt.dataset.price),
+                stock: parseFloat(selectedOpt.dataset.stock),
+            };
+
+            addToCart(productData);
+
+            // Resetear el selector a la opción inicial tras agregarlo
+            this.selectedIndex = 0;
+
+            // Transferir el foco al input de cantidad del ítem en la tabla del carrito
+            const lastQtyInput = cartBody.querySelector('tr:last-child .qty-input');
+            if (lastQtyInput) {
+                lastQtyInput.focus();
+                lastQtyInput.select();
+            }
+        });
     }
 
     function removeFromCart(index) {

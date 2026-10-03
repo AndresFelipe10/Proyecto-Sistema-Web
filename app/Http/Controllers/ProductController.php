@@ -87,7 +87,14 @@ class ProductController extends Controller
      */
     public function store(StoreProductRequest $request): RedirectResponse
     {
-        $product = Product::create($request->validated());
+        $data = $request->validated();
+
+        if (empty($data['sku'])) {
+            $tenantId = app(\App\Services\Tenant\TenantManager::class)->id();
+            $data['sku'] = Product::generateUniqueSku($tenantId, $data['product_type'] ?? 'standard');
+        }
+
+        $product = Product::create($data);
 
         return redirect()->route('products.index')
             ->with('status', "Producto '{$product->name}' (SKU: {$product->sku}) registrado exitosamente.");

@@ -184,14 +184,17 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label for="sku" class="form-label small fw-semibold text-secondary">Código / SKU <span class="text-danger">*</span></label>
+                            <label for="sku" class="form-label small fw-semibold text-secondary">Código / SKU <span class="text-muted">(Opcional)</span></label>
                             <input type="text" 
                                    class="form-control font-monospace @error('sku') is-invalid @enderror" 
                                    id="sku" 
                                    name="sku" 
                                    value="{{ old('sku') }}" 
-                                   placeholder="Ej. ZAP-001" 
-                                   required>
+                                   placeholder="Ej. ZAP-001 (Automático si se deja vacío)">
+                            <small class="text-muted d-block mt-1">Si lo dejas vacío, el sistema asignará un código único automáticamente.</small>
+                            @error('sku')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
 

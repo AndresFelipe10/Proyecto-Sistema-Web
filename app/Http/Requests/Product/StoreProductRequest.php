@@ -33,7 +33,7 @@ class StoreProductRequest extends FormRequest
             'product_type' => ['nullable', 'string', Rule::in(['standard', 'raw_material', 'dish'])],
             'base_unit' => ['nullable', 'string', Rule::in(['unit', 'gram', 'milliliter'])],
             'sku' => [
-                $isRestaurant ? 'nullable' : 'required',
+                'nullable',
                 'string',
                 'max:50',
                 Rule::unique('products', 'sku')->where('business_id', $tenantId),
@@ -61,8 +61,11 @@ class StoreProductRequest extends FormRequest
         $isRestaurant = $tenant?->isRestaurant();
 
         $sku = $this->input('sku');
-        if ($isRestaurant && empty($sku)) {
-            $sku = 'MNU-' . strtoupper(\Illuminate\Support\Str::random(6));
+        if (is_string($sku)) {
+            $sku = trim($sku);
+            if ($sku === '') {
+                $sku = null;
+            }
         }
 
         $productType = $this->input('product_type');

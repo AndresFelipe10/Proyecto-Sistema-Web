@@ -76,4 +76,30 @@ class Product extends Model
     {
         return $this->hasMany(InventoryMovement::class);
     }
+
+    /**
+     * Genera un SKU único, legible y secuencial aislado por negocio.
+     */
+    public static function generateUniqueSku(int $businessId, ?string $productType = 'standard'): string
+    {
+        $prefix = ($productType === 'dish') ? 'MNU-' : 'ART-';
+
+        $count = static::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->where('sku', 'like', "{$prefix}%")
+            ->count();
+
+        $candidateNumber = $count + 1;
+
+        do {
+            $candidateSku = sprintf('%s%03d', $prefix, $candidateNumber);
+            $exists = static::withoutGlobalScopes()
+                ->where('business_id', $businessId)
+                ->where('sku', $candidateSku)
+                ->exists();
+            $candidateNumber++;
+        } while ($exists);
+
+        return $candidateSku;
+    }
 }

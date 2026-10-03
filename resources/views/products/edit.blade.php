@@ -185,6 +185,9 @@
                                    name="sku" 
                                    value="{{ old('sku', $product->sku) }}" 
                                    required>
+                            @error('sku')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
 

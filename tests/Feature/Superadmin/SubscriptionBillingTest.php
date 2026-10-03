@@ -321,6 +321,10 @@ class SubscriptionBillingTest extends TestCase
         // Verifica el badge de "Al día"
         $response->assertSee('Al día (Sin notif.)');
         $response->assertSee('Renovar 30 días');
+        $response->assertSee('btn-outline-primary', false);
+        $response->assertSee('title="Editar"', false);
+        $response->assertSee('opacity: 1 !important; visibility: visible !important;', false);
+        $response->assertDontSee('btn-outline-light" title="Editar"', false);
 
         // Vista de edición
         $editResponse = $this->actingAs($this->superadmin)->get("/superadmin/businesses/{$business->id}/edit");

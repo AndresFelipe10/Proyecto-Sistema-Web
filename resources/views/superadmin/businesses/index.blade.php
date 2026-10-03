@@ -139,7 +139,7 @@
                         </td>
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
-                                <a href="{{ route('superadmin.businesses.edit', $biz) }}" class="btn btn-outline-light" title="Editar">
+                                <a href="{{ route('superadmin.businesses.edit', $biz) }}" class="btn btn-outline-primary" style="opacity: 1 !important; visibility: visible !important;" title="Editar">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 <a href="{{ route('superadmin.businesses.users', $biz) }}" class="btn btn-outline-info" title="Ver usuarios">

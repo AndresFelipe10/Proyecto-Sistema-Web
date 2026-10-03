@@ -66,8 +66,11 @@ class UpdateProductRequest extends FormRequest
         $product = $this->route('product');
 
         $sku = $this->input('sku');
-        if ($isRestaurant && empty($sku)) {
-            $sku = $product?->sku ?: ('MNU-' . strtoupper(\Illuminate\Support\Str::random(6)));
+        if (is_string($sku)) {
+            $sku = trim($sku);
+        }
+        if (empty($sku)) {
+            $sku = $product?->sku;
         }
 
         $this->merge([

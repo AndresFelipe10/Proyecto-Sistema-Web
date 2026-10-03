@@ -328,6 +328,49 @@ class PosKeyboardAndErgonomicsTest extends TestCase
         $response->assertSee('VTA-202610-0001', false);
         $response->assertSee('Ver Comprobante', false);
     }
+
+    public function test_sales_create_renders_dual_product_selector_with_search_and_dropdown(): void
+    {
+        $category = Category::withoutGlobalScopes()->create([
+            'business_id' => $this->retailBusiness->id,
+            'name' => 'Vestuario',
+        ]);
+
+        $product = Product::withoutGlobalScopes()->create([
+            'business_id' => $this->retailBusiness->id,
+            'category_id' => $category->id,
+            'name' => 'Camisa Lino Cali',
+            'sku' => 'CAM-001',
+            'cost_price' => 25000,
+            'sale_price' => 60000,
+            'stock' => 12,
+            'min_stock' => 2,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($this->retailAdmin)
+            ->withSession(['current_business_id' => $this->retailBusiness->id])
+            ->get(route('sales.create'));
+
+        $response->assertOk();
+
+        // 1. Renderiza el input de búsqueda rápida
+        $response->assertSee('id="productSearch"', false);
+        $response->assertSee('placeholder="Buscar por nombre o SKU..."', false);
+
+        // 2. Renderiza el select desplegable con la opción por defecto
+        $response->assertSee('id="product_dropdown_pos"', false);
+        $response->assertSee('-- O selecciona un producto del catálogo --');
+
+        // 3. Renderiza las opciones del producto con stock y precio
+        $response->assertSee('Camisa Lino Cali');
+        $response->assertSee('$60.000');
+        $response->assertSee('Stock: 12');
+
+        // 4. Contiene la sincronización reactiva en JS
+        $response->assertSee('productDropdownPos.addEventListener', false);
+        $response->assertSee('window.addProductToSale = addToCart;', false);
+    }
 }
 
 

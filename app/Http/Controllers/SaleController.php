@@ -84,11 +84,16 @@ class SaleController extends Controller
             $selectedCustomer = Customer::find(old('customer_id'));
         }
 
+        $products = Product::where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
         return view('sales.create', [
             'defaultCustomerName' => config('sales.default_customer_name', 'CONSUMIDOR FINAL'),
             'defaultCustomerDocument' => config('sales.default_customer_document', '222222222222'),
             'selectedCustomer' => $selectedCustomer,
             'paymentMethods' => PaymentMethod::cases(),
+            'products' => $products,
         ]);
     }
 
