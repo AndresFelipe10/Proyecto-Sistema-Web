@@ -1,3 +1,5 @@
+name: puntostock
+
 services:
   app:
     build:
