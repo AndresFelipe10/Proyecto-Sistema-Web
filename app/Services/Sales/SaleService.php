@@ -88,6 +88,22 @@ class SaleService
             $discount = round($subtotal * ($discountPercentage / 100), 2);
             $netFoodBase = max(0, round($subtotal - $discount, 2));
 
+            // Cálculo discriminado de base para Impuesto Nacional al Consumo (INC 8% Art. 512-1 E.T.):
+            // Grava exclusivamente el expendio de comidas y bebidas preparadas del menú ($dishSubtotal).
+            // La mercancía de mostrador ($standardSubtotal), propinas y domicilios están exentos de INC.
+            $dishSubtotal = 0.00;
+            $standardSubtotal = 0.00;
+            foreach ($resolvedItems as $resolved) {
+                if ($resolved['product']->isDish()) {
+                    $dishSubtotal += $resolved['subtotal'];
+                } else {
+                    $standardSubtotal += $resolved['subtotal'];
+                }
+            }
+
+            $dishDiscount = $subtotal > 0 ? round($dishSubtotal * ($discountPercentage / 100), 2) : 0.00;
+            $netDishBase = max(0, round($dishSubtotal - $dishDiscount, 2));
+
             $deliveryFee = isset($data['delivery_fee']) ? max(0, round((float) $data['delivery_fee'], 2)) : 0.00;
             $serviceFee = isset($data['service_fee']) ? max(0, round((float) $data['service_fee'], 2)) : 0.00;
             $taxInc = isset($data['tax_inc']) ? max(0, round((float) $data['tax_inc'], 2)) : 0.00;
@@ -98,7 +114,7 @@ class SaleService
                 $taxInc = 0.00;
             } else {
                 if ($taxInc > 0) {
-                    $expectedInc = round($netFoodBase * 0.08, 2);
+                    $expectedInc = round($netDishBase * 0.08, 2);
                     if (abs($taxInc - $expectedInc) > 1.00) {
                         throw new InvalidSaleItemException(
                             "El valor del Impuesto Nacional al Consumo (INC) debe ser del 8% sobre la base neta (\${$expectedInc})."
@@ -277,8 +293,9 @@ class SaleService
                 ]);
 
                 // En restaurantes los platos preparados no descuentan inventario físico estricto.
-                // En comercios Retail, se descuenta con bloqueo pesimista y verificación de existencias.
-                if (! $isRestaurantSale) {
+                // En mercancía de mostrador (standard) y en comercios Retail, se descuenta con bloqueo pesimista y verificación de existencias.
+                $shouldDecrementStock = ! $isRestaurantSale || $resolved['product']->isStandard();
+                if ($shouldDecrementStock) {
                     $this->inventoryService->registerMovement(
                         product: $resolved['product'],
                         type: InventoryMovement::TYPE_EXIT,
@@ -331,16 +348,18 @@ class SaleService
     public function cancelSale(Sale $sale, int $userId): Sale
     {
         return DB::transaction(function () use ($sale, $userId) {
-            $sale->load('details');
+            $sale->load('details.product');
 
             $business = Business::withoutGlobalScopes()->find($sale->business_id);
             $isRestaurantSale = ($business && $business->isRestaurant())
                 || !empty($sale->restaurant_order_id)
                 || ($sale->order_type !== null && $sale->order_type !== 'direct');
 
-            // Restore stock for each detail line only if NOT a restaurant sale
-            if (! $isRestaurantSale) {
-                foreach ($sale->details as $detail) {
+            // Restaurar existencias para retail y para productos de mercancía (standard) en restaurantes
+            foreach ($sale->details as $detail) {
+                $product = $detail->product ?? Product::withoutGlobalScopes()->find($detail->product_id);
+                $shouldRestoreStock = ! $isRestaurantSale || ($product && $product->isStandard());
+                if ($shouldRestoreStock) {
                     $this->inventoryService->registerMovement(
                         product: $detail->product_id,
                         type: InventoryMovement::TYPE_ENTRY,

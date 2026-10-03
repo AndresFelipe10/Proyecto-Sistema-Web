@@ -299,6 +299,7 @@ class RestaurantMenuManagementTest extends TestCase
             'cost_price' => 3000,
             'stock' => 0,
             'min_stock' => 0,
+            'product_type' => 'dish',
             'is_active' => true,
         ]);
 
@@ -477,7 +478,7 @@ class RestaurantMenuManagementTest extends TestCase
 
         $responseCreate->assertOk();
         $responseCreate->assertSee('Nombre del Mesero (Opcional)');
-        $responseCreate->assertSee('Ej. Juan, Mesa ventana, etc.');
+        $responseCreate->assertDontSee('Ej. Juan, Mesa ventana, etc.');
 
         // 2. En domicilios el nombre del cliente es obligatorio
         $responseDeliveryFail = $this->actingAs($this->adminA)

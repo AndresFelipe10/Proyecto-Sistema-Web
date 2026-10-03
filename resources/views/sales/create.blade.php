@@ -156,10 +156,16 @@
                             <label for="discount_percentage" class="form-label small text-muted mb-0">Descuento (%)</label>
                             <span class="fw-semibold text-danger font-monospace small" id="displayDiscount">-$0</span>
                         </div>
-                        <div class="input-group input-group-sm">
-                            <input type="number" id="discount_percentage" name="discount_percentage" class="form-control"
-                                   value="{{ old('discount_percentage', 0) }}" min="0" max="100" step="any" placeholder="0">
-                            <span class="input-group-text bg-light">%</span>
+                        <div class="input-group">
+                            <button type="button" class="btn btn-outline-secondary px-3" id="btnDiscountMinus" title="Disminuir descuento" style="min-height: 38px;">
+                                <i class="bi bi-dash-lg"></i>
+                            </button>
+                            <input type="number" id="discount_percentage" name="discount_percentage" class="form-control text-center fw-bold font-monospace"
+                                   value="{{ old('discount_percentage', 0) }}" min="0" max="100" step="1" placeholder="0" style="min-height: 38px;">
+                            <button type="button" class="btn btn-outline-secondary px-3" id="btnDiscountPlus" title="Aumentar descuento" style="min-height: 38px;">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                            <span class="input-group-text bg-light fw-bold">%</span>
                         </div>
                         <div id="discountFeedback" class="form-text text-info mt-1" style="display:none;">
                             <i class="bi bi-info-circle me-1"></i>Equivale a <strong id="discountMoneyPreview">$0</strong> de descuento
@@ -593,7 +599,44 @@ document.addEventListener('DOMContentLoaded', function () {
         updatePaymentsFeedback();
     }
 
-    discountInput.addEventListener('input', updateTotals);
+    // Control ergonómico y reactivo del campo Descuento (%)
+    discountInput.addEventListener('focus', function() {
+        this.select();
+    });
+
+    discountInput.addEventListener('input', function() {
+        let val = parseInt(this.value, 10);
+        if (isNaN(val) || val < 0) val = 0;
+        if (val > 100) val = 100;
+        this.value = val;
+        updateTotals();
+    });
+
+    discountInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            e.preventDefault();
+            this.blur();
+            updateTotals();
+        }
+    });
+
+    const btnDiscountMinus = document.getElementById('btnDiscountMinus');
+    if (btnDiscountMinus) {
+        btnDiscountMinus.addEventListener('click', function() {
+            let val = parseInt(discountInput.value, 10) || 0;
+            discountInput.value = Math.max(0, val - 1);
+            updateTotals();
+        });
+    }
+
+    const btnDiscountPlus = document.getElementById('btnDiscountPlus');
+    if (btnDiscountPlus) {
+        btnDiscountPlus.addEventListener('click', function() {
+            let val = parseInt(discountInput.value, 10) || 0;
+            discountInput.value = Math.min(100, val + 1);
+            updateTotals();
+        });
+    }
 
     // ── Estado y Manejo de Pagos Mixtos y Vueltos ──
     let payments = [
@@ -1124,6 +1167,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const defaultCustomerName = @json($defaultCustomerName ?? config('sales.default_customer_name'));
     const defaultCustomerDoc = @json($defaultCustomerDocument ?? config('sales.default_customer_document'));
 
+    let highlightedCustomerIndex = -1;
+
     function selectCustomer(id, name, doc) {
         if (id) {
             customerIdInput.value = id;
@@ -1141,6 +1186,13 @@ document.addEventListener('DOMContentLoaded', function () {
         customerSearchInput.value = '';
         customerSearchResults.classList.add('d-none');
         customerSearchResults.innerHTML = '';
+        highlightedCustomerIndex = -1;
+
+        // Pasar el foco al siguiente campo lógico (búsqueda de productos)
+        const productSearch = document.getElementById('productSearch');
+        if (productSearch) {
+            productSearch.focus();
+        }
     }
 
     btnRemoveCustomer.addEventListener('click', function() {
@@ -1151,9 +1203,65 @@ document.addEventListener('DOMContentLoaded', function () {
     let activeCustomerAbort = null;
     const customerSearchCache = new Map();
 
+    function updateCustomerHighlight(items) {
+        items.forEach((item, idx) => {
+            if (idx === highlightedCustomerIndex) {
+                item.classList.add('active', 'bg-primary', 'text-white');
+                item.querySelectorAll('.text-dark, .text-muted').forEach(el => {
+                    el.classList.add('text-white');
+                    el.classList.remove('text-dark', 'text-muted');
+                });
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('active', 'bg-primary', 'text-white');
+                item.querySelectorAll('.text-white').forEach(el => {
+                    el.classList.remove('text-white');
+                });
+            }
+        });
+    }
+
+    customerSearchInput.addEventListener('keydown', function(e) {
+        const items = customerSearchResults.querySelectorAll('button.customer-result-item');
+        const isVisible = !customerSearchResults.classList.contains('d-none') && items.length > 0;
+
+        if (e.key === 'Enter' || e.keyCode === 13) {
+            e.preventDefault(); // Evitar incondicionalmente el submit accidental del formulario
+            if (isVisible) {
+                const targetBtn = (highlightedCustomerIndex >= 0 && items[highlightedCustomerIndex])
+                    ? items[highlightedCustomerIndex]
+                    : items[0];
+                if (targetBtn) {
+                    targetBtn.click();
+                }
+            } else {
+                const productSearch = document.getElementById('productSearch');
+                if (productSearch) {
+                    productSearch.focus();
+                }
+            }
+        } else if (e.key === 'ArrowDown' || e.keyCode === 40) {
+            if (isVisible) {
+                e.preventDefault();
+                highlightedCustomerIndex = (highlightedCustomerIndex + 1) % items.length;
+                updateCustomerHighlight(items);
+            }
+        } else if (e.key === 'ArrowUp' || e.keyCode === 38) {
+            if (isVisible) {
+                e.preventDefault();
+                highlightedCustomerIndex = (highlightedCustomerIndex - 1 + items.length) % items.length;
+                updateCustomerHighlight(items);
+            }
+        } else if (e.key === 'Escape' || e.keyCode === 27) {
+            customerSearchResults.classList.add('d-none');
+            highlightedCustomerIndex = -1;
+        }
+    });
+
     customerSearchInput.addEventListener('input', function() {
         const query = this.value.trim();
         clearTimeout(customerSearchTimeout);
+        highlightedCustomerIndex = -1;
 
         if (query.length < 3) {
             if (activeCustomerAbort) {
@@ -1198,22 +1306,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function renderCustomerSearchResults(data) {
         customerSearchResults.innerHTML = '';
+        highlightedCustomerIndex = -1;
+
         if (!Array.isArray(data) || data.length === 0) {
             const emptyItem = document.createElement('div');
             emptyItem.className = 'list-group-item text-muted small py-2';
             emptyItem.textContent = 'No se encontraron clientes con ese documento o nombre';
             customerSearchResults.appendChild(emptyItem);
         } else {
-            data.forEach(cust => {
+            data.forEach((cust, idx) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2';
+                btn.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 customer-result-item';
+                btn.dataset.index = idx;
 
                 const infoDiv = document.createElement('div');
                 infoDiv.className = 'text-truncate me-2 text-start';
 
                 const nameSpan = document.createElement('span');
-                nameSpan.className = 'fw-semibold d-block text-truncate';
+                nameSpan.className = 'fw-semibold d-block text-truncate text-dark';
                 nameSpan.textContent = cust.name;
 
                 const docSpan = document.createElement('small');
@@ -1232,7 +1343,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     btn.appendChild(phoneSpan);
                 }
 
-                btn.addEventListener('click', function() {
+                btn.addEventListener('mouseenter', function() {
+                    highlightedCustomerIndex = idx;
+                    const items = customerSearchResults.querySelectorAll('button.customer-result-item');
+                    updateCustomerHighlight(items);
+                });
+
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
                     selectCustomer(cust.id, cust.name, cust.document);
                 });
 
@@ -1246,6 +1364,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('click', function(e) {
         if (!customerSearchInput.contains(e.target) && !customerSearchResults.contains(e.target)) {
             customerSearchResults.classList.add('d-none');
+            highlightedCustomerIndex = -1;
         }
     });
 

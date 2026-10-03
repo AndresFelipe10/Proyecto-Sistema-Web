@@ -87,6 +87,7 @@ class RestaurantOrderController extends Controller
             ->get();
 
         $products = Product::where('is_active', true)
+            ->where('product_type', 'dish')
             ->with('category')
             ->orderBy('name')
             ->get();
@@ -128,7 +129,11 @@ class RestaurantOrderController extends Controller
 
         $order->load(['table', 'user', 'items.product', 'customer']);
 
-        $products = Product::where('is_active', true)
+        $productsQuery = Product::where('is_active', true);
+        if ($order->order_type === 'table') {
+            $productsQuery->where('product_type', 'dish');
+        }
+        $products = $productsQuery
             ->with('category')
             ->orderBy('name')
             ->get();

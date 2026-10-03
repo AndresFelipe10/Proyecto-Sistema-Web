@@ -244,7 +244,10 @@
                                         <div class="col-12 col-md-5">
                                             <label class="form-label small fw-semibold">Plato / Producto <span class="text-danger">*</span></label>
                                             <div class="position-relative mb-1">
-                                                <input type="text" class="form-control form-control-sm product-search-input" placeholder="🔍 Escribe para buscar plato o bebida..." autocomplete="off">
+                                                <div class="input-group input-group-sm">
+                                                    <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                                    <input type="text" class="form-control form-control-sm border-start-0 product-search-input" placeholder="Escribe para buscar plato o bebida..." autocomplete="off">
+                                                </div>
                                                 <div class="product-dropdown-list list-group position-absolute w-100 shadow-lg border rounded-3 overflow-auto d-none" style="max-height: 220px; z-index: 1050; top: 100%; left: 0; background: #fff;"></div>
                                             </div>
                                             <select class="form-select form-select-sm product-select" name="items[0][product_id]" required>
@@ -264,7 +267,7 @@
                                             <label class="form-label small fw-semibold">Cantidad <span class="text-danger">*</span></label>
                                             <div class="input-group input-group-sm" style="max-width: 130px;">
                                                 <button type="button" class="btn btn-outline-secondary btn-qty-minus fw-bold px-2">−</button>
-                                                <input type="number" name="items[0][quantity]" class="form-control text-center input-qty" value="1" min="1" max="999" required>
+                                                <input type="number" name="items[0][quantity]" class="form-control text-center input-qty input-stepper" value="1" min="1" max="999" required>
                                                 <button type="button" class="btn btn-outline-secondary btn-qty-plus fw-bold px-2">+</button>
                                             </div>
                                         </div>
@@ -615,7 +618,10 @@
             <div class="col-12 col-md-5">
                 <label class="form-label small fw-semibold">Plato / Producto <span class="text-danger">*</span></label>
                 <div class="position-relative mb-1">
-                    <input type="text" class="form-control form-control-sm product-search-input" placeholder="🔍 Escribe para buscar plato o bebida..." autocomplete="off">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control form-control-sm border-start-0 product-search-input" placeholder="Escribe para buscar plato o bebida..." autocomplete="off">
+                    </div>
                     <div class="product-dropdown-list list-group position-absolute w-100 shadow-lg border rounded-3 overflow-auto d-none" style="max-height: 220px; z-index: 1050; top: 100%; left: 0; background: #fff;"></div>
                 </div>
                 <select class="form-select form-select-sm product-select" name="items[INDEX][product_id]" required>
@@ -635,7 +641,7 @@
                 <label class="form-label small fw-semibold">Cantidad <span class="text-danger">*</span></label>
                 <div class="input-group input-group-sm" style="max-width: 130px;">
                     <button type="button" class="btn btn-outline-secondary btn-qty-minus fw-bold px-2">−</button>
-                    <input type="number" name="items[INDEX][quantity]" class="form-control text-center input-qty" value="1" min="1" max="999" required>
+                    <input type="number" name="items[INDEX][quantity]" class="form-control text-center input-qty input-stepper" value="1" min="1" max="999" required>
                     <button type="button" class="btn btn-outline-secondary btn-qty-plus fw-bold px-2">+</button>
                 </div>
             </div>
@@ -1241,6 +1247,20 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    // Apertura automática si la URL contiene el hash #cobrar
+    function checkHashForSettlement() {
+        if (window.location.hash === '#cobrar') {
+            const settlementModalEl = document.getElementById('settlementModal');
+            if (settlementModalEl && typeof bootstrap !== 'undefined') {
+                const modal = bootstrap.Modal.getOrCreateInstance(settlementModalEl);
+                modal.show();
+            }
+        }
+    }
+
+    checkHashForSettlement();
+    window.addEventListener('hashchange', checkHashForSettlement);
 });
 </script>
 

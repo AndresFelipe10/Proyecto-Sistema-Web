@@ -65,11 +65,14 @@
         <button type="button" onclick="window.print()" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm">
             <i class="bi bi-printer me-1"></i> Imprimir Cuadre
         </button>
-        <a href="{{ route('reports.cash-register', array_merge(request()->all(), ['export' => 'csv'])) }}" class="btn btn-outline-success rounded-pill px-3 shadow-sm">
+        <a href="{{ route('reports.cash-register', array_merge(request()->all(), ['export' => 'csv'])) }}" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm">
             <i class="bi bi-file-earmark-excel me-1"></i> Exportar a CSV
         </a>
-        <a href="{{ route('sales.index') }}" class="btn btn-primary rounded-pill px-3 shadow-sm">
-            <i class="bi bi-cart-check me-1"></i> Ir a Ventas
+        <a href="{{ route('sales.index') }}" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm">
+            <i class="bi bi-receipt me-1"></i> Historial Ventas
+        </a>
+        <a href="{{ route('sales.create') }}" class="btn btn-primary fw-semibold rounded-pill px-3 shadow-sm">
+            <i class="bi bi-cart-plus me-1"></i> + Nueva Venta
         </a>
     </div>
 </div>
@@ -187,32 +190,34 @@
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">
         <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm border-start border-4 border-primary">
-            <span class="text-muted small fw-semibold text-uppercase">Total Recaudado</span>
+            <span class="text-muted small fw-semibold text-uppercase">Total Recaudado (Ventas)</span>
             <h3 class="fw-bold mb-0 mt-1 text-primary">${{ number_format($total_revenue, 0, ',', '.') }}</h3>
-            <small class="text-muted">100% de los ingresos percibidos</small>
+            <small class="text-muted">{{ $sales_count }} transacciones cobradas</small>
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm border-start border-4 border-success">
-            <span class="text-muted small fw-semibold text-uppercase">Efectivo Físico en Caja</span>
-            <h3 class="fw-bold mb-0 mt-1 text-success">${{ number_format($cashAmount, 0, ',', '.') }}</h3>
+        <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm border-start border-4 border-danger">
+            <span class="text-muted small fw-semibold text-uppercase">Egresos y Gastos</span>
+            <h3 class="fw-bold mb-0 mt-1 text-danger">-${{ number_format($total_expenses, 0, ',', '.') }}</h3>
             <small class="text-muted">
-                {{ $by_method['cash']['transactions_count'] }} cobranzas en efectivo
+                {{ $expenses_count ?? count($expenses) }} pagos operativos registrados
             </small>
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm border-start border-4 border-info">
-            <span class="text-muted small fw-semibold text-uppercase">Transferencias / Nequi</span>
-            <h3 class="fw-bold mb-0 mt-1 text-info">${{ number_format($by_method['transfer']['amount'] ?? 0, 0, ',', '.') }}</h3>
-            <small class="text-muted">{{ $by_method['transfer']['transactions_count'] ?? 0 }} comprobantes digitales</small>
+        <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm border-start border-4 border-success">
+            <span class="text-muted small fw-semibold text-uppercase">Efectivo Neto en Gaveta</span>
+            <h3 class="fw-bold mb-0 mt-1 text-success">${{ number_format($net_cash_in_drawer, 0, ',', '.') }}</h3>
+            <small class="text-muted">Caja Menor física disponible</small>
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm border-start border-4 border-secondary">
-            <span class="text-muted small fw-semibold text-uppercase">Tarjetas / Datafono</span>
-            <h3 class="fw-bold mb-0 mt-1 text-dark">${{ number_format(($by_method['card']['amount'] ?? 0) + ($by_method['other']['amount'] ?? 0), 0, ',', '.') }}</h3>
-            <small class="text-muted">{{ ($by_method['card']['transactions_count'] ?? 0) + ($by_method['other']['transactions_count'] ?? 0) }} transacciones bancarias</small>
+        <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm border-start border-4 border-info">
+            <span class="text-muted small fw-semibold text-uppercase">Balance Neto del Turno</span>
+            <h3 class="fw-bold mb-0 mt-1 {{ $net_turn_balance >= 0 ? 'text-primary' : 'text-danger' }}">
+                ${{ number_format($net_turn_balance, 0, ',', '.') }}
+            </h3>
+            <small class="text-muted">Ventas netas menos egresos</small>
         </div>
     </div>
 </div>
@@ -271,7 +276,6 @@
                     </div>
                     <div class="text-end">
                         <span class="h4 fw-bold text-dark mb-0">${{ number_format($total_delivery_fee, 0, ',', '.') }}</span>
-                        <span class="d-block small text-muted font-monospace">SUM(delivery_fee)</span>
                     </div>
                 </div>
             </div>
@@ -413,6 +417,197 @@
         </table>
     </div>
 </div>
+
+{{-- ARQUEO OPERATIVO: CAJA MENOR (EFECTIVO FÍSICO) Y CAJA GENERAL (CUENTAS DIGITALES) --}}
+<div class="row g-3 mb-4">
+    {{-- Caja Menor (Efectivo Físico) --}}
+    <div class="col-md-6 col-lg-4">
+        <div class="card card-custom p-4 bg-white border-0 shadow-sm h-100 border-top border-4 border-success">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-cash-stack text-success me-2"></i>Arqueo de Caja Menor
+                </h5>
+                <span class="badge bg-success-subtle text-success">Efectivo Físico</span>
+            </div>
+            <p class="small text-muted mb-3">Gaveta del local para cambio/vueltos, ventas en efectivo y salidas menores.</p>
+            <div class="list-group list-group-flush mb-3">
+                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                    <span class="text-dark small"><i class="bi bi-plus-circle text-success me-1"></i>Ventas Cobradas en Efectivo</span>
+                    <span class="fw-bold font-monospace text-success fs-6">${{ number_format($cash_in_drawer, 0, ',', '.') }}</span>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                    <span class="text-dark small"><i class="bi bi-dash-circle text-danger me-1"></i>Gastos y Salidas en Efectivo</span>
+                    <span class="fw-bold font-monospace text-danger fs-6">-${{ number_format($cash_expenses, 0, ',', '.') }}</span>
+                </div>
+            </div>
+            <div class="border-top pt-3 d-flex justify-content-between align-items-center mt-auto bg-light p-3 rounded-3">
+                <div>
+                    <strong class="d-block text-dark small text-uppercase">Total Efectivo a Entregar:</strong>
+                    <small class="text-muted">Efectivo Neto Esperado en Gaveta</small>
+                </div>
+                <span class="fw-bold font-monospace fs-5 text-success">${{ number_format($net_cash_in_drawer, 0, ',', '.') }}</span>
+            </div>
+        </div>
+    </div>
+
+    {{-- Caja General (Cuentas Digitales y Bancarias) --}}
+    <div class="col-md-6 col-lg-4">
+        <div class="card card-custom p-4 bg-white border-0 shadow-sm h-100 border-top border-4 border-info">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-bank text-info me-2"></i>Caja General
+                </h5>
+                <span class="badge bg-info-subtle text-info">Cuentas Digitales</span>
+            </div>
+            <p class="small text-muted mb-3">Recaudos por Nequi, Daviplata, datáfono y pagos por transferencia bancaria.</p>
+            <div class="list-group list-group-flush mb-3">
+                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
+                    <span class="text-muted small">Transferencias / Nequi / Daviplata</span>
+                    <span class="font-monospace text-dark">${{ number_format($by_method['transfer']['amount'] ?? 0, 0, ',', '.') }}</span>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
+                    <span class="text-muted small">Tarjetas / Datáfono</span>
+                    <span class="font-monospace text-dark">${{ number_format($by_method['card']['amount'] ?? 0, 0, ',', '.') }}</span>
+                </div>
+                @if(($by_method['other']['amount'] ?? 0) > 0)
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
+                        <span class="text-muted small">Otros medios</span>
+                        <span class="font-monospace text-dark">${{ number_format($by_method['other']['amount'], 0, ',', '.') }}</span>
+                    </div>
+                @endif
+                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-top">
+                    <span class="text-dark small"><i class="bi bi-dash-circle text-danger me-1"></i>Gastos Pagados por Transferencia</span>
+                    <span class="fw-bold font-monospace text-danger fs-6">-${{ number_format($digital_expenses, 0, ',', '.') }}</span>
+                </div>
+            </div>
+            <div class="border-top pt-3 d-flex justify-content-between align-items-center mt-auto bg-light p-3 rounded-3">
+                <div>
+                    <strong class="d-block text-dark small text-uppercase">Saldo en Cuentas Digitales:</strong>
+                    <small class="text-muted">Total disponible en bancos/apps</small>
+                </div>
+                <span class="fw-bold font-monospace fs-5 text-info">${{ number_format($net_digital_money, 0, ',', '.') }}</span>
+            </div>
+        </div>
+    </div>
+
+    {{-- Balance Total Consolidado --}}
+    <div class="col-md-12 col-lg-4">
+        <div class="card card-custom p-4 bg-white border-0 shadow-sm h-100 border-top border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-calculator text-primary me-2"></i>Balance Consolidado
+                </h5>
+                <span class="badge bg-primary-subtle text-primary">Arqueo Total</span>
+            </div>
+            <p class="small text-muted mb-3">Consolidación de Caja Menor y Caja General (Total Ventas - Total Gastos).</p>
+            <div class="list-group list-group-flush mb-3">
+                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                    <span class="text-dark small"><i class="bi bi-plus-circle text-primary me-1"></i>Total Ventas Recaudadas</span>
+                    <span class="fw-bold font-monospace text-primary fs-6">${{ number_format($total_revenue, 0, ',', '.') }}</span>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                    <span class="text-dark small"><i class="bi bi-dash-circle text-danger me-1"></i>Total Gastos Operativos</span>
+                    <span class="fw-bold font-monospace text-danger fs-6">-${{ number_format($total_expenses, 0, ',', '.') }}</span>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-1 small text-muted">
+                    <span>Efectivo Físico + Bancos</span>
+                    <span>${{ number_format($net_cash_in_drawer, 0, ',', '.') }} + ${{ number_format($net_digital_money, 0, ',', '.') }}</span>
+                </div>
+            </div>
+            <div class="border-top pt-3 d-flex justify-content-between align-items-center mt-auto bg-light p-3 rounded-3">
+                <div>
+                    <strong class="d-block text-dark small text-uppercase">Balance Neto del Período:</strong>
+                    <small class="text-muted">Utilidad neta de caja</small>
+                </div>
+                <span class="fw-bold font-monospace fs-5 {{ $net_turn_balance >= 0 ? 'text-primary' : 'text-danger' }}">
+                    ${{ number_format($net_turn_balance, 0, ',', '.') }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Detalle Individual de Gastos Operativos del Período --}}
+@if($expenses->isNotEmpty())
+    <div class="card card-custom p-4 bg-white border-0 shadow-sm mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-receipt-cutoff text-danger me-2"></i>Detalle de Gastos Operativos
+                </h5>
+                <small class="text-muted">Egresos registrados durante este período que impactan el arqueo de caja</small>
+            </div>
+            <span class="badge bg-danger-subtle text-danger font-monospace">
+                {{ $expenses->count() }} {{ $expenses->count() === 1 ? 'gasto registrado' : 'gastos registrados' }}
+            </span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Comprobante</th>
+                        <th>Fecha de Pago</th>
+                        <th>Categoría</th>
+                        <th>Proveedor / Beneficiario</th>
+                        <th>Caja / Método</th>
+                        <th>Descripción</th>
+                        <th class="text-end">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($expenses as $expense)
+                        @php
+                            $pmValue = $expense->payment_method instanceof \App\Enums\PaymentMethod ? $expense->payment_method->value : (string)$expense->payment_method;
+                            $isCashExpense = ($pmValue === 'cash');
+                        @endphp
+                        <tr>
+                            <td class="font-monospace fw-semibold">
+                                {{ $expense->invoice_number ?? 'S/N' }}
+                            </td>
+                            <td class="small">
+                                {{ $expense->paid_at ? $expense->paid_at->format('d/m/Y') : ($expense->issue_date ? $expense->issue_date->format('d/m/Y') : '—') }}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">
+                                    {{ $expense->category instanceof \App\Enums\ExpenseCategory ? $expense->category->label() : $expense->category }}
+                                </span>
+                            </td>
+                            <td class="small">
+                                {{ $expense->supplier ? $expense->supplier->name : 'Gasto General' }}
+                            </td>
+                            <td>
+                                @if($isCashExpense)
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-cash me-1"></i>Efectivo (Caja Menor)
+                                    </span>
+                                @else
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                        <i class="bi bi-bank me-1"></i>Digital (Caja General)
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="small text-muted" style="max-width: 250px;">
+                                {{ $expense->description ? Str::limit($expense->description, 50) : '—' }}
+                            </td>
+                            <td class="text-end font-monospace fw-bold text-danger">
+                                -${{ number_format($expense->amount, 0, ',', '.') }}
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+                <tfoot class="table-light">
+                    <tr class="fw-bold">
+                        <td colspan="6">TOTAL EGRESOS DEL PERÍODO</td>
+                        <td class="text-end font-monospace text-danger fs-6">
+                            -${{ number_format($total_expenses, 0, ',', '.') }}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+@endif
 
 {{-- Detalle Individual de Ventas del Período --}}
 <div class="card card-custom p-4 bg-white border-0 shadow-sm">

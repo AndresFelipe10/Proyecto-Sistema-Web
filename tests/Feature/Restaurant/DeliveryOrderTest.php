@@ -428,4 +428,30 @@ class DeliveryOrderTest extends TestCase
         $this->assertEquals($customer->id, $order->customer_id);
         $this->assertEquals(0.00, (float) $order->delivery_fee);
     }
+
+    public function test_delivered_orders_in_board_renders_cuadrar_pedido_shortcut_button(): void
+    {
+        $order = RestaurantOrder::create([
+            'business_id' => $this->restaurantA->id,
+            'user_id' => $this->employeeA->id,
+            'order_number' => 'DOM-999001',
+            'order_type' => 'delivery',
+            'status' => 'delivered',
+            'customer_name' => 'Cliente Entregado',
+            'delivery_address' => 'Calle 5 # 20-30',
+            'subtotal' => 30000,
+            'total' => 35000,
+            'delivery_fee' => 5000,
+        ]);
+
+        $response = $this->actingAs($this->employeeA)
+            ->withSession(['current_business_id' => $this->restaurantA->id])
+            ->get(route('restaurant.orders.deliveries'));
+
+        $response->assertOk();
+        $response->assertSee('Cuadrar Pedido');
+        $response->assertSee(route('restaurant.orders.show', $order) . '#cobrar');
+        $response->assertSee('btn-settle-order');
+    }
 }
+

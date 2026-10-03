@@ -25,34 +25,69 @@
     @endcan
 </div>
 
+@if ($isRestaurant)
+    {{-- Pestañas de Navegación del Catálogo (Restaurante Híbrido) --}}
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <ul class="nav nav-pills gap-2 mb-0">
+            <li class="nav-item">
+                <a class="nav-link rounded-pill px-4 {{ ($activeTab ?? 'all') === 'menu' ? 'active shadow-sm' : 'bg-white text-secondary shadow-sm' }}" 
+                   href="{{ route('products.index', array_merge(request()->except('page'), ['tab' => 'menu'])) }}">
+                    <i class="bi bi-book-half me-1"></i> Carta y Menú de Cocina
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link rounded-pill px-4 {{ ($activeTab ?? 'all') === 'merchandise' ? 'active shadow-sm' : 'bg-white text-secondary shadow-sm' }}" 
+                   href="{{ route('products.index', array_merge(request()->except('page'), ['tab' => 'merchandise'])) }}">
+                    <i class="bi bi-boxes me-1"></i> Mercancía y Mostrador
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link rounded-pill px-4 {{ ($activeTab ?? 'all') === 'all' ? 'active shadow-sm' : 'bg-white text-secondary shadow-sm' }}" 
+                   href="{{ route('products.index', array_merge(request()->except('page'), ['tab' => 'all'])) }}">
+                    <i class="bi bi-grid-fill me-1"></i> Todo el Catálogo
+                </a>
+            </li>
+        </ul>
+        @if (($activeTab ?? 'all') === 'merchandise')
+            <div>
+                <a href="{{ route('sales.create') }}" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm">
+                    <i class="bi bi-cart-plus me-1"></i> Vender Mercancía
+                </a>
+            </div>
+        @endif
+    </div>
+@endif
+
 <!-- Filtros de Búsqueda -->
 <div class="card card-custom p-3 bg-white mb-4">
     <form method="GET" action="{{ route('products.index') }}" class="row g-2 align-items-center">
-        <div class="{{ $isRestaurant ? 'col-md-8' : 'col-md-4' }}">
+        @if ($isRestaurant)
+            <input type="hidden" name="tab" value="{{ $activeTab ?? 'all' }}">
+        @endif
+
+        <div class="{{ $isRestaurant ? 'col-md-5' : 'col-md-4' }}">
             <div class="input-group">
                 <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
                 <input type="text" 
                        name="search" 
                        class="form-control border-start-0 ps-0" 
-                       placeholder="{{ $isRestaurant ? 'Buscar plato, código o ingrediente...' : 'Buscar por SKU, nombre...' }}" 
+                       placeholder="{{ $isRestaurant ? 'Buscar plato, código, suplemento...' : 'Buscar por SKU, nombre...' }}" 
                        value="{{ $search }}">
             </div>
         </div>
 
-        @if (!$isRestaurant)
-            <div class="col-md-3">
-                <select name="category_id" class="form-select">
-                    <option value="">Todas las categorías</option>
-                    @foreach ($categories as $cat)
-                        <option value="{{ $cat->id }}" {{ $selectedCategory == $cat->id ? 'selected' : '' }}>
-                            {{ $cat->name }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-        @endif
+        <div class="col-md-3">
+            <select name="category_id" class="form-select">
+                <option value="">Todas las categorías</option>
+                @foreach ($categories as $cat)
+                    <option value="{{ $cat->id }}" {{ $selectedCategory == $cat->id ? 'selected' : '' }}>
+                        {{ $cat->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
 
-        <div class="{{ $isRestaurant ? 'col-md-3' : 'col-md-2' }}">
+        <div class="{{ $isRestaurant ? 'col-md-2' : 'col-md-2' }}">
             <select name="status" class="form-select">
                 <option value="">Todos los estados</option>
                 <option value="1" {{ $selectedStatus === '1' ? 'selected' : '' }}>Activos</option>
@@ -60,16 +95,14 @@
             </select>
         </div>
 
-        @if (!$isRestaurant)
-            <div class="col-md-2">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="low_stock" value="1" id="lowStockCheck" {{ $lowStockOnly ? 'checked' : '' }}>
-                    <label class="form-check-label small fw-semibold text-danger" for="lowStockCheck">
-                        <i class="bi bi-exclamation-triangle-fill me-1"></i> Stock Bajo
-                    </label>
-                </div>
+        <div class="{{ $isRestaurant ? 'col-md-1' : 'col-md-2' }}">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="low_stock" value="1" id="lowStockCheck" {{ $lowStockOnly ? 'checked' : '' }}>
+                <label class="form-check-label small fw-semibold text-danger" for="lowStockCheck">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Stock
+                </label>
             </div>
-        @endif
+        </div>
 
         <div class="col-md-1 text-end">
             <button type="submit" class="btn btn-outline-primary rounded-pill w-100">Filtrar</button>
@@ -83,16 +116,15 @@
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr class="small text-uppercase text-muted">
-                    <th class="ps-4">{{ $isRestaurant ? 'Código' : 'SKU' }}</th>
-                    <th>{{ $isRestaurant ? 'Plato / Producto' : 'Producto' }}</th>
-                    @if (!$isRestaurant)
-                        <th>Categoría</th>
-                        <th>Precio Compra</th>
+                    <th class="ps-4">{{ $isRestaurant ? 'Código / SKU' : 'SKU' }}</th>
+                    <th>{{ $isRestaurant ? 'Plato / Mercancía' : 'Producto' }}</th>
+                    @if ($isRestaurant)
+                        <th>Tipo</th>
                     @endif
+                    <th>Categoría</th>
+                    <th>Precio Compra</th>
                     <th>Precio Venta</th>
-                    @if (!$isRestaurant)
-                        <th>Stock</th>
-                    @endif
+                    <th>Stock</th>
                     <th>Estado</th>
                     <th class="text-end pe-4">Acciones</th>
                 </tr>
@@ -114,25 +146,44 @@
                                 <div class="text-muted small text-truncate" style="max-width: 280px;">{{ $product->description }}</div>
                             @endif
                         </td>
-                        @if (!$isRestaurant)
+                        @if ($isRestaurant)
                             <td>
-                                @if ($product->category)
+                                @if ($product->isDish())
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">
-                                        {{ $product->category->name }}
+                                        <i class="bi bi-book-half me-1"></i>Plato Menú
                                     </span>
                                 @else
-                                    <span class="text-muted small">Sin categoría</span>
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill">
+                                        <i class="bi bi-boxes me-1"></i>Mercancía
+                                    </span>
                                 @endif
                             </td>
-                            <td class="text-secondary small">
-                                ${{ number_format($product->cost_price, 2) }}
-                            </td>
                         @endif
+                        <td>
+                            @if ($product->category)
+                                <span class="badge bg-light text-dark border rounded-pill">
+                                    {{ $product->category->name }}
+                                </span>
+                            @else
+                                <span class="text-muted small">Sin categoría</span>
+                            @endif
+                        </td>
+                        <td class="text-secondary small">
+                            @if ($isRestaurant && $product->isDish())
+                                <span class="text-muted">—</span>
+                            @else
+                                ${{ number_format($product->cost_price, 2) }}
+                            @endif
+                        </td>
                         <td class="fw-bold text-success">
                             ${{ number_format($product->sale_price, 2) }}
                         </td>
-                        @if (!$isRestaurant)
-                            <td>
+                        <td>
+                            @if ($isRestaurant && $product->isDish())
+                                <span class="badge bg-light text-muted border">
+                                    <i class="bi bi-cup-hot me-1"></i>Cocina
+                                </span>
+                            @else
                                 @if ($isLowStock)
                                     <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 rounded-pill" title="Stock mínimo: {{ $product->min_stock }}">
                                         <i class="bi bi-exclamation-circle-fill me-1"></i> {{ $product->stock }} unid.
@@ -142,8 +193,8 @@
                                         <i class="bi bi-check-circle-fill me-1"></i> {{ $product->stock }} unid.
                                     </span>
                                 @endif
-                            </td>
-                        @endif
+                            @endif
+                        </td>
                         <td>
                             @if ($product->is_active)
                                 <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1">
@@ -181,7 +232,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="{{ $isRestaurant ? '5' : '8' }}" class="text-center py-5 text-muted">
+                        <td colspan="{{ $isRestaurant ? '9' : '8' }}" class="text-center py-5 text-muted">
                             <i class="bi bi-box-seam display-4 d-block mb-2 text-secondary opacity-50"></i>
                             No se encontraron {{ $isRestaurant ? 'platos o productos en el menú' : 'productos' }} con los filtros seleccionados.
                         </td>

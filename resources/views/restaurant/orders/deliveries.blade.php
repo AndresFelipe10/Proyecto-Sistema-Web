@@ -177,9 +177,14 @@
                                 Total: <strong>${{ number_format($order->total, 2) }}</strong>
                             </p>
 
-                            <a href="{{ route('restaurant.orders.show', $order) }}" class="btn btn-sm btn-outline-primary w-100">
-                                <i class="bi bi-eye me-1"></i> Ver Detalle de Pedido
-                            </a>
+                            <div class="d-flex gap-2 mt-2">
+                                <a href="{{ route('restaurant.orders.show', $order) }}" class="btn btn-outline-primary btn-sm flex-fill">
+                                    <i class="bi bi-eye me-1"></i> Ver Detalle
+                                </a>
+                                <a href="{{ route('restaurant.orders.show', $order) }}#cobrar" class="btn btn-success btn-sm flex-fill fw-semibold btn-settle-order" data-order-id="{{ $order->id }}">
+                                    <i class="bi bi-cash-coin me-1"></i> Cuadrar Pedido
+                                </a>
+                            </div>
                         </div>
                     @empty
                         <div class="text-center py-5 text-muted small">

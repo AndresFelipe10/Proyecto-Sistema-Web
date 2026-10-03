@@ -156,6 +156,7 @@ class BusinessTypeProfileTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Menú / Productos');
         $response->assertSee('Categorías');
+        $response->assertSee('Ventas de Mostrador');
         $response->assertDontSee('Recetas');
         $response->assertDontSee('<i class="bi bi-cart-check me-2"></i> Ventas', false);
     }

@@ -204,4 +204,29 @@ class RestaurantOrderTest extends TestCase
         ]);
         $respMax->assertSessionHasErrors(['guest_count']);
     }
+
+    public function test_salon_orders_create_only_exposes_dishes_and_excludes_merchandise_standard(): void
+    {
+        $merchandise = Product::create([
+            'business_id' => $this->restaurant->id,
+            'name' => 'Proteína Whey Tarro 2lb',
+            'sku' => 'SUPP-WHEY-01',
+            'cost_price' => 80000,
+            'sale_price' => 120000,
+            'stock' => 15,
+            'min_stock' => 3,
+            'product_type' => 'standard',
+            'base_unit' => 'unit',
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($this->employee)
+            ->withSession(['current_business_id' => $this->restaurant->id])
+            ->get(route('restaurant.orders.create'));
+
+        $response->assertOk();
+        $response->assertSee($this->dish->name);
+        $response->assertDontSee($merchandise->name);
+    }
 }
+

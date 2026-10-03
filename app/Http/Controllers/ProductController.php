@@ -42,6 +42,18 @@ class ProductController extends Controller
             $query->whereColumn('stock', '<=', 'min_stock');
         }
 
+        $tenant = app(\App\Services\Tenant\TenantManager::class)->get();
+        $isRestaurant = $tenant?->isRestaurant() ?? false;
+        $tab = $request->input('tab', 'all');
+
+        if ($isRestaurant) {
+            if ($tab === 'menu') {
+                $query->where('product_type', 'dish');
+            } elseif ($tab === 'merchandise') {
+                $query->where('product_type', 'standard');
+            }
+        }
+
         $products = $query->latest()->paginate(15)->withQueryString();
         $categories = Category::where('is_active', true)->orderBy('name')->get();
 
@@ -52,6 +64,7 @@ class ProductController extends Controller
             'selectedCategory' => $categoryId,
             'selectedStatus' => $request->input('status'),
             'lowStockOnly' => $request->boolean('low_stock'),
+            'activeTab' => $tab,
         ]);
     }
 

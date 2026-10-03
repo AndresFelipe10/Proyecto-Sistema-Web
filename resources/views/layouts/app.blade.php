@@ -23,6 +23,37 @@
             color: #1e293b;
             min-height: 100vh;
         }
+
+        /* Forzar visibilidad permanente de spinners numéricos en navegadores WebKit/Chromium */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: block !important;
+        }
+        /* Soporte en Firefox */
+        input[type=number] {
+            -moz-appearance: number-input;
+        }
+
+        /* Ocultar flechas nativas en inputs que ya cuentan con botones + y - */
+        .input-stepper::-webkit-outer-spin-button,
+        .input-stepper::-webkit-inner-spin-button,
+        .qty-input::-webkit-outer-spin-button,
+        .qty-input::-webkit-inner-spin-button,
+        .input-group input[type=number]::-webkit-outer-spin-button,
+        .input-group input[type=number]::-webkit-inner-spin-button {
+            -webkit-appearance: none !important;
+            margin: 0 !important;
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+        .input-stepper,
+        .qty-input,
+        .input-group input[type=number] {
+            -moz-appearance: textfield !important;
+        }
         .navbar-custom {
             background-color: #ffffff;
             border-bottom: 1px solid #e2e8f0;
@@ -179,16 +210,16 @@
                 </a>
             </div>
 
-            {{-- Elementos de la derecha: Badge del emprendimiento activo, usuario y botón Salir --}}
-            <div class="d-flex align-items-center gap-2 gap-md-3">
+            {{-- Elementos de escritorio (>= 768px): Mantener 100% intacto --}}
+            <div class="d-none d-md-flex align-items-center gap-2 gap-md-3">
                 @if (isset($currentBusiness))
                     <span class="tenant-selector">
-                        <i class="bi bi-shop text-primary"></i> <span class="d-none d-sm-inline">{{ $currentBusiness->name }}</span>
+                        <i class="bi bi-shop text-primary"></i> <span>{{ $currentBusiness->name }}</span>
                     </span>
                 @endif
 
                 <span class="user-pill">
-                    <i class="bi bi-person-circle me-1 text-primary"></i> <span class="d-none d-sm-inline">{{ auth()->user()->name }}</span>
+                    <i class="bi bi-person-circle me-1 text-primary"></i> <span>{{ auth()->user()->name }}</span>
                 </span>
 
                 <form method="POST" action="{{ route('logout') }}" class="d-inline">
@@ -197,6 +228,49 @@
                         <i class="bi bi-box-arrow-right me-1"></i> Salir
                     </button>
                 </form>
+            </div>
+
+            {{-- Menú de usuario móvil (< 768px): Avatar unificado con desplegable para evitar fragmentación --}}
+            <div class="d-md-none dropdown">
+                <button class="btn btn-light rounded-circle border shadow-sm p-0 d-flex align-items-center justify-content-center" 
+                        type="button" 
+                        id="mobileUserMenu" 
+                        data-bs-toggle="dropdown" 
+                        aria-expanded="false"
+                        style="width: 40px; height: 40px;"
+                        aria-label="Menú de usuario">
+                    <i class="bi bi-person-circle text-primary fs-5"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-2 mt-2" aria-labelledby="mobileUserMenu" style="min-width: 250px; border-radius: 0.85rem;">
+                    @if (isset($currentBusiness))
+                        <li class="px-3 py-2 bg-light border-bottom mb-1">
+                            <span class="text-muted small fw-semibold text-uppercase d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">Negocio Activo</span>
+                            <div class="fw-bold text-dark text-truncate d-flex align-items-center gap-2 mt-1">
+                                <i class="bi bi-shop text-primary"></i>
+                                <span class="text-truncate">{{ $currentBusiness->name }}</span>
+                            </div>
+                        </li>
+                    @endif
+                    <li class="px-3 py-2">
+                        <span class="text-muted small fw-semibold text-uppercase d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">Usuario</span>
+                        <div class="fw-semibold text-dark text-truncate d-flex align-items-center gap-2 mt-1">
+                            <i class="bi bi-person-badge text-secondary"></i>
+                            <span class="text-truncate">{{ auth()->user()->name }}</span>
+                        </div>
+                        <span class="badge bg-secondary-subtle text-secondary border mt-1">
+                            {{ auth()->user()->isCurrentAdmin() ? 'Administrador' : 'Empleado' }}
+                        </span>
+                    </li>
+                    <li><hr class="dropdown-divider my-1"></li>
+                    <li class="px-2 pt-1">
+                        <form method="POST" action="{{ route('logout') }}" class="w-100 m-0">
+                            @csrf
+                            <button type="submit" class="btn btn-outline-danger btn-sm w-100 rounded-pill py-2 d-flex align-items-center justify-content-center gap-2 fw-semibold">
+                                <i class="bi bi-box-arrow-right"></i> Salir
+                            </button>
+                        </form>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
@@ -320,6 +394,43 @@
                 });
             }
         });
+
+        // Ergonomía global: Auto-selección en foco y eliminación reactiva de ceros parásitos
+        function setupNumberInputErgonomics() {
+            document.querySelectorAll('input[type="number"], .currency-input, input[name="cost_price"], input[name="sale_price"], input[name="stock"], input[name="min_stock"]').forEach(input => {
+                if (input.dataset.ergonomicsAttached) return;
+                input.dataset.ergonomicsAttached = 'true';
+
+                input.addEventListener('focus', function () {
+                    this.select();
+                });
+                input.addEventListener('mouseup', function (e) {
+                    e.preventDefault();
+                });
+            });
+        }
+
+        // Delegación de eventos para inputs numéricos y monetarios estáticos y dinámicos
+        document.addEventListener('focusin', function (e) {
+            const target = e.target;
+            if (target && target.matches('input[type="number"], .currency-input, input[name="cost_price"], input[name="sale_price"], input[name="stock"], input[name="min_stock"]')) {
+                setTimeout(() => {
+                    target.select();
+                }, 0);
+            }
+        });
+
+        document.addEventListener('input', function (e) {
+            const target = e.target;
+            if (target && target.matches('input[type="number"], .currency-input, input[name="cost_price"], input[name="sale_price"], input[name="stock"], input[name="min_stock"]')) {
+                const val = target.value;
+                if (/^0+[1-9]/.test(val)) {
+                    target.value = val.replace(/^0+/, '');
+                }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', setupNumberInputErgonomics);
     </script>
     @stack('scripts')
 </body>

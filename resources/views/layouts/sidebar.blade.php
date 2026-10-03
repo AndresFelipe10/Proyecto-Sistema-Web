@@ -33,6 +33,11 @@
                     <i class="bi bi-bicycle me-2"></i> Domicilios y Despacho
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link fw-semibold {{ request()->routeIs('sales.*') && !request()->routeIs('reports.cash-register') ? 'active text-primary' : 'text-secondary' }}" href="{{ route('sales.index') }}">
+                    <i class="bi bi-receipt me-2"></i> Ventas de Mostrador
+                </a>
+            </li>
         @endif
 
         {{-- 2b. Cuadre de Caja (Para Administrador y Empleados) --}}

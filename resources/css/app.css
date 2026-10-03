@@ -9,3 +9,35 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* Forzar visibilidad permanente de spinners numéricos en navegadores WebKit/Chromium */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+}
+/* Soporte en Firefox */
+input[type=number] {
+    -moz-appearance: number-input;
+}
+
+/* Ocultar flechas nativas en inputs que ya cuentan con botones + y - */
+.input-stepper::-webkit-outer-spin-button,
+.input-stepper::-webkit-inner-spin-button,
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button,
+.input-group input[type=number]::-webkit-outer-spin-button,
+.input-group input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+.input-stepper,
+.qty-input,
+.input-group input[type=number] {
+    -moz-appearance: textfield !important;
+}
+

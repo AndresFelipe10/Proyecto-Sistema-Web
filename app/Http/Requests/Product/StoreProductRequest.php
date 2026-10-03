@@ -65,13 +65,18 @@ class StoreProductRequest extends FormRequest
             $sku = 'MNU-' . strtoupper(\Illuminate\Support\Str::random(6));
         }
 
+        $productType = $this->input('product_type');
+        if (empty($productType)) {
+            $productType = $isRestaurant ? 'dish' : 'standard';
+        }
+
         $this->merge([
             'sku' => $sku,
             'is_active' => $this->boolean('is_active', true),
-            'cost_price' => $isRestaurant && ($this->input('cost_price') === null || $this->input('cost_price') === '') ? '0.00' : $this->input('cost_price'),
-            'stock' => $isRestaurant && ($this->input('stock') === null || $this->input('stock') === '') ? '0' : $this->input('stock'),
-            'min_stock' => $isRestaurant && ($this->input('min_stock') === null || $this->input('min_stock') === '') ? '0' : $this->input('min_stock'),
-            'product_type' => $this->input('product_type') ?: 'standard',
+            'cost_price' => ($isRestaurant && $productType === 'dish' && ($this->input('cost_price') === null || $this->input('cost_price') === '')) ? '0.00' : ($this->input('cost_price') ?? '0.00'),
+            'stock' => ($isRestaurant && $productType === 'dish' && ($this->input('stock') === null || $this->input('stock') === '')) ? '0' : ($this->input('stock') ?? '0'),
+            'min_stock' => ($isRestaurant && $productType === 'dish' && ($this->input('min_stock') === null || $this->input('min_stock') === '')) ? '0' : ($this->input('min_stock') ?? '0'),
+            'product_type' => $productType,
             'base_unit' => $this->input('base_unit') ?: 'unit',
         ]);
     }

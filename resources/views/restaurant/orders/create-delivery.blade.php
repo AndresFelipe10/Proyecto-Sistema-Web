@@ -138,7 +138,10 @@
                                 <div class="col-12 col-md-5">
                                     <label class="form-label small fw-semibold">Plato / Producto <span class="text-danger">*</span></label>
                                     <div class="position-relative mb-1">
-                                        <input type="text" class="form-control form-control-sm product-search-input" placeholder="🔍 Escribe para buscar plato o bebida..." autocomplete="off">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                            <input type="text" class="form-control form-control-sm border-start-0 product-search-input" placeholder="Escribe para buscar plato o bebida..." autocomplete="off">
+                                        </div>
                                         <div class="product-dropdown-list list-group position-absolute w-100 shadow-lg border rounded-3 overflow-auto d-none" style="max-height: 220px; z-index: 1050; top: 100%; left: 0; background: #fff;"></div>
                                     </div>
                                     <select class="form-select form-select-sm product-select" name="items[0][product_id]" required>
@@ -158,7 +161,7 @@
                                     <label class="form-label small fw-semibold">Cantidad <span class="text-danger">*</span></label>
                                     <div class="input-group input-group-sm" style="max-width: 130px;">
                                         <button type="button" class="btn btn-outline-secondary btn-qty-minus fw-bold px-2">−</button>
-                                        <input type="number" name="items[0][quantity]" class="form-control text-center input-qty" value="1" min="1" max="999" required>
+                                        <input type="number" name="items[0][quantity]" class="form-control text-center input-qty input-stepper" value="1" min="1" max="999" required>
                                         <button type="button" class="btn btn-outline-secondary btn-qty-plus fw-bold px-2">+</button>
                                     </div>
                                 </div>
@@ -198,7 +201,10 @@
             <div class="col-12 col-md-5">
                 <label class="form-label small fw-semibold">Plato / Producto <span class="text-danger">*</span></label>
                 <div class="position-relative mb-1">
-                    <input type="text" class="form-control form-control-sm product-search-input" placeholder="🔍 Escribe para buscar plato o bebida..." autocomplete="off">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control form-control-sm border-start-0 product-search-input" placeholder="Escribe para buscar plato o bebida..." autocomplete="off">
+                    </div>
                     <div class="product-dropdown-list list-group position-absolute w-100 shadow-lg border rounded-3 overflow-auto d-none" style="max-height: 220px; z-index: 1050; top: 100%; left: 0; background: #fff;"></div>
                 </div>
                 <select class="form-select form-select-sm product-select" name="items[INDEX][product_id]" required>
@@ -218,7 +224,7 @@
                 <label class="form-label small fw-semibold">Cantidad <span class="text-danger">*</span></label>
                 <div class="input-group input-group-sm" style="max-width: 130px;">
                     <button type="button" class="btn btn-outline-secondary btn-qty-minus fw-bold px-2">−</button>
-                    <input type="number" name="items[INDEX][quantity]" class="form-control text-center input-qty" value="1" min="1" max="999" required>
+                    <input type="number" name="items[INDEX][quantity]" class="form-control text-center input-qty input-stepper" value="1" min="1" max="999" required>
                     <button type="button" class="btn btn-outline-secondary btn-qty-plus fw-bold px-2">+</button>
                 </div>
             </div>
@@ -529,10 +535,68 @@ document.addEventListener('DOMContentLoaded', function () {
     const selectedCustomerNameLabel = document.getElementById('selected_customer_name_label');
 
     let searchTimeout = null;
+    let highlightedCustomerIndex = -1;
+
+    function updateCustomerHighlight(items) {
+        items.forEach((item, idx) => {
+            if (idx === highlightedCustomerIndex) {
+                item.classList.add('active', 'bg-primary', 'text-white');
+                item.querySelectorAll('.text-dark, .text-muted').forEach(el => {
+                    el.classList.add('text-white');
+                    el.classList.remove('text-dark', 'text-muted');
+                });
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('active', 'bg-primary', 'text-white');
+                item.querySelectorAll('.text-white').forEach(el => {
+                    el.classList.remove('text-white');
+                });
+            }
+        });
+    }
 
     if (customerSearchInput && customerSearchResults) {
+        customerSearchInput.addEventListener('keydown', function (e) {
+            const items = customerSearchResults.querySelectorAll('button.customer-result-item');
+            const isVisible = !customerSearchResults.classList.contains('d-none') && items.length > 0;
+
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault(); // Prevenir incondicionalmente el envío del formulario
+                if (isVisible) {
+                    const targetBtn = (highlightedCustomerIndex >= 0 && items[highlightedCustomerIndex])
+                        ? items[highlightedCustomerIndex]
+                        : items[0];
+                    if (targetBtn) {
+                        targetBtn.click();
+                    }
+                } else {
+                    if (deliveryAddress && !deliveryAddress.value) {
+                        deliveryAddress.focus();
+                    } else if (deliveryPhoneInput && !deliveryPhoneInput.value) {
+                        deliveryPhoneInput.focus();
+                    }
+                }
+            } else if (e.key === 'ArrowDown' || e.keyCode === 40) {
+                if (isVisible) {
+                    e.preventDefault();
+                    highlightedCustomerIndex = (highlightedCustomerIndex + 1) % items.length;
+                    updateCustomerHighlight(items);
+                }
+            } else if (e.key === 'ArrowUp' || e.keyCode === 38) {
+                if (isVisible) {
+                    e.preventDefault();
+                    highlightedCustomerIndex = (highlightedCustomerIndex - 1 + items.length) % items.length;
+                    updateCustomerHighlight(items);
+                }
+            } else if (e.key === 'Escape' || e.keyCode === 27) {
+                customerSearchResults.classList.add('d-none');
+                highlightedCustomerIndex = -1;
+            }
+        });
+
         customerSearchInput.addEventListener('input', function () {
             clearTimeout(searchTimeout);
+            highlightedCustomerIndex = -1;
             const query = this.value.trim();
 
             if (query.length < 3) {
@@ -546,6 +610,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     .then(res => res.json())
                     .then(customers => {
                         customerSearchResults.innerHTML = '';
+                        highlightedCustomerIndex = -1;
                         if (!customers || customers.length === 0) {
                             const emptyDiv = document.createElement('div');
                             emptyDiv.className = 'list-group-item text-muted small py-2 px-3';
@@ -555,10 +620,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             return;
                         }
 
-                        customers.forEach(cust => {
+                        customers.forEach((cust, idx) => {
                             const btn = document.createElement('button');
                             btn.type = 'button';
-                            btn.className = 'list-group-item list-group-item-action py-2 px-3 text-start border-bottom';
+                            btn.className = 'list-group-item list-group-item-action py-2 px-3 text-start border-bottom customer-result-item';
+                            btn.dataset.index = idx;
 
                             const headerDiv = document.createElement('div');
                             headerDiv.className = 'd-flex justify-content-between align-items-center';
@@ -600,6 +666,12 @@ document.addEventListener('DOMContentLoaded', function () {
                                 btn.appendChild(detailDiv);
                             }
 
+                            btn.addEventListener('mouseenter', function () {
+                                highlightedCustomerIndex = idx;
+                                const items = customerSearchResults.querySelectorAll('button.customer-result-item');
+                                updateCustomerHighlight(items);
+                            });
+
                             btn.addEventListener('click', function (e) {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -615,6 +687,16 @@ document.addEventListener('DOMContentLoaded', function () {
                                 if (btnClearCustomer) btnClearCustomer.classList.remove('d-none');
 
                                 customerSearchResults.classList.add('d-none');
+                                highlightedCustomerIndex = -1;
+
+                                // Foco al siguiente campo lógico
+                                if (deliveryAddress && !deliveryAddress.value) {
+                                    deliveryAddress.focus();
+                                } else if (deliveryPhoneInput && !deliveryPhoneInput.value) {
+                                    deliveryPhoneInput.focus();
+                                } else if (deliveryAddress) {
+                                    deliveryAddress.focus();
+                                }
                             });
 
                             customerSearchResults.appendChild(btn);
@@ -639,6 +721,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (selectedCustomerBadge) selectedCustomerBadge.classList.add('d-none');
                 btnClearCustomer.classList.add('d-none');
                 customerSearchResults.classList.add('d-none');
+                highlightedCustomerIndex = -1;
 
                 if (customerNameInput) customerNameInput.focus();
             });

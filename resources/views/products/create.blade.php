@@ -41,9 +41,56 @@
                 @csrf
 
                 @if ($isRestaurant)
-                    {{-- Formulario Simplificado para Restaurante --}}
-                    <input type="hidden" name="product_type" value="standard">
+                    {{-- Selector de Tipo de Producto para Restaurante Híbrido --}}
                     <input type="hidden" name="base_unit" value="unit">
+
+                    <div class="mb-4 p-3 bg-light rounded-3 border">
+                        <label class="form-label small fw-semibold text-secondary d-block mb-2">Modalidad del Artículo en Restaurante</label>
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <div class="form-check p-2 border rounded-2 bg-white h-100">
+                                    <input class="form-check-input ms-1 me-2" type="radio" name="product_type" id="type_dish" value="dish" {{ old('product_type', 'dish') === 'dish' ? 'checked' : '' }} onchange="toggleRestaurantProductType()">
+                                    <label class="form-check-label fw-semibold text-dark cursor-pointer" for="type_dish">
+                                        <i class="bi bi-book-half text-primary me-1"></i> Carta / Menú de Cocina
+                                        <small class="d-block text-muted fw-normal">Plato o bebida preparada. Va a comanda de cocina y no requiere existencias físicas estrictas.</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-check p-2 border rounded-2 bg-white h-100">
+                                    <input class="form-check-input ms-1 me-2" type="radio" name="product_type" id="type_standard" value="standard" {{ old('product_type') === 'standard' ? 'checked' : '' }} onchange="toggleRestaurantProductType()">
+                                    <label class="form-check-label fw-semibold text-dark cursor-pointer" for="type_standard">
+                                        <i class="bi bi-boxes text-warning-emphasis me-1"></i> Mercancía de Mostrador
+                                        <small class="text-muted d-block mt-1">
+                                            Artículos, mercancía empacada, bebidas selladas o productos de reventa. Controla stock físico, costo de compra y no causa INC.
+                                        </small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Campos de Inventario y Costo para Mercancía de Mostrador --}}
+                    <div id="merchandise_fields" class="row g-3 mb-4 p-3 bg-warning-subtle rounded-3 border border-warning-subtle" style="display: {{ old('product_type', 'dish') === 'standard' ? 'flex' : 'none' }};">
+                        <div class="col-12 mb-1">
+                            <span class="small fw-bold text-dark"><i class="bi bi-box-seam me-1"></i>Control de Inventario y Costos (Mercancía)</span>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="cost_price" class="form-label small fw-semibold text-secondary">Precio de Compra / Costo</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" step="0.01" min="0" class="form-control @error('cost_price') is-invalid @enderror" id="cost_price" name="cost_price" value="{{ old('cost_price', '0.00') }}" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="stock" class="form-label small fw-semibold text-secondary">Stock Inicial</label>
+                            <input type="number" step="1" min="0" class="form-control @error('stock') is-invalid @enderror" id="stock" name="stock" value="{{ old('stock', '0') }}" placeholder="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="min_stock" class="form-label small fw-semibold text-secondary">Stock Mínimo (Alerta)</label>
+                            <input type="number" step="1" min="0" class="form-control @error('min_stock') is-invalid @enderror" id="min_stock" name="min_stock" value="{{ old('min_stock', '0') }}" placeholder="0">
+                        </div>
+                    </div>
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-8">
@@ -243,4 +290,16 @@
         </div>
     </div>
 </div>
+
+@if ($isRestaurant)
+<script>
+    function toggleRestaurantProductType() {
+        const isStandard = document.getElementById('type_standard')?.checked;
+        const fields = document.getElementById('merchandise_fields');
+        if (fields) {
+            fields.style.display = isStandard ? 'flex' : 'none';
+        }
+    }
+</script>
+@endif
 @endsection

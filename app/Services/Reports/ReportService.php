@@ -4,6 +4,7 @@ namespace App\Services\Reports;
 
 use App\Models\Category;
 use App\Models\Customer;
+use App\Models\Expense;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleDetail;
@@ -537,14 +538,72 @@ class ReportService
             $totalDeliveryFee = round($totalDeliveryFee + (float) ($sale->delivery_fee ?? 0.00), 2);
         }
 
-        // Conciliación de Efectivo Físico vs Dinero Digital
-        $cashInDrawer = (float) ($byMethod['cash']['amount'] ?? 0.00);
-        $digitalMoney = round(
+        // Consultar Gastos pagados del tenant para el rango de fechas (Caja Menor vs Caja General)
+        $expenseQuery = Expense::where('business_id', $businessId)
+            ->where('status', 'paid')
+            ->with(['supplier', 'creator']);
+
+        if ($periodType === 'monthly') {
+            $expenseQuery->where(function ($q) use ($dateFrom, $dateTo) {
+                $q->whereBetween('paid_at', [$dateFrom->toDateString(), $dateTo->toDateString()])
+                  ->orWhere(function ($sub) use ($dateFrom, $dateTo) {
+                      $sub->whereNull('paid_at')
+                          ->whereBetween('issue_date', [$dateFrom->toDateString(), $dateTo->toDateString()]);
+                  });
+            });
+        } else {
+            $dateStr = $dateFrom->toDateString();
+            $expenseQuery->where(function ($q) use ($dateStr) {
+                $q->whereDate('paid_at', $dateStr)
+                  ->orWhere(function ($sub) use ($dateStr) {
+                      $sub->whereNull('paid_at')
+                          ->whereDate('issue_date', $dateStr);
+                  });
+            });
+        }
+
+        $expenses = $expenseQuery->orderBy('paid_at', 'asc')->get();
+
+        $cashExpenses = 0.00;
+        $digitalExpenses = 0.00;
+        $expensesByMethod = [
+            'cash' => 0.00,
+            'transfer' => 0.00,
+            'card' => 0.00,
+            'other' => 0.00,
+        ];
+
+        foreach ($expenses as $expense) {
+            $amt = (float) $expense->amount;
+            $m = $expense->payment_method instanceof \App\Enums\PaymentMethod 
+                ? $expense->payment_method->value 
+                : (string) ($expense->payment_method ?? 'cash');
+
+            if ($m === 'cash') {
+                $cashExpenses = round($cashExpenses + $amt, 2);
+                $expensesByMethod['cash'] = round($expensesByMethod['cash'] + $amt, 2);
+            } else {
+                $digitalExpenses = round($digitalExpenses + $amt, 2);
+                if (!isset($expensesByMethod[$m])) {
+                    $expensesByMethod[$m] = 0.00;
+                }
+                $expensesByMethod[$m] = round($expensesByMethod[$m] + $amt, 2);
+            }
+        }
+        $totalExpenses = round($cashExpenses + $digitalExpenses, 2);
+
+        // Conciliación de Efectivo Físico (Caja Menor) y Cuentas Digitales (Caja General)
+        $cashSales = (float) ($byMethod['cash']['amount'] ?? 0.00);
+        $digitalSales = round(
             (float) ($byMethod['transfer']['amount'] ?? 0.00) +
             (float) ($byMethod['card']['amount'] ?? 0.00) +
             (float) ($byMethod['other']['amount'] ?? 0.00),
             2
         );
+
+        $netCashInDrawer = round($cashSales - $cashExpenses, 2);
+        $netDigitalMoney = round($digitalSales - $digitalExpenses, 2);
+        $netTurnBalance = round($totalRevenue - $totalExpenses, 2);
 
         $cashiers = \App\Models\User::whereHas('businesses', function ($q) use ($businessId) {
             $q->where('businesses.id', $businessId);
@@ -552,14 +611,23 @@ class ReportService
 
         return [
             'sales' => $sales,
+            'expenses' => $expenses,
             'cashiers' => $cashiers,
             'by_method' => $byMethod,
             'channels' => $channels,
             'total_delivery_fee' => $totalDeliveryFee,
-            'cash_in_drawer' => $cashInDrawer,
-            'digital_money' => $digitalMoney,
+            'cash_in_drawer' => $cashSales,
+            'digital_money' => $digitalSales,
+            'cash_expenses' => $cashExpenses,
+            'digital_expenses' => $digitalExpenses,
+            'total_expenses' => $totalExpenses,
+            'expenses_by_method' => $expensesByMethod,
+            'net_cash_in_drawer' => $netCashInDrawer,
+            'net_digital_money' => $netDigitalMoney,
+            'net_turn_balance' => $netTurnBalance,
             'total_revenue' => $totalRevenue,
             'sales_count' => $salesCount,
+            'expenses_count' => $expenses->count(),
             'period_type' => $periodType,
             'selected_date' => $selectedDate,
             'selected_month' => $selectedMonth,
@@ -567,6 +635,14 @@ class ReportService
             'date_from' => $dateFrom,
             'date_to' => $dateTo,
         ];
+    }
+
+    /**
+     * Alias for getCashRegisterReport (Cuadre y Arqueo de Caja).
+     */
+    public function getCashRegisterSummary(int $businessId, array $filters = []): array
+    {
+        return $this->getCashRegisterReport($businessId, $filters);
     }
 
     /**
@@ -587,11 +663,17 @@ class ReportService
         // Resumen de Cabecera
         $periodLabel = $data['period_type'] === 'monthly' ? 'Mensual (' . $data['selected_month'] . ')' : 'Diario (' . $data['selected_date'] . ')';
         fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['CUADRE DE CAJA - ' . $periodLabel]));
-        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['Total Recaudado', $data['total_revenue']]));
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['Total Recaudado (Ventas)', $data['total_revenue']]));
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['Total Egresos (Gastos Operativos)', $data['total_expenses']]));
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['Balance Neto Consolidado', $data['net_turn_balance']]));
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['Caja Menor (Efectivo Neto Esperado)', $data['net_cash_in_drawer']]));
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['Caja General (Saldo Neto Digital)', $data['net_digital_money']]));
         fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['Cantidad de Ventas', $data['sales_count']]));
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['Cantidad de Gastos', $data['expenses_count']]));
         fputcsv($handle, []);
 
-        // Discriminación por Método de Pago
+        // Discriminación de Ventas por Método de Pago
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['VENTAS POR METODO DE PAGO']));
         fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], [
             'Metodo de Pago',
             'Transacciones',
@@ -613,7 +695,20 @@ class ReportService
 
         fputcsv($handle, []);
 
+        // Discriminación de Gastos Operativos
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['EGRESOS Y GASTOS OPERATIVOS']));
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], [
+            'Tipo de Caja / Metodo',
+            'Total Egresos',
+        ]));
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['Caja Menor (Gastos en Efectivo)', $data['cash_expenses']]));
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['Caja General (Gastos Digitales / Bancos)', $data['digital_expenses']]));
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['Total Gastos Operativos', $data['total_expenses']]));
+
+        fputcsv($handle, []);
+
         // Detalle de Ventas
+        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['DETALLE DE VENTAS']));
         fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], [
             'Factura',
             'Fecha y Hora',
@@ -644,6 +739,38 @@ class ReportService
                 $sale->notes ?? '',
             ];
             fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], $row));
+        }
+
+        fputcsv($handle, []);
+
+        // Detalle de Gastos
+        if (!empty($data['expenses']) && count($data['expenses']) > 0) {
+            fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], ['DETALLE DE GASTOS']));
+            fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], [
+                'Factura / Recibo',
+                'Fecha',
+                'Categoria',
+                'Descripcion',
+                'Proveedor',
+                'Metodo de Pago',
+                'Caja Afectada',
+                'Monto',
+            ]));
+
+            foreach ($data['expenses'] as $exp) {
+                $isCash = ($exp->payment_method instanceof \App\Enums\PaymentMethod ? $exp->payment_method->value : (string)$exp->payment_method) === 'cash';
+                $row = [
+                    $exp->invoice_number ?? 'S/N',
+                    $exp->paid_at ? $exp->paid_at->format('Y-m-d') : ($exp->issue_date ? $exp->issue_date->format('Y-m-d') : 'N/A'),
+                    $exp->category_label ?? (string) $exp->category,
+                    $exp->description ?? '',
+                    $exp->supplier ? $exp->supplier->name : 'N/A',
+                    $exp->payment_method_label ?? (string) $exp->payment_method,
+                    $isCash ? 'Caja Menor (Efectivo)' : 'Caja General (Digital)',
+                    $exp->amount,
+                ];
+                fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], $row));
+            }
         }
 
         rewind($handle);

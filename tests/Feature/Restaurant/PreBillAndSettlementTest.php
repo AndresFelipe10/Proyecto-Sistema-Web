@@ -73,7 +73,7 @@ class PreBillAndSettlementTest extends TestCase
             'category_id' => $category->id,
             'name' => 'Hamburguesa Gourmet',
             'sku' => 'PLT-HAMBUR-01',
-            'product_type' => 'standard',
+            'product_type' => 'dish',
             'base_unit' => 'unit',
             'cost_price' => 8000,
             'sale_price' => 20000,
