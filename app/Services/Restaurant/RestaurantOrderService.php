@@ -2,16 +2,24 @@
 
 namespace App\Services\Restaurant;
 
+use App\Models\InventoryMovement;
 use App\Models\Product;
 use App\Models\RestaurantOrder;
 use App\Models\RestaurantOrderItem;
 use App\Models\RestaurantTable;
+use App\Models\User;
+use App\Services\Inventory\InventoryService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class RestaurantOrderService
 {
+    public function __construct(
+        protected InventoryService $inventoryService
+    ) {}
+
     /**
      * Open a new order for a table.
      */
@@ -240,6 +248,175 @@ class RestaurantOrderService
             }
 
             return $order->fresh();
+        });
+    }
+
+    /**
+     * Remove an individual item or reduce its quantity in an active order, restore stock, and recalculate totals.
+     *
+     * @throws AuthorizationException
+     * @throws ValidationException
+     */
+    public function removeItemFromOrder(
+        RestaurantOrder $order,
+        RestaurantOrderItem $item,
+        string $reason,
+        User $admin,
+        ?int $quantityToRemove = null
+    ): RestaurantOrder {
+        if (! $admin->isCurrentAdmin()) {
+            throw new AuthorizationException('Esta acción es de acceso exclusivo para administradores.');
+        }
+
+        if (! $order->canBeModified()) {
+            throw ValidationException::withMessages([
+                'order' => 'No se pueden eliminar platos de una comanda que ya fue cobrada, facturada o anulada.',
+            ]);
+        }
+
+        if ((int) $item->order_id !== (int) $order->id) {
+            throw ValidationException::withMessages([
+                'item' => 'El plato no pertenece a la comanda especificada.',
+            ]);
+        }
+
+        if ($item->isCancelled()) {
+            throw ValidationException::withMessages([
+                'item' => 'Este ítem ya ha sido cancelado previamente.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($order, $item, $reason, $admin, $quantityToRemove) {
+            $lockedItem = RestaurantOrderItem::lockForUpdate()->findOrFail($item->id);
+            $lockedOrder = RestaurantOrder::lockForUpdate()->findOrFail($order->id);
+
+            $currentQty = (int) $lockedItem->quantity;
+            $qtyToRemove = $quantityToRemove !== null ? (int) $quantityToRemove : $currentQty;
+
+            if ($qtyToRemove <= 0) {
+                throw ValidationException::withMessages([
+                    'quantity_to_remove' => 'La cantidad a retirar debe ser al menos 1.',
+                ]);
+            }
+
+            if ($qtyToRemove > $currentQty) {
+                throw ValidationException::withMessages([
+                    'quantity_to_remove' => "La cantidad a retirar ({$qtyToRemove}) no puede ser mayor a la cantidad actual del plato ({$currentQty}).",
+                ]);
+            }
+
+            // 1. Revertir inventario ÚNICAMENTE de la cantidad retirada con trazabilidad
+            $product = Product::lockForUpdate()->find($lockedItem->product_id);
+            if ($product) {
+                $movementReason = $qtyToRemove >= $currentQty
+                    ? "Cancelación total de ítem en comanda #{$lockedOrder->order_number}: {$reason}"
+                    : "Reducción parcial de ítem (-{$qtyToRemove} un.) en comanda #{$lockedOrder->order_number}: {$reason}";
+
+                $this->inventoryService->registerMovement(
+                    product: $product,
+                    type: InventoryMovement::TYPE_ENTRY,
+                    quantity: $qtyToRemove,
+                    reason: $movementReason,
+                    userId: $admin->id,
+                );
+            }
+
+            // 2. Eliminación Total vs Reducción Parcial
+            if ($qtyToRemove >= $currentQty) {
+                $lockedItem->update([
+                    'status' => 'cancelled',
+                    'cancelled_by' => $admin->id,
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => $reason,
+                ]);
+            } else {
+                $newQty = $currentQty - $qtyToRemove;
+                $newSubtotal = round($newQty * (float) $lockedItem->unit_price, 2);
+
+                $auditNote = "Reducción de {$qtyToRemove} un. por {$admin->name}: {$reason}";
+                $existingNotes = $lockedItem->notes ? trim($lockedItem->notes) . " | " : '';
+                $updatedNotes = mb_substr($existingNotes . $auditNote, 0, 255);
+
+                $lockedItem->update([
+                    'quantity' => $newQty,
+                    'subtotal' => $newSubtotal,
+                    'notes' => $updatedNotes,
+                ]);
+            }
+
+            // 3. Recalcular la comanda
+            $lockedOrder->recalculateTotals();
+
+            return $lockedOrder->fresh(['items.product', 'table', 'user', 'customer']);
+        });
+    }
+
+    /**
+     * Annul an active order, release its table, restore stock for all active items, and log audit.
+     *
+     * @throws AuthorizationException
+     * @throws ValidationException
+     */
+    public function cancelOrder(RestaurantOrder $order, string $reason, User $admin): RestaurantOrder
+    {
+        if (! $admin->isCurrentAdmin()) {
+            throw new AuthorizationException('Esta acción es de acceso exclusivo para administradores.');
+        }
+
+        if (! $order->canBeModified()) {
+            throw ValidationException::withMessages([
+                'order' => 'No se puede anular una comanda que ya fue cobrada, facturada o anulada.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($order, $reason, $admin) {
+            $lockedOrder = RestaurantOrder::lockForUpdate()->findOrFail($order->id);
+
+            // Revertir inventario de todos los ítems activos y marcarlos como anulados
+            $activeItems = $lockedOrder->items()
+                ->where('status', '!=', 'cancelled')
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($activeItems as $activeItem) {
+                $product = Product::lockForUpdate()->find($activeItem->product_id);
+                if ($product) {
+                    $this->inventoryService->registerMovement(
+                        product: $product,
+                        type: InventoryMovement::TYPE_ENTRY,
+                        quantity: $activeItem->quantity,
+                        reason: "Anulación de comanda #{$lockedOrder->order_number}: {$reason}",
+                        userId: $admin->id,
+                    );
+                }
+
+                $activeItem->update([
+                    'status' => 'cancelled',
+                    'cancelled_by' => $admin->id,
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => $reason,
+                ]);
+            }
+
+            // Liberar la mesa asociada si existe
+            if ($lockedOrder->table_id) {
+                $table = RestaurantTable::where('business_id', $lockedOrder->business_id)
+                    ->lockForUpdate()
+                    ->find($lockedOrder->table_id);
+
+                if ($table) {
+                    $table->update(['status' => 'available']);
+                }
+            }
+
+            $lockedOrder->update([
+                'status' => 'cancelled',
+                'cancelled_by' => $admin->id,
+                'cancelled_at' => now(),
+                'cancellation_reason' => $reason,
+            ]);
+
+            return $lockedOrder->fresh(['items.product', 'table', 'user', 'customer']);
         });
     }
 

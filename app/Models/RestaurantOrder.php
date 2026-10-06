@@ -33,6 +33,9 @@ class RestaurantOrder extends Model
         'total',
         'notes',
         'closed_at',
+        'cancelled_by',
+        'cancelled_at',
+        'cancellation_reason',
     ];
 
     protected function casts(): array
@@ -43,6 +46,7 @@ class RestaurantOrder extends Model
             'subtotal' => 'float',
             'total' => 'float',
             'closed_at' => 'datetime',
+            'cancelled_at' => 'datetime',
         ];
     }
 
@@ -59,6 +63,11 @@ class RestaurantOrder extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function cancelledByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
     }
 
     public function sale(): BelongsTo
@@ -110,6 +119,11 @@ class RestaurantOrder extends Model
     public function isCancelled(): bool
     {
         return $this->status === 'cancelled';
+    }
+
+    public function canBeModified(): bool
+    {
+        return ! $this->isClosed() && ! $this->isCancelled() && is_null($this->sale_id);
     }
 
     public function getStatusLabelAttribute(): string

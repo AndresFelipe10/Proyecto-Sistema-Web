@@ -24,6 +24,9 @@ class RestaurantOrderItem extends Model
         'status',
         'printed_to_kitchen',
         'batch_number',
+        'cancelled_by',
+        'cancelled_at',
+        'cancellation_reason',
     ];
 
     protected function casts(): array
@@ -34,6 +37,7 @@ class RestaurantOrderItem extends Model
             'subtotal' => 'float',
             'printed_to_kitchen' => 'boolean',
             'batch_number' => 'integer',
+            'cancelled_at' => 'datetime',
         ];
     }
 
@@ -50,5 +54,15 @@ class RestaurantOrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function cancelledByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === 'cancelled';
     }
 }

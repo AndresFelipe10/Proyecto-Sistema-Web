@@ -11,6 +11,38 @@
     $clientName = $order->customer?->name
         ?? ($order->order_type !== 'table' && !empty($order->customer_name) ? $order->customer_name : 'Consumidor Final');
 @endphp
+<style>
+    .btn-action-icon-danger {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        background-color: #fee2e2;
+        color: #dc3545;
+        border: 1px solid rgba(220, 53, 69, 0.25);
+        transition: all 0.2s ease-in-out;
+        padding: 0;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .btn-action-icon-danger i,
+    .btn-action-icon-danger svg {
+        color: inherit !important;
+        fill: currentColor !important;
+        font-size: 0.95rem;
+        transition: color 0.2s ease-in-out;
+    }
+    .btn-action-icon-danger:hover,
+    .btn-action-icon-danger:focus {
+        background-color: #dc3545 !important;
+        color: #ffffff !important;
+        border-color: #dc3545 !important;
+        box-shadow: 0 2px 6px rgba(220, 53, 69, 0.35);
+        transform: translateY(-1px);
+    }
+</style>
 <div class="container-fluid py-3" style="max-width: 1200px;">
     {{-- Header de la Comanda --}}
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -185,24 +217,35 @@
                                                 <th>Observaciones</th>
                                                 <th class="text-end">P. Unit</th>
                                                 <th class="text-end pe-3">Subtotal</th>
+                                                @if(auth()->check() && auth()->user()->hasRole('admin') && $order->canBeModified())
+                                                    <th class="text-center" style="width: 60px;">Acción</th>
+                                                @endif
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @foreach($items as $item)
-                                                <tr>
-                                                    <td class="ps-3 fw-bold text-primary" style="width: 70px;">
+                                                <tr class="{{ $item->isCancelled() ? 'opacity-75 bg-light' : '' }}">
+                                                    <td class="ps-3 fw-bold {{ $item->isCancelled() ? 'text-decoration-line-through text-muted' : 'text-primary' }}" style="width: 70px;">
                                                         {{ (float) $item->quantity == (int) $item->quantity ? (int) $item->quantity : $item->quantity }}
                                                     </td>
                                                     <td>
-                                                        <span class="fw-semibold text-dark">{{ $item->product->name }}</span>
-                                                        @if($item->printed_to_kitchen)
+                                                        <span class="fw-semibold {{ $item->isCancelled() ? 'text-decoration-line-through text-muted' : 'text-dark' }}">{{ $item->product->name }}</span>
+                                                        @if($item->isCancelled())
+                                                            <span class="badge bg-danger-subtle text-danger border ms-1" title="Cancelado por {{ $item->cancelledByUser?->name ?? 'Admin' }}: {{ $item->cancellation_reason }}">
+                                                                <i class="bi bi-x-circle me-1"></i>Cancelado
+                                                            </span>
+                                                        @elseif($item->printed_to_kitchen)
                                                             <i class="bi bi-check2-all text-success ms-1" title="Impreso en cocina"></i>
                                                         @else
                                                             <span class="badge bg-warning text-dark ms-1" style="font-size: 0.7rem;">Sin imprimir</span>
                                                         @endif
                                                     </td>
                                                     <td>
-                                                        @if($item->notes)
+                                                        @if($item->isCancelled())
+                                                            <span class="small text-danger fst-italic">
+                                                                <i class="bi bi-info-circle me-1"></i>{{ $item->cancellation_reason }}
+                                                            </span>
+                                                        @elseif($item->notes)
                                                             <span class="badge bg-light text-dark border fw-normal text-wrap text-start">
                                                                 <i class="bi bi-chat-left-text me-1 text-muted"></i>{{ $item->notes }}
                                                             </span>
@@ -213,9 +256,28 @@
                                                     <td class="text-end text-muted small">
                                                         ${{ number_format($item->unit_price, 2) }}
                                                     </td>
-                                                    <td class="text-end pe-3 fw-bold">
+                                                    <td class="text-end pe-3 fw-bold {{ $item->isCancelled() ? 'text-decoration-line-through text-muted' : '' }}">
                                                         ${{ number_format($item->subtotal, 2) }}
                                                     </td>
+                                                    @if(auth()->check() && auth()->user()->hasRole('admin') && $order->canBeModified())
+                                                        <td class="text-center">
+                                                            @if(! $item->isCancelled())
+                                                                <button type="button" 
+                                                                        class="btn-action-icon-danger" 
+                                                                        title="Gestionar o retirar plato de la comanda"
+                                                                        data-bs-toggle="modal" 
+                                                                        data-bs-target="#deleteItemModal"
+                                                                        data-item-name="{{ $item->product->name }}"
+                                                                        data-item-qty="{{ (float) $item->quantity == (int) $item->quantity ? (int) $item->quantity : $item->quantity }}"
+                                                                        data-item-unit-price="{{ (float) $item->unit_price }}"
+                                                                        data-action-url="{{ route('restaurant.orders.items.destroy', [$order, $item]) }}">
+                                                                    <i class="bi bi-trash3"></i>
+                                                                </button>
+                                                            @else
+                                                                <span class="text-muted small">—</span>
+                                                            @endif
+                                                        </td>
+                                                    @endif
                                                 </tr>
                                             @endforeach
                                         </tbody>
@@ -370,6 +432,31 @@
                         <button type="button" class="btn btn-success btn-lg w-100 fw-bold text-white shadow-sm mt-3" data-bs-toggle="modal" data-bs-target="#settlementModal" {{ $activeItems->isEmpty() ? 'disabled' : '' }}>
                             <i class="bi bi-cash-coin me-1"></i> Cobrar / Facturar
                         </button>
+                        @if(auth()->check() && auth()->user()->hasRole('admin') && $order->canBeModified())
+                            <button type="button" class="btn btn-outline-danger w-100 fw-bold mt-2" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
+                                <i class="bi bi-x-octagon-fill me-1"></i> Anular Comanda
+                            </button>
+                        @endif
+                    @elseif($order->status === 'cancelled')
+                        <div class="alert alert-danger border-danger-subtle rounded-3 mt-3 mb-0 small text-start">
+                            <div class="fw-bold mb-1 text-danger">
+                                <i class="bi bi-x-circle-fill me-1"></i> Comanda Anulada Definitivamente
+                            </div>
+                            <div>
+                                Anulada por: <strong>{{ $order->cancelledByUser?->name ?? 'Administrador' }}</strong>
+                            </div>
+                            @if($order->cancelled_at)
+                                <div>
+                                    Fecha: <strong>{{ $order->cancelled_at->format('d/m/Y H:i') }}</strong>
+                                </div>
+                            @endif
+                            @if($order->cancellation_reason)
+                                <div class="mt-2 pt-1 border-top border-danger-subtle">
+                                    <span class="text-muted d-block fw-semibold">Motivo:</span>
+                                    <em>{{ $order->cancellation_reason }}</em>
+                                </div>
+                            @endif
+                        </div>
                     @elseif($order->status === 'closed' && $order->sale_id)
                         <div class="mt-3">
                             <a href="{{ route('sales.show', $order->sale_id) }}" class="btn btn-outline-primary w-100 fw-bold mb-2">
@@ -1339,8 +1426,264 @@ document.addEventListener('DOMContentLoaded', function () {
 
     checkHashForSettlement();
     window.addEventListener('hashchange', checkHashForSettlement);
+
+    // Listener para modal de eliminar o reducir ítem individual
+    const deleteItemModal = document.getElementById('deleteItemModal');
+    if (deleteItemModal) {
+        let currentItemQty = 1;
+        let currentItemUnitPrice = 0;
+
+        const nameEl = document.getElementById('deleteItemName');
+        const unitPriceEl = document.getElementById('deleteItemUnitPriceDisplay');
+        const currentQtyBadge = document.getElementById('deleteItemCurrentQtyBadge');
+        const fullQtyBtnSpan = document.getElementById('deleteItemFullQtyBtn');
+        const qtyInput = document.getElementById('quantity_to_remove');
+        const dynamicAlert = document.getElementById('deleteItemDynamicAlert');
+        const formEl = document.getElementById('deleteItemForm');
+        const reasonInput = document.getElementById('deleteItemReason');
+        const btnSubmitText = document.getElementById('btnSubmitDeleteItemText');
+        const btnDecrement = document.getElementById('btnDecrementQty');
+        const btnIncrement = document.getElementById('btnIncrementQty');
+        const btnSetFull = document.getElementById('btnSetFullQuantity');
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('es-CO', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(amount);
+        }
+
+        function updateModalState() {
+            let removeQty = parseInt(qtyInput.value, 10);
+            if (isNaN(removeQty) || removeQty < 1) {
+                removeQty = 1;
+            }
+            if (removeQty > currentItemQty) {
+                removeQty = currentItemQty;
+                qtyInput.value = removeQty;
+            }
+
+            const remainingQty = currentItemQty - removeQty;
+            const newSubtotal = remainingQty * currentItemUnitPrice;
+
+            if (removeQty >= currentItemQty) {
+                // Eliminación total
+                dynamicAlert.className = 'alert alert-danger d-flex align-items-center mb-3 rounded-3';
+                dynamicAlert.innerHTML = `
+                    <i class="bi bi-trash3-fill fs-4 me-3 text-danger"></i>
+                    <div>
+                        <strong>Cancelación Total:</strong> Se cancelará el plato por completo de la comanda. Se restaurará el stock de <strong>${removeQty}</strong> unidad(es) y se recalculará el total.
+                    </div>
+                `;
+                if (btnSubmitText) btnSubmitText.textContent = 'Confirmar Eliminación Total';
+            } else {
+                // Reducción parcial
+                dynamicAlert.className = 'alert alert-warning d-flex align-items-center mb-3 rounded-3';
+                dynamicAlert.innerHTML = `
+                    <i class="bi bi-dash-circle-fill fs-4 me-3 text-warning"></i>
+                    <div>
+                        <strong>Reducción Parcial:</strong> Se retirará(n) <strong>${removeQty}</strong> unidad(es). Quedarán <strong>${remainingQty}</strong> unidad(es) en la comanda. Se devolverá al stock <strong>${removeQty}</strong> unidad(es) y se recalculará el subtotal de este plato a <strong>$${formatCurrency(newSubtotal)}</strong>.
+                    </div>
+                `;
+                if (btnSubmitText) btnSubmitText.textContent = `Confirmar Retiro (${removeQty} un.)`;
+            }
+        }
+
+        deleteItemModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            if (!button) return;
+            const name = button.getAttribute('data-item-name') || '';
+            const qty = parseFloat(button.getAttribute('data-item-qty') || '1');
+            const unitPrice = parseFloat(button.getAttribute('data-item-unit-price') || '0');
+            const url = button.getAttribute('data-action-url') || '';
+
+            currentItemQty = Math.max(1, Math.round(qty));
+            currentItemUnitPrice = unitPrice;
+
+            if (nameEl) nameEl.textContent = name;
+            if (unitPriceEl) unitPriceEl.textContent = `$${formatCurrency(unitPrice)}`;
+            if (currentQtyBadge) currentQtyBadge.textContent = currentItemQty;
+            if (fullQtyBtnSpan) fullQtyBtnSpan.textContent = currentItemQty;
+            if (formEl) formEl.setAttribute('action', url);
+            if (reasonInput) reasonInput.value = '';
+
+            if (qtyInput) {
+                qtyInput.max = currentItemQty;
+                qtyInput.value = 1;
+            }
+
+            updateModalState();
+        });
+
+        if (qtyInput) {
+            qtyInput.addEventListener('input', updateModalState);
+            qtyInput.addEventListener('change', updateModalState);
+        }
+
+        if (btnDecrement) {
+            btnDecrement.addEventListener('click', function () {
+                let currentVal = parseInt(qtyInput.value, 10) || 1;
+                if (currentVal > 1) {
+                    qtyInput.value = currentVal - 1;
+                    updateModalState();
+                }
+            });
+        }
+
+        if (btnIncrement) {
+            btnIncrement.addEventListener('click', function () {
+                let currentVal = parseInt(qtyInput.value, 10) || 1;
+                if (currentVal < currentItemQty) {
+                    qtyInput.value = currentVal + 1;
+                    updateModalState();
+                }
+            });
+        }
+
+        if (btnSetFull) {
+            btnSetFull.addEventListener('click', function () {
+                qtyInput.value = currentItemQty;
+                updateModalState();
+            });
+        }
+    }
 });
 </script>
+
+{{-- MODAL PARA ELIMINAR O REDUCIR ÍTEM INDIVIDUAL (ADMIN ONLY) --}}
+@if(auth()->check() && auth()->user()->hasRole('admin') && $order->canBeModified())
+<div class="modal fade" id="deleteItemModal" tabindex="-1" aria-labelledby="deleteItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header bg-danger text-white py-3">
+                <h5 class="modal-title fw-bold" id="deleteItemModalLabel">
+                    <i class="bi bi-trash3-fill me-2"></i>Gestionar / Retirar Plato de Comanda
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="deleteItemForm" method="POST" action="">
+                @csrf
+                @method('DELETE')
+                <div class="modal-body p-4">
+                    {{-- Información del Plato --}}
+                    <div class="bg-light p-3 rounded-3 mb-3 border">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted small">Plato / Producto:</span>
+                            <span class="text-muted small">Precio Unitario:</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0 text-dark" id="deleteItemName">Plato</h6>
+                            <span class="fw-bold text-dark" id="deleteItemUnitPriceDisplay">$0.00</span>
+                        </div>
+                        <div class="mt-2 pt-2 border-top d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Cantidad actual en comanda:</span>
+                            <span class="badge bg-primary fs-6 px-2 py-1" id="deleteItemCurrentQtyBadge">1</span>
+                        </div>
+                    </div>
+
+                    {{-- Selector de Cantidad a Retirar --}}
+                    <div class="mb-3">
+                        <label for="quantity_to_remove" class="form-label fw-semibold text-dark">
+                            Cantidad a retirar <span class="text-danger">*</span>:
+                        </label>
+                        <div class="input-group">
+                            <button type="button" class="btn btn-outline-secondary px-3" id="btnDecrementQty" title="Restar 1">
+                                <i class="bi bi-dash-lg"></i>
+                            </button>
+                            <input type="number" 
+                                   class="form-control form-control-lg fw-bold text-center" 
+                                   id="quantity_to_remove" 
+                                   name="quantity_to_remove" 
+                                   min="1" 
+                                   step="1" 
+                                   value="1" 
+                                   required>
+                            <button type="button" class="btn btn-outline-secondary px-3" id="btnIncrementQty" title="Sumar 1">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger px-3 fw-semibold" id="btnSetFullQuantity" title="Retirar todas las unidades">
+                                Retirar Todo (<span id="deleteItemFullQtyBtn">1</span>)
+                            </button>
+                        </div>
+                        <div class="form-text">Elige cuántas unidades deseas retirar (reducción parcial o eliminación total).</div>
+                    </div>
+
+                    {{-- Mensaje Reactivo Dinámico según la cantidad seleccionada --}}
+                    <div id="deleteItemDynamicAlert" class="alert mb-3 rounded-3 transition-all" role="alert">
+                    </div>
+
+                    {{-- Motivo Obligatorio --}}
+                    <div class="mb-3">
+                        <label for="deleteItemReason" class="form-label fw-semibold text-dark">
+                            Motivo de retiro o eliminación <span class="text-danger">*</span>:
+                        </label>
+                        <textarea class="form-control" 
+                                  id="deleteItemReason" 
+                                  name="reason" 
+                                  rows="3" 
+                                  required 
+                                  minlength="4" 
+                                  maxlength="500" 
+                                  placeholder="Ej: Cliente canceló una unidad, error de digitación, plato devuelto..."></textarea>
+                        <small class="text-muted">Mínimo 4 caracteres. Quedará registrado en la auditoría con tu usuario y fecha.</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light px-4 py-3">
+                    <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger px-4 fw-bold" id="btnSubmitDeleteItem">
+                        <i class="bi bi-trash3 me-1"></i> <span id="btnSubmitDeleteItemText">Confirmar Retiro</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- MODAL PARA ANULAR COMANDA COMPLETA (ADMIN ONLY) --}}
+<div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header bg-danger text-white py-3">
+                <h5 class="modal-title fw-bold" id="cancelOrderModalLabel">
+                    <i class="bi bi-x-octagon-fill me-2"></i>Anular Comanda {{ $order->order_number }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ route('restaurant.orders.cancel', $order) }}">
+                @csrf
+                <div class="modal-body p-4">
+                    <div class="alert alert-danger d-flex align-items-center mb-3 rounded-3" role="alert">
+                        <i class="bi bi-shield-slash-fill fs-3 me-3 text-danger"></i>
+                        <div>
+                            <strong>Acción Crítica e Irreversible:</strong> Esta acción liberará la mesa asociada, restaurará el stock de los productos consumidos y cancelará la comanda definitivamente.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cancelOrderReason" class="form-label fw-semibold text-dark">
+                            Motivo de anulación <span class="text-danger">*</span>:
+                        </label>
+                        <textarea class="form-control" 
+                                  id="cancelOrderReason" 
+                                  name="reason" 
+                                  rows="3" 
+                                  required 
+                                  minlength="4" 
+                                  maxlength="500" 
+                                  placeholder="Ej: Cliente se retiró del local, error en apertura de mesa, pedido duplicado..."></textarea>
+                        <small class="text-muted">Mínimo 4 caracteres. Quedará registrado en la auditoría con tu usuario y fecha.</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light px-4 py-3">
+                    <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger px-4 fw-bold">
+                        <i class="bi bi-x-octagon-fill me-1"></i> Sí, Anular Comanda
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
 
 @include('restaurant.partials.kitchen-config-modal')
 

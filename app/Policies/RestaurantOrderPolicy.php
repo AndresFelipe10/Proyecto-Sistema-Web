@@ -70,4 +70,28 @@ class RestaurantOrderPolicy
 
         return $user->isCurrentAdmin() || $user->isCurrentEmployee();
     }
+
+    /**
+     * Determine whether the user can cancel an active order.
+     */
+    public function cancel(User $user, RestaurantOrder $order): bool
+    {
+        if ((int) $order->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
+        return $user->isCurrentAdmin();
+    }
+
+    /**
+     * Determine whether the user can remove items from an active order.
+     */
+    public function deleteItem(User $user, RestaurantOrder $order): bool
+    {
+        if ((int) $order->business_id !== (int) session('current_business_id')) {
+            return false;
+        }
+
+        return $user->isCurrentAdmin();
+    }
 }

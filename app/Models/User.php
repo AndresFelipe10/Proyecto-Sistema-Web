@@ -144,6 +144,14 @@ class User extends Authenticatable
      }
 
     /**
+     * Check if user has a specific role in current tenant.
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->currentRole()?->slug === $role;
+    }
+
+    /**
      * Check if user has accepted the terms of service (Ley 527 de 1999).
      */
     public function hasAcceptedTerms(): bool

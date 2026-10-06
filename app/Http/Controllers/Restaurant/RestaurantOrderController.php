@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Restaurant;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Restaurant\AddOrderItemsRequest;
+use App\Http\Requests\Restaurant\CancelRestaurantOrderRequest;
+use App\Http\Requests\Restaurant\RemoveOrderItemRequest;
 use App\Http\Requests\Restaurant\StoreDeliveryOrderRequest;
 use App\Http\Requests\Restaurant\StoreRestaurantOrderRequest;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\RestaurantOrder;
+use App\Models\RestaurantOrderItem;
 use App\Models\RestaurantTable;
 use App\Services\Restaurant\RestaurantOrderService;
 use Carbon\Carbon;
@@ -316,5 +319,77 @@ class RestaurantOrderController extends Controller
 
         return redirect()->route('restaurant.orders.index')
             ->with('status', "Comanda {$order->order_number} cancelada exitosamente y mesa liberada.");
+    }
+
+    /**
+     * Remove an individual item or reduce its quantity from an active order and recalculate totals.
+     */
+    public function removeItem(
+        RemoveOrderItemRequest $request,
+        RestaurantOrder $order,
+        RestaurantOrderItem $item,
+        RestaurantOrderService $orderService
+    ): RedirectResponse {
+        Gate::authorize('deleteItem', $order);
+
+        if ((int) $order->business_id !== (int) session('current_business_id')) {
+            abort(403);
+        }
+
+        if (! $order->canBeModified()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'order' => 'No se pueden eliminar platos de una comanda que ya fue cobrada, facturada o cancelada.',
+            ]);
+        }
+
+        $previousQty = (int) $item->quantity;
+        $qtyToRemove = $request->validated('quantity_to_remove') !== null
+            ? (int) $request->validated('quantity_to_remove')
+            : $previousQty;
+
+        $orderService->removeItemFromOrder(
+            $order,
+            $item,
+            $request->validated('reason'),
+            $request->user(),
+            $qtyToRemove
+        );
+
+        $msg = $qtyToRemove < $previousQty
+            ? "Se retiró(eron) {$qtyToRemove} unidad(es) de {$item->product?->name} y se recalculó la comanda."
+            : "Plato {$item->product?->name} eliminado exitosamente de la comanda.";
+
+        return redirect()->route('restaurant.orders.show', $order)
+            ->with('success', $msg);
+    }
+
+    /**
+     * Annul an entire order, free the assigned table, and restore stock.
+     */
+    public function cancel(
+        CancelRestaurantOrderRequest $request,
+        RestaurantOrder $order,
+        RestaurantOrderService $orderService
+    ): RedirectResponse {
+        Gate::authorize('cancel', $order);
+
+        if ((int) $order->business_id !== (int) session('current_business_id')) {
+            abort(403);
+        }
+
+        if (! $order->canBeModified()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'order' => 'No se puede anular una comanda que ya fue cobrada, facturada o cancelada.',
+            ]);
+        }
+
+        $orderService->cancelOrder(
+            $order,
+            $request->validated('reason'),
+            $request->user()
+        );
+
+        return redirect()->route('restaurant.orders.show', $order)
+            ->with('success', "Comanda {$order->order_number} anulada exitosamente y mesa liberada.");
     }
 }

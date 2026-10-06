@@ -98,6 +98,10 @@ Route::middleware('auth')->group(function () {
                 Route::get('/tables/{table}/edit', [RestaurantTableController::class, 'edit'])->name('tables.edit');
                 Route::put('/tables/{table}', [RestaurantTableController::class, 'update'])->name('tables.update');
                 Route::delete('/tables/{table}', [RestaurantTableController::class, 'destroy'])->name('tables.destroy');
+
+                // Anulación de comandas y eliminación de ítems (Exclusivo Administrador)
+                Route::delete('/orders/{order}/items/{item}', [RestaurantOrderController::class, 'removeItem'])->name('orders.items.destroy');
+                Route::post('/orders/{order}/cancel', [RestaurantOrderController::class, 'cancel'])->name('orders.cancel');
             });
 
             // Comandas (Lectura, Apertura y Adición para Administrador y Empleado)
