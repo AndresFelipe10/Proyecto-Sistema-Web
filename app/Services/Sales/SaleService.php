@@ -104,9 +104,9 @@ class SaleService
             $dishDiscount = $subtotal > 0 ? round($dishSubtotal * ($discountPercentage / 100), 2) : 0.00;
             $netDishBase = max(0, round($dishSubtotal - $dishDiscount, 2));
 
-            $deliveryFee = isset($data['delivery_fee']) ? max(0, round((float) $data['delivery_fee'], 2)) : 0.00;
-            $serviceFee = isset($data['service_fee']) ? max(0, round((float) $data['service_fee'], 2)) : 0.00;
-            $taxInc = isset($data['tax_inc']) ? max(0, round((float) $data['tax_inc'], 2)) : 0.00;
+            $deliveryFee = isset($data['delivery_fee']) ? max(0, round($this->parseAmount($data['delivery_fee']), 2)) : 0.00;
+            $serviceFee = isset($data['service_fee']) ? max(0, round($this->parseAmount($data['service_fee']), 2)) : 0.00;
+            $taxInc = isset($data['tax_inc']) ? max(0, round($this->parseAmount($data['tax_inc']), 2)) : 0.00;
 
             // Validación matemática estricta y autoritativa de tributos y propinas (Art. 512-1 E.T. y Ley 1935/2018):
             if ($netFoodBase <= 0) {
@@ -188,30 +188,32 @@ class SaleService
                     throw new InvalidSalePaymentException('Solo se permite una línea de pago en efectivo.');
                 }
 
-                $totalCents = (int) round($total * 100);
-                $paymentsCents = 0;
+                $totalEsperado = round((float) $total, 2);
+                $totalRecibido = 0.0;
 
                 foreach ($payments as $p) {
-                    $amt = (float) ($p['amount'] ?? 0);
+                    $amt = $this->parseAmount($p['amount'] ?? 0);
                     if ($amt <= 0) {
                         throw new InvalidSalePaymentException('Cada línea de pago debe tener un monto mayor a cero.');
                     }
                     if (!in_array($p['method'] ?? '', ['cash', 'card', 'transfer', 'other'])) {
                         throw new InvalidSalePaymentException("El método de pago '{$p['method']}' es inválido.");
                     }
-                    $paymentsCents += (int) round($amt * 100);
+                    $totalRecibido += $amt;
                 }
 
-                if ($paymentsCents !== $totalCents) {
+                $totalRecibido = round($totalRecibido, 2);
+
+                if (abs($totalRecibido - $totalEsperado) > 0.01) {
                     throw new InvalidSalePaymentException('La suma de los métodos de pago no coincide con el total de la venta.');
                 }
 
-                // Validar efectivo recibido
+                // Validar efectivo recibido con tolerancia decimal
                 foreach ($cashLines as $cashP) {
-                    $cashAmt = (float) $cashP['amount'];
+                    $cashAmt = $this->parseAmount($cashP['amount'] ?? 0);
                     if (isset($cashP['cash_received']) && $cashP['cash_received'] !== '' && $cashP['cash_received'] !== null) {
-                        $cashRec = (float) $cashP['cash_received'];
-                        if ($cashRec < $cashAmt) {
+                        $cashRec = $this->parseAmount($cashP['cash_received']);
+                        if (($cashAmt - $cashRec) > 0.01) {
                             throw new InvalidSalePaymentException('El efectivo recibido no puede ser menor al monto asignado en efectivo.');
                         }
                     }
@@ -252,14 +254,14 @@ class SaleService
             if ($total > 0) {
                 foreach ($payments as $p) {
                     $method = $p['method'];
-                    $amount = round((float) $p['amount'], 2);
+                    $amount = round($this->parseAmount($p['amount'] ?? 0), 2);
                     $isCash = ($method === 'cash');
 
                     if ($isCash) {
                         $cashReceived = (isset($p['cash_received']) && $p['cash_received'] !== '' && $p['cash_received'] !== null)
-                            ? round((float) $p['cash_received'], 2)
+                            ? round($this->parseAmount($p['cash_received']), 2)
                             : $amount;
-                        $changeGiven = round($cashReceived - $amount, 2);
+                        $changeGiven = round(max(0, $cashReceived - $amount), 2);
                     } else {
                         $cashReceived = null;
                         $changeGiven = null;
@@ -400,5 +402,53 @@ class SaleService
         }
 
         return $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Parsear y sanitizar strings numéricos con formato de moneda a float canónico.
+     * Soporta "$650,000.00", "650000,00", "650.000", "1.250.000,50", floats y números enteros.
+     */
+    protected function parseAmount(mixed $value): float
+    {
+        if (is_numeric($value)) {
+            if (is_string($value) && preg_match('/^\d+\.\d{3}$/', trim($value))) {
+                return (float) str_replace('.', '', trim($value));
+            }
+            return (float) $value;
+        }
+
+        if (!is_string($value)) {
+            return (float) ($value ?? 0);
+        }
+
+        $str = trim($value);
+        $str = preg_replace('/[^\d,\.]/', '', $str);
+
+        if ($str === '') {
+            return 0.0;
+        }
+
+        if (str_contains($str, '.') && str_contains($str, ',')) {
+            $lastDot = strrpos($str, '.');
+            $lastComma = strrpos($str, ',');
+            if ($lastComma > $lastDot) {
+                $str = str_replace('.', '', $str);
+                $str = str_replace(',', '.', $str);
+            } else {
+                $str = str_replace(',', '', $str);
+            }
+        } elseif (str_contains($str, ',')) {
+            if (substr_count($str, ',') > 1 || preg_match('/,\d{3}$/', $str)) {
+                $str = str_replace(',', '', $str);
+            } else {
+                $str = str_replace(',', '.', $str);
+            }
+        } elseif (str_contains($str, '.')) {
+            if (substr_count($str, '.') > 1 || preg_match('/\.\d{3}$/', $str)) {
+                $str = str_replace('.', '', $str);
+            }
+        }
+
+        return (float) $str;
     }
 }

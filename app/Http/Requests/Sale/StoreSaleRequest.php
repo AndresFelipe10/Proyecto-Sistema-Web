@@ -64,6 +64,67 @@ class StoreSaleRequest extends FormRequest
     }
 
     /**
+     * Sanitiza y convierte strings con formato de moneda a floats canónicos.
+     * Soporta "$650,000.00", "650000,00", "650.000", "1.250.000,50", etc.
+     */
+    protected function sanitizeCurrency(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            // Caso especial: string numérico con un punto seguido de 3 dígitos (ej. "650.000" o "20.000")
+            if (is_string($value) && preg_match('/^\d+\.\d{3}$/', trim($value))) {
+                return (float) str_replace('.', '', trim($value));
+            }
+            return (float) $value;
+        }
+
+        if (!is_string($value)) {
+            return (float) $value;
+        }
+
+        $str = trim($value);
+        // Quitar símbolos de moneda y caracteres no numéricos excepto coma y punto
+        $str = preg_replace('/[^\d,\.]/', '', $str);
+
+        if ($str === '') {
+            return 0.0;
+        }
+
+        // Si tiene punto y coma, determinar cuál es el separador decimal
+        if (str_contains($str, '.') && str_contains($str, ',')) {
+            $lastDot = strrpos($str, '.');
+            $lastComma = strrpos($str, ',');
+            if ($lastComma > $lastDot) {
+                // Formato latino: 1.250.000,50
+                $str = str_replace('.', '', $str);
+                $str = str_replace(',', '.', $str);
+            } else {
+                // Formato anglo: 1,250,000.50
+                $str = str_replace(',', '', $str);
+            }
+        } elseif (str_contains($str, ',')) {
+            if (substr_count($str, ',') > 1) {
+                $str = str_replace(',', '', $str);
+            } elseif (preg_match('/,\d{3}$/', $str)) {
+                $str = str_replace(',', '', $str);
+            } else {
+                $str = str_replace(',', '.', $str);
+            }
+        } elseif (str_contains($str, '.')) {
+            if (substr_count($str, '.') > 1) {
+                $str = str_replace('.', '', $str);
+            } elseif (preg_match('/\.\d{3}$/', $str)) {
+                $str = str_replace('.', '', $str);
+            }
+        }
+
+        return (float) $str;
+    }
+
+    /**
      * Prepare data for validation.
      */
     protected function prepareForValidation(): void
@@ -76,22 +137,34 @@ class StoreSaleRequest extends FormRequest
             $this->merge(['restaurant_order_id' => null]);
         }
 
-        if ($this->has('delivery_fee') && ($this->input('delivery_fee') === '' || $this->input('delivery_fee') === null)) {
-            $this->merge(['delivery_fee' => 0.00]);
+        if ($this->has('delivery_fee')) {
+            $rawFee = $this->input('delivery_fee');
+            $this->merge(['delivery_fee' => ($rawFee === '' || $rawFee === null) ? 0.00 : ($this->sanitizeCurrency($rawFee) ?? 0.00)]);
         }
 
-        if ($this->has('service_fee') && ($this->input('service_fee') === '' || $this->input('service_fee') === null)) {
-            $this->merge(['service_fee' => 0.00]);
+        if ($this->has('service_fee')) {
+            $rawService = $this->input('service_fee');
+            $this->merge(['service_fee' => ($rawService === '' || $rawService === null) ? 0.00 : ($this->sanitizeCurrency($rawService) ?? 0.00)]);
         }
 
-        if ($this->has('tax_inc') && ($this->input('tax_inc') === '' || $this->input('tax_inc') === null)) {
-            $this->merge(['tax_inc' => 0.00]);
+        if ($this->has('tax_inc')) {
+            $rawInc = $this->input('tax_inc');
+            $this->merge(['tax_inc' => ($rawInc === '' || $rawInc === null) ? 0.00 : ($this->sanitizeCurrency($rawInc) ?? 0.00)]);
         }
 
-        // Sanitizar referencias en payments si existen
+        // Sanitizar referencias y montos en payments si existen
         if ($this->has('payments') && is_array($this->input('payments'))) {
             $cleanedPayments = [];
             foreach ($this->input('payments') as $p) {
+                if (isset($p['amount'])) {
+                    $p['amount'] = $this->sanitizeCurrency($p['amount']);
+                }
+                if (isset($p['cash_received']) && $p['cash_received'] !== '' && $p['cash_received'] !== null) {
+                    $p['cash_received'] = $this->sanitizeCurrency($p['cash_received']);
+                }
+                if (isset($p['change_given']) && $p['change_given'] !== '' && $p['change_given'] !== null) {
+                    $p['change_given'] = $this->sanitizeCurrency($p['change_given']);
+                }
                 if (isset($p['reference'])) {
                     $p['reference'] = strip_tags(trim((string)$p['reference']));
                 }
@@ -119,7 +192,8 @@ class StoreSaleRequest extends FormRequest
                         $cashCount++;
                         if (isset($payment['cash_received']) && $payment['cash_received'] !== '' && $payment['cash_received'] !== null) {
                             $cashReceived = (float) $payment['cash_received'];
-                            if ($cashReceived < $amount) {
+                            // Tolerancia decimal (0.01) para blindar contra imprecisiones de coma flotante
+                            if (($amount - $cashReceived) > 0.01) {
                                 $validator->errors()->add("payments.{$index}.cash_received", 'El efectivo recibido debe ser mayor o igual al monto asignado en efectivo.');
                             }
                         }

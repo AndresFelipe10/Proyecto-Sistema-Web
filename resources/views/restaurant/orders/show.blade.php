@@ -62,6 +62,12 @@
             @php
                 $hasPendingKitchen = $order->items->where('printed_to_kitchen', false)->where('status', '!=', 'cancelled')->count() > 0;
                 $activeItems = $order->items->where('status', '!=', 'cancelled');
+                $dishSubtotal = 0.0;
+                foreach ($activeItems as $item) {
+                    if ($item->product && $item->product->isDish()) {
+                        $dishSubtotal += (float)$item->quantity * (float)$item->unit_price;
+                    }
+                }
             @endphp
 
             @if(!in_array($order->status, ['closed', 'cancelled']))
@@ -402,6 +408,7 @@
                 {{-- Productos de la comanda agrupados para facturación --}}
                 @php
                     $groupedItems = [];
+                    $dishSubtotal = 0.0;
                     foreach ($activeItems as $item) {
                         $pid = $item->product_id;
                         if (!isset($groupedItems[$pid])) {
@@ -413,6 +420,9 @@
                             ];
                         }
                         $groupedItems[$pid]['quantity'] += (float)$item->quantity;
+                        if ($item->product && $item->product->isDish()) {
+                            $dishSubtotal += (float)$item->quantity * (float)$item->unit_price;
+                        }
                     }
                 @endphp
                 @php $itemIdx = 0; @endphp
@@ -534,13 +544,12 @@
                             </button>
                         </div>
 
-                        {{-- Atajos rápidos de efectivo --}}
+                        {{-- Atajos rápidos de efectivo (Reactivos y calculados hacia arriba según la comanda) --}}
                         <div class="d-flex flex-wrap gap-1 mb-2 align-items-center" id="quickCashButtons">
-                            <span class="small text-muted me-1" style="font-size: 0.75rem;">Atajos Efectivo:</span>
-                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 quick-cash-btn" data-type="exact" style="font-size: 0.75rem;">Exacto</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 quick-cash-btn" data-amt="20000" style="font-size: 0.75rem;">$20.000</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 quick-cash-btn" data-amt="50000" style="font-size: 0.75rem;">$50.000</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 quick-cash-btn" data-amt="100000" style="font-size: 0.75rem;">$100.000</button>
+                            <span class="small text-muted me-1" style="font-size: 0.75rem;"><i class="bi bi-cash me-1"></i>Atajos Efectivo:</span>
+                            <button type="button" class="btn btn-sm btn-outline-success py-1 px-2 quick-cash-btn fw-bold" data-amt="{{ (float)$order->total }}" style="font-size: 0.75rem; min-height: 32px;">
+                                <i class="bi bi-check2 me-1"></i>Exacto (${{ number_format($order->total, 0, ',', '.') }})
+                            </button>
                         </div>
 
                         <div id="paymentsContainer">
@@ -558,17 +567,17 @@
                                     <div class="col-6 col-md-3">
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text">$</span>
-                                            <input type="number" step="0.01" min="0.01" name="payments[0][amount]" class="form-control text-end payment-amount-input fw-bold" value="{{ $order->total }}" required>
+                                            <input type="number" step="0.01" min="0.01" name="payments[0][amount]" class="form-control text-end payment-amount-input fw-bold" value="{{ (float)$order->total }}" required>
                                         </div>
                                     </div>
                                     <div class="col-6 col-md-3 cash-fields-col">
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text" title="Efectivo Recibido"><i class="bi bi-box-arrow-in-down"></i></span>
-                                            <input type="number" step="0.01" min="0" name="payments[0][cash_received]" class="form-control text-end payment-cash-received-input" placeholder="Recibido" value="{{ $order->total }}">
+                                            <input type="number" step="0.01" min="0" name="payments[0][cash_received]" class="form-control text-end payment-cash-received-input" placeholder="Recibido" value="{{ (float)$order->total }}">
                                         </div>
                                     </div>
                                     <div class="col-10 col-md-2 text-end text-md-center change-display-col">
-                                        <span class="badge bg-light text-dark border small payment-change-display">Vuelto: $0.00</span>
+                                        <span class="badge bg-light text-dark border small payment-change-display">Vuelto: $0</span>
                                         <input type="hidden" name="payments[0][change_given]" class="payment-change-given-input" value="0.00">
                                     </div>
                                     <div class="col-2 col-md-1 text-end">
@@ -920,6 +929,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 2. Lógica Reactiva de la Pasarela de Liquidación / Cobro
     const subtotal = {{ (float)$order->subtotal }};
+    const dishSubtotal = {{ (float)($dishSubtotal ?? 0) }};
     const deliveryFee = {{ (float)$order->delivery_fee }};
     const discountInput = document.getElementById('settlement_discount_pct');
     const displaySubtotal = document.getElementById('display_subtotal');
@@ -946,26 +956,40 @@ document.addEventListener('DOMContentLoaded', function () {
     const balanceAlert = document.getElementById('paymentBalanceAlert');
     const balanceMessage = document.getElementById('paymentBalanceMessage');
     const btnSubmitSettlement = document.getElementById('btnSubmitSettlement');
-    const quickCashButtons = document.querySelectorAll('.quick-cash-btn');
+    const quickCashContainer = document.getElementById('quickCashButtons');
 
     let currentTotal = Math.max(0, Math.round((subtotal + deliveryFee) * 100) / 100);
     let paymentLineCount = 1;
 
     function formatMoney(amount) {
-        return '$' + amount.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const num = Number(amount) || 0;
+        const hasDecimals = (num % 1 !== 0);
+        return '$' + num.toLocaleString('es-CO', {
+            minimumFractionDigits: hasDecimals ? 2 : 0,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function formatInputValue(num) {
+        const val = Number(num) || 0;
+        return (val % 1 === 0) ? String(Math.round(val)) : val.toFixed(2);
     }
 
     function recalculateTotal(source) {
         // Blindaje normativo colombiano de liquidación (Gastronomía y Restaurantes):
         // 1. Base Gravable / Consumo neto = Subtotal - Descuento (Art. 512-1 del Estatuto Tributario).
         // 2. Propina Voluntaria / Servicio (Ley 1935 de 2018 y Circular Única SIC):
-        //    Liberalidad de los trabajadores. NO hace parte de la base gravable de INC ni IVA (no causa impuestos).
+        //    Liberalidad de los trabajadores. NO hace parte de la base gravable de INC ni IVA.
         // 3. Impuesto Nacional al Consumo - INC 8% (Art. 512-1 E.T.):
-        //    Grava exclusivamente el consumo neto de alimentos y bebidas. NO grava propina ni domicilio.
-        // 4. Total a Liquidar = Base Gravable + Domicilio + Servicio + INC.
+        //    Grava exclusivamente el consumo neto de platos preparados del menú (dishSubtotal).
+        // 4. Total a Liquidar = Base Gravable (Subtotal - Descuento) + Domicilio + Servicio + INC.
         const discountPct = parseFloat(discountInput?.value || 0) || 0;
         const discountAmount = Math.round(subtotal * (discountPct / 100) * 100) / 100;
         const netFoodBase = Math.max(0, Math.round((subtotal - discountAmount) * 100) / 100);
+
+        // Descuento proporcional sobre platos preparados
+        const dishDiscountAmount = subtotal > 0 ? Math.round(dishSubtotal * (discountPct / 100) * 100) / 100 : 0;
+        const netDishBase = Math.max(0, Math.round((dishSubtotal - dishDiscountAmount) * 100) / 100);
 
         // Servicio / Propina (Ley 1935 de 2018 - 10% sugerido editable o monto en pesos)
         let serviceFee = 0;
@@ -980,62 +1004,61 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 const servicePct = parseFloat(serviceFeePctInput?.value || 10) || 0;
                 serviceFee = Math.round(netFoodBase * (servicePct / 100) * 100) / 100;
-                if (serviceFeeInput) serviceFeeInput.value = serviceFee.toFixed(2);
+                if (serviceFeeInput) serviceFeeInput.value = formatInputValue(serviceFee);
             }
             if (rowServiceFee) rowServiceFee.style.setProperty('display', 'flex', 'important');
             if (displayServiceFee) displayServiceFee.textContent = '+' + formatMoney(serviceFee);
             if (displayServicePctLabel) displayServicePctLabel.textContent = (parseFloat(serviceFeePctInput?.value || 10)) + '%';
         } else {
             serviceFeeContainer?.classList.add('d-none');
-            if (serviceFeeInput) serviceFeeInput.value = '0.00';
+            if (serviceFeeInput) serviceFeeInput.value = '0';
             if (rowServiceFee) rowServiceFee.style.setProperty('display', 'none', 'important');
         }
 
-        // Impuesto Nacional al Consumo (INC 8%)
+        // Impuesto Nacional al Consumo (INC 8% Art. 512-1 E.T. sobre platos preparados)
         let taxInc = 0;
         if (switchTaxInc?.checked) {
             taxIncContainer?.classList.remove('d-none');
-            taxInc = Math.round(netFoodBase * 0.08 * 100) / 100;
-            if (taxIncInput) taxIncInput.value = taxInc.toFixed(2);
+            taxInc = Math.round(netDishBase * 0.08 * 100) / 100;
+            if (taxIncInput) taxIncInput.value = formatInputValue(taxInc);
             if (rowTaxInc) rowTaxInc.style.setProperty('display', 'flex', 'important');
             if (displayTaxInc) displayTaxInc.textContent = '+' + formatMoney(taxInc);
         } else {
             taxIncContainer?.classList.add('d-none');
-            if (taxIncInput) taxIncInput.value = '0.00';
+            if (taxIncInput) taxIncInput.value = '0';
             if (rowTaxInc) rowTaxInc.style.setProperty('display', 'none', 'important');
         }
 
-        currentTotal = Math.max(0, Math.round((subtotal - discountAmount + deliveryFee + serviceFee + taxInc) * 100) / 100);
+        currentTotal = Math.max(0, Math.round((netFoodBase + deliveryFee + serviceFee + taxInc) * 100) / 100);
 
-        if (displayDiscount) {
-            displayDiscount.textContent = '-' + formatMoney(discountAmount);
-        }
-        if (displayDiscountLabel) {
-            displayDiscountLabel.textContent = discountPct + '%';
-        }
-        if (displayTotal) {
-            displayTotal.textContent = formatMoney(currentTotal);
-        }
+        if (displayDiscount) displayDiscount.textContent = '-' + formatMoney(discountAmount);
+        if (displayDiscountLabel) displayDiscountLabel.textContent = discountPct + '%';
+        if (displayTotal) displayTotal.textContent = formatMoney(currentTotal);
 
         // Si solo hay una línea de pago, sincronizarla con el nuevo total
         const lines = paymentsContainer?.querySelectorAll('.payment-line') || [];
         if (lines.length === 1) {
             const firstAmtInput = lines[0].querySelector('.payment-amount-input');
             const firstCashRecInput = lines[0].querySelector('.payment-cash-received-input');
-            if (firstAmtInput) firstAmtInput.value = currentTotal.toFixed(2);
-            if (firstCashRecInput && parseFloat(firstCashRecInput.value || 0) <= currentTotal) {
-                firstCashRecInput.value = currentTotal.toFixed(2);
+            const methodSelect = lines[0].querySelector('.payment-method-select');
+            if (firstAmtInput) firstAmtInput.value = formatInputValue(currentTotal);
+            if (methodSelect?.value === 'cash' && firstCashRecInput) {
+                const currentRec = parseFloat(firstCashRecInput.value || 0) || 0;
+                if (currentRec < currentTotal || currentRec === 0) {
+                    firstCashRecInput.value = formatInputValue(currentTotal);
+                }
             }
         }
 
         recalculatePaymentsBalance();
+        renderQuickCashButtons();
     }
 
     function recalculatePaymentsBalance() {
         if (!paymentsContainer) return;
 
         const lines = paymentsContainer.querySelectorAll('.payment-line');
-        let sumPayments = 0;
+        let sumPaymentsCents = 0;
         let hasCashError = false;
 
         lines.forEach(line => {
@@ -1046,15 +1069,17 @@ document.addEventListener('DOMContentLoaded', function () {
             const changeGivenInput = line.querySelector('.payment-change-given-input');
 
             const amt = parseFloat(amtInput?.value || 0) || 0;
-            sumPayments += Math.round(amt * 100);
+            sumPaymentsCents += Math.round(amt * 100);
 
             if (methodSelect?.value === 'cash') {
-                const rec = parseFloat(cashRecInput?.value || amt) || amt;
+                const recVal = cashRecInput?.value;
+                const rec = (recVal !== '' && recVal !== null) ? (parseFloat(recVal) || 0) : amt;
                 const change = Math.max(0, Math.round((rec - amt) * 100) / 100);
                 if (changeDisplay) changeDisplay.textContent = 'Vuelto: ' + formatMoney(change);
-                if (changeGivenInput) changeGivenInput.value = change.toFixed(2);
+                if (changeGivenInput) changeGivenInput.value = formatInputValue(change);
 
-                if (rec < amt) {
+                // Tolerancia de 0.01 en la comparación
+                if ((amt - rec) > 0.01) {
                     hasCashError = true;
                     if (changeDisplay) changeDisplay.textContent = 'Falta dinero';
                 }
@@ -1062,25 +1087,90 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         const totalCents = Math.round(currentTotal * 100);
-        const diffCents = totalCents - sumPayments;
+        const diffCents = totalCents - sumPaymentsCents;
         const diff = diffCents / 100;
 
-        if (diff !== 0 || hasCashError) {
+        if (Math.abs(diff) > 0.009 || hasCashError) {
             if (balanceAlert) {
                 balanceAlert.classList.remove('d-none');
                 if (hasCashError) {
-                    balanceMessage.textContent = 'El efectivo recibido no puede ser inferior al monto asignado.';
-                } else if (diff > 0) {
-                    balanceMessage.textContent = `Faltan ${formatMoney(diff)} para completar el total de ${formatMoney(currentTotal)}.`;
+                    balanceAlert.className = 'alert alert-danger py-2 px-3 small rounded-3 mt-2';
+                    balanceMessage.innerHTML = '<i class="bi bi-exclamation-octagon-fill me-1"></i>El efectivo recibido no puede ser inferior al monto asignado.';
+                } else if (diff > 0.009) {
+                    balanceAlert.className = 'alert alert-warning py-2 px-3 small rounded-3 mt-2';
+                    balanceMessage.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i><strong>Falta cubrir:</strong> ${formatMoney(diff)} (Total a cubrir: ${formatMoney(currentTotal)}).`;
                 } else {
-                    balanceMessage.textContent = `Los medios de pago exceden el total por ${formatMoney(Math.abs(diff))}.`;
+                    balanceAlert.className = 'alert alert-danger py-2 px-3 small rounded-3 mt-2';
+                    balanceMessage.innerHTML = `<i class="bi bi-exclamation-octagon-fill me-1"></i><strong>Monto asignado excede el total en:</strong> ${formatMoney(Math.abs(diff))}.`;
                 }
             }
             if (btnSubmitSettlement) btnSubmitSettlement.disabled = true;
         } else {
-            if (balanceAlert) balanceAlert.classList.add('d-none');
+            if (balanceAlert) {
+                balanceAlert.classList.remove('d-none');
+                balanceAlert.className = 'alert alert-success py-2 px-3 small rounded-3 mt-2';
+                balanceMessage.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i><strong>Total cubierto exactamente:</strong> ${formatMoney(currentTotal)}.`;
+            }
             if (btnSubmitSettlement) btnSubmitSettlement.disabled = false;
         }
+    }
+
+    function renderQuickCashButtons() {
+        if (!quickCashContainer) return;
+
+        const firstCashLine = Array.from(paymentsContainer.querySelectorAll('.payment-line'))
+            .find(l => l.querySelector('.payment-method-select')?.value === 'cash');
+
+        if (!firstCashLine) {
+            quickCashContainer.innerHTML = '';
+            quickCashContainer.classList.add('d-none');
+            return;
+        }
+
+        quickCashContainer.classList.remove('d-none');
+        const amtInput = firstCashLine.querySelector('.payment-amount-input');
+        const cashAmt = parseFloat(amtInput?.value || 0) || 0;
+
+        // Sugerencias de billetes redondeados hacia arriba según denominaciones colombianas
+        const suggestions = [];
+        if (cashAmt > 0) {
+            const steps = [10000, 20000, 50000, 100000];
+            steps.forEach(step => {
+                const nextMultiple = Math.ceil(cashAmt / step) * step;
+                if (nextMultiple > cashAmt && !suggestions.includes(nextMultiple)) {
+                    suggestions.push(nextMultiple);
+                }
+            });
+
+            if (suggestions.length < 2) {
+                const plus50 = Math.ceil((cashAmt + 1) / 50000) * 50000;
+                const plus100 = Math.ceil((cashAmt + 1) / 100000) * 100000;
+                if (plus50 > cashAmt && !suggestions.includes(plus50)) suggestions.push(plus50);
+                if (plus100 > cashAmt && !suggestions.includes(plus100)) suggestions.push(plus100);
+            }
+        }
+
+        const filtered = suggestions.filter(s => s > cashAmt).sort((a, b) => a - b).slice(0, 3);
+
+        let html = `<span class="small text-muted me-1" style="font-size: 0.75rem;"><i class="bi bi-cash me-1"></i>Atajos Efectivo:</span>`;
+        html += `<button type="button" class="btn btn-sm btn-outline-success py-1 px-2 quick-cash-btn fw-bold" data-amt="${cashAmt}" style="font-size: 0.75rem; min-height: 32px;"><i class="bi bi-check2 me-1"></i>Exacto (${formatMoney(cashAmt)})</button>`;
+
+        filtered.forEach(s => {
+            html += `<button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2 quick-cash-btn fw-semibold" data-amt="${s}" style="font-size: 0.75rem; min-height: 32px;">${formatMoney(s)}</button>`;
+        });
+
+        quickCashContainer.innerHTML = html;
+
+        quickCashContainer.querySelectorAll('.quick-cash-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const targetAmt = parseFloat(this.getAttribute('data-amt') || 0);
+                const cashRecInput = firstCashLine.querySelector('.payment-cash-received-input');
+                if (cashRecInput) {
+                    cashRecInput.value = formatInputValue(targetAmt);
+                }
+                recalculatePaymentsBalance();
+            });
+        });
     }
 
     function attachPaymentLineEvents(line) {
@@ -1098,22 +1188,30 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (cashFieldsCol) cashFieldsCol.style.display = 'block';
                 if (changeDisplayCol) changeDisplayCol.style.display = 'block';
                 if (refRow) refRow.style.display = 'none';
+                if (cashRecInput && (!cashRecInput.value || parseFloat(cashRecInput.value) <= 0)) {
+                    cashRecInput.value = formatInputValue(parseFloat(amtInput?.value || 0) || 0);
+                }
             } else {
                 if (cashFieldsCol) cashFieldsCol.style.display = 'none';
                 if (changeDisplayCol) changeDisplayCol.style.display = 'none';
                 if (refRow) refRow.style.display = 'block';
             }
             recalculatePaymentsBalance();
+            renderQuickCashButtons();
         }
 
         methodSelect?.addEventListener('change', updateMethodVisibility);
-        amtInput?.addEventListener('input', recalculatePaymentsBalance);
+        amtInput?.addEventListener('input', function () {
+            recalculatePaymentsBalance();
+            renderQuickCashButtons();
+        });
         cashRecInput?.addEventListener('input', recalculatePaymentsBalance);
 
         removeBtn?.addEventListener('click', function () {
             line.remove();
             updateRemoveButtons();
             recalculatePaymentsBalance();
+            renderQuickCashButtons();
         });
 
         updateMethodVisibility();
@@ -1143,7 +1241,7 @@ document.addEventListener('DOMContentLoaded', function () {
         attachPaymentLineEvents(initialLine);
     }
 
-    // Agregar nueva línea de pago
+    // Agregar nueva línea de pago (+ Agregar otro medio)
     if (btnAddPaymentLine && paymentsContainer) {
         btnAddPaymentLine.addEventListener('click', function () {
             const lines = paymentsContainer.querySelectorAll('.payment-line');
@@ -1152,13 +1250,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Calcular saldo pendiente para prellenar
+            // 1. Sumar los montos asignados en las filas ya existentes
             let currentSum = 0;
             lines.forEach(l => {
                 const amt = parseFloat(l.querySelector('.payment-amount-input')?.value || 0) || 0;
                 currentSum += amt;
             });
+
+            // 2. Calcular saldo pendiente a cubrir
             const remaining = Math.max(0, Math.round((currentTotal - currentSum) * 100) / 100);
+            const remainingStr = formatInputValue(remaining);
 
             const idx = paymentLineCount++;
             const newLine = document.createElement('div');
@@ -1177,17 +1278,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div class="col-6 col-md-3">
                         <div class="input-group input-group-sm">
                             <span class="input-group-text">$</span>
-                            <input type="number" step="0.01" min="0.01" name="payments[${idx}][amount]" class="form-control text-end payment-amount-input fw-bold" value="${remaining.toFixed(2)}" required>
+                            <input type="number" step="0.01" min="0.01" name="payments[${idx}][amount]" class="form-control text-end payment-amount-input fw-bold" value="${remainingStr}" required>
                         </div>
                     </div>
                     <div class="col-6 col-md-3 cash-fields-col" style="display: none;">
                         <div class="input-group input-group-sm">
                             <span class="input-group-text" title="Efectivo Recibido"><i class="bi bi-box-arrow-in-down"></i></span>
-                            <input type="number" step="0.01" min="0" name="payments[${idx}][cash_received]" class="form-control text-end payment-cash-received-input" placeholder="Recibido" value="${remaining.toFixed(2)}">
+                            <input type="number" step="0.01" min="0" name="payments[${idx}][cash_received]" class="form-control text-end payment-cash-received-input" placeholder="Recibido" value="${remainingStr}">
                         </div>
                     </div>
                     <div class="col-10 col-md-2 text-end text-md-center change-display-col" style="display: none;">
-                        <span class="badge bg-light text-dark border small payment-change-display">Vuelto: $0.00</span>
+                        <span class="badge bg-light text-dark border small payment-change-display">Vuelto: $0</span>
                         <input type="hidden" name="payments[${idx}][change_given]" class="payment-change-given-input" value="0.00">
                     </div>
                     <div class="col-2 col-md-1 text-end">
@@ -1207,35 +1308,12 @@ document.addEventListener('DOMContentLoaded', function () {
             attachPaymentLineEvents(newLine);
             updateRemoveButtons();
             recalculatePaymentsBalance();
+            renderQuickCashButtons();
         });
     }
 
-    // Atajos de efectivo
-    quickCashButtons.forEach(btn => {
-        btn.addEventListener('click', function () {
-            const firstCashLine = Array.from(paymentsContainer.querySelectorAll('.payment-line'))
-                .find(l => l.querySelector('.payment-method-select')?.value === 'cash');
-
-            if (!firstCashLine) {
-                alert('No hay ninguna línea de efectivo activa.');
-                return;
-            }
-
-            const cashRecInput = firstCashLine.querySelector('.payment-cash-received-input');
-            const amtInput = firstCashLine.querySelector('.payment-amount-input');
-            const type = this.getAttribute('data-type');
-
-            if (type === 'exact') {
-                const amt = parseFloat(amtInput?.value || currentTotal);
-                if (cashRecInput) cashRecInput.value = amt.toFixed(2);
-            } else {
-                const val = parseFloat(this.getAttribute('data-amt') || 0);
-                if (cashRecInput) cashRecInput.value = val.toFixed(2);
-            }
-
-            recalculatePaymentsBalance();
-        });
-    });
+    // Inicializar cálculo y atajos de efectivo iniciales
+    recalculateTotal('init');
 
     // Prevención de doble clic al liquidar
     const settlementForm = document.getElementById('settlementForm');
