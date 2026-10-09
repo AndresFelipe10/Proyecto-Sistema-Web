@@ -421,6 +421,96 @@ class RestaurantOrderService
     }
 
     /**
+     * Change the assigned table of an active order atomically.
+     *
+     * @throws ValidationException
+     */
+    public function changeTable(RestaurantOrder $order, RestaurantTable $newTable, User $user): RestaurantOrder
+    {
+        if ((int) $order->business_id !== (int) $newTable->business_id) {
+            throw ValidationException::withMessages([
+                'table_id' => 'La mesa seleccionada no pertenece al mismo establecimiento que la comanda.',
+            ]);
+        }
+
+        if (! $order->canBeModified() || $order->status === 'billed') {
+            throw ValidationException::withMessages([
+                'order' => 'No se puede cambiar de mesa una comanda que ya fue cobrada, facturada o anulada.',
+            ]);
+        }
+
+        if ((int) $newTable->id === (int) $order->table_id) {
+            throw ValidationException::withMessages([
+                'table_id' => 'La comanda ya se encuentra asignada a esta mesa.',
+            ]);
+        }
+
+        if ($newTable->status !== 'available') {
+            throw ValidationException::withMessages([
+                'table_id' => 'La mesa seleccionada ya se encuentra ocupada.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($order, $newTable, $user) {
+            $lockedOrder = RestaurantOrder::where('business_id', $order->business_id)
+                ->lockForUpdate()
+                ->findOrFail($order->id);
+
+            if (! $lockedOrder->canBeModified() || $lockedOrder->status === 'billed') {
+                throw ValidationException::withMessages([
+                    'order' => 'No se puede cambiar de mesa una comanda que ya fue cobrada, facturada o anulada.',
+                ]);
+            }
+
+            if ((int) $lockedOrder->table_id === (int) $newTable->id) {
+                throw ValidationException::withMessages([
+                    'table_id' => 'La comanda ya se encuentra asignada a esta mesa.',
+                ]);
+            }
+
+            $lockedNewTable = RestaurantTable::where('business_id', $lockedOrder->business_id)
+                ->lockForUpdate()
+                ->findOrFail($newTable->id);
+
+            if ($lockedNewTable->status !== 'available') {
+                throw ValidationException::withMessages([
+                    'table_id' => 'La mesa seleccionada ya se encuentra ocupada.',
+                ]);
+            }
+
+            $oldTable = null;
+            if ($lockedOrder->table_id) {
+                $oldTable = RestaurantTable::where('business_id', $lockedOrder->business_id)
+                    ->lockForUpdate()
+                    ->find($lockedOrder->table_id);
+            }
+
+            // 1. Liberar la mesa previa
+            if ($oldTable) {
+                $oldTable->update(['status' => 'available']);
+            }
+
+            // 2. Ocupar la mesa destino
+            $lockedNewTable->update(['status' => 'occupied']);
+
+            // 3. Trazabilidad y auditoría
+            $oldTableName = $oldTable ? $oldTable->name : 'Sin mesa previa';
+            $timestamp = now('America/Bogota')->format('d/m/Y H:i');
+            $auditNote = "Cambio de mesa realizado por {$user->name} el {$timestamp}: de '{$oldTableName}' a '{$lockedNewTable->name}'.";
+            $existingNotes = $lockedOrder->notes ? trim($lockedOrder->notes) . "\n" : '';
+            $updatedNotes = $existingNotes . "[AUDITORÍA] " . $auditNote;
+
+            // 4. Actualizar la orden
+            $lockedOrder->update([
+                'table_id' => $lockedNewTable->id,
+                'notes' => $updatedNotes,
+            ]);
+
+            return $lockedOrder->fresh(['table', 'items.product', 'user', 'customer']);
+        });
+    }
+
+    /**
      * Generate sequential order number per business.
      * Format: ORD-XXXX (e.g. ORD-0001)
      */

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Restaurant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Restaurant\AddOrderItemsRequest;
 use App\Http\Requests\Restaurant\CancelRestaurantOrderRequest;
+use App\Http\Requests\Restaurant\ChangeOrderTableRequest;
 use App\Http\Requests\Restaurant\RemoveOrderItemRequest;
 use App\Http\Requests\Restaurant\StoreDeliveryOrderRequest;
 use App\Http\Requests\Restaurant\StoreRestaurantOrderRequest;
@@ -147,7 +148,12 @@ class RestaurantOrderController extends Controller
 
         $customers = Customer::where('is_active', true)->orderBy('name')->get();
 
-        return view('restaurant.orders.show', compact('order', 'products', 'groupedProducts', 'batches', 'customers'));
+        $availableTables = RestaurantTable::where('status', 'available')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return view('restaurant.orders.show', compact('order', 'products', 'groupedProducts', 'batches', 'customers', 'availableTables'));
     }
 
     /**
@@ -391,5 +397,34 @@ class RestaurantOrderController extends Controller
 
         return redirect()->route('restaurant.orders.show', $order)
             ->with('success', "Comanda {$order->order_number} anulada exitosamente y mesa liberada.");
+    }
+
+    /**
+     * Change the assigned table of an active order.
+     */
+    public function changeTable(
+        ChangeOrderTableRequest $request,
+        RestaurantOrder $order,
+        RestaurantOrderService $orderService
+    ): RedirectResponse {
+        Gate::authorize('update', $order);
+
+        if ((int) $order->business_id !== (int) session('current_business_id')) {
+            abort(403);
+        }
+
+        if (! $order->canBeModified() || $order->status === 'billed') {
+            return back()->withErrors([
+                'order' => 'No se puede cambiar de mesa una comanda que ya fue facturada, cobrada o anulada.',
+            ]);
+        }
+
+        $newTable = RestaurantTable::where('business_id', (int) session('current_business_id'))
+            ->findOrFail($request->validated('table_id'));
+
+        $orderService->changeTable($order, $newTable, $request->user());
+
+        return redirect()->route('restaurant.orders.show', $order)
+            ->with('success', "Mesa cambiada exitosamente a: {$newTable->name}");
     }
 }

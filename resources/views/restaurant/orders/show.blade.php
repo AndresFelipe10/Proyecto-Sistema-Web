@@ -63,6 +63,11 @@
                         <span class="badge bg-light text-dark border ms-2">
                             <i class="bi bi-aspect-ratio me-1"></i>{{ $order->table->name }}
                         </span>
+                        @if($order->canBeModified())
+                            <button type="button" class="btn btn-sm btn-outline-primary ms-2" data-bs-toggle="modal" data-bs-target="#changeTableModal">
+                                <i class="bi bi-arrow-left-right me-1"></i> Cambiar Mesa
+                            </button>
+                        @endif
                     @elseif($order->order_type === 'delivery')
                         <span class="badge bg-info-subtle text-info-emphasis border ms-2">
                             <i class="bi bi-bicycle me-1"></i>Domicilio
@@ -1678,6 +1683,79 @@ document.addEventListener('DOMContentLoaded', function () {
                     <button type="submit" class="btn btn-danger px-4 fw-bold">
                         <i class="bi bi-x-octagon-fill me-1"></i> Sí, Anular Comanda
                     </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
+{{-- MODAL PARA CAMBIO DE MESA EN COMANDA ACTIVA --}}
+@if($order->canBeModified())
+<div class="modal fade" id="changeTableModal" tabindex="-1" aria-labelledby="changeTableModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title fw-bold" id="changeTableModalLabel">
+                    <i class="bi bi-arrow-left-right me-2"></i>Cambiar Mesa de la Comanda
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ route('restaurant.orders.change-table', $order) }}">
+                @csrf
+                <div class="modal-body p-4">
+                    {{-- Información contextual --}}
+                    <div class="alert alert-light border d-flex align-items-center mb-3 rounded-3">
+                        <i class="bi bi-info-circle-fill text-primary fs-3 me-3"></i>
+                        <div>
+                            <div class="small text-muted">Comanda activa: <strong class="text-dark">{{ $order->order_number }}</strong></div>
+                            <div class="fw-semibold">Mesa actual: <span class="badge bg-secondary text-white ms-1">{{ $order->table ? $order->table->name : 'Sin mesa asignada' }}</span></div>
+                        </div>
+                    </div>
+
+                    @php
+                        $filteredTables = isset($availableTables) ? $availableTables->where('id', '!=', $order->table_id) : collect();
+                    @endphp
+
+                    @if($filteredTables->isNotEmpty())
+                        <div class="mb-3">
+                            <label for="changeTableSelect" class="form-label fw-semibold text-dark">
+                                Nueva Mesa Destino <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select form-select-lg" id="changeTableSelect" name="table_id" required>
+                                <option value="" disabled selected>-- Selecciona una mesa disponible --</option>
+                                @foreach($filteredTables as $availableTable)
+                                    <option value="{{ $availableTable->id }}">
+                                        {{ $availableTable->name }} — Capacidad: {{ $availableTable->capacity }} personas
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="form-text text-muted mt-2">
+                                <i class="bi bi-check-circle text-success me-1"></i>
+                                La mesa anterior quedará libre automáticamente y la comanda pasará a la nueva mesa seleccionada.
+                            </div>
+                        </div>
+                    @else
+                        <div class="alert alert-warning d-flex align-items-center rounded-3 mb-0" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill text-warning fs-3 me-3"></i>
+                            <div>
+                                <strong class="d-block mb-1">No hay otras mesas disponibles en este momento.</strong>
+                                <span class="small text-muted">Todas las demás mesas del establecimiento se encuentran ocupadas o en proceso de facturación.</span>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+                <div class="modal-footer bg-light px-4 py-3">
+                    <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Cancelar</button>
+                    @if($filteredTables->isNotEmpty())
+                        <button type="submit" class="btn btn-primary px-4 fw-bold">
+                            <i class="bi bi-arrow-left-right me-1"></i> Confirmar Cambio de Mesa
+                        </button>
+                    @else
+                        <button type="button" class="btn btn-primary px-4 fw-bold" disabled>
+                            <i class="bi bi-arrow-left-right me-1"></i> Confirmar Cambio de Mesa
+                        </button>
+                    @endif
                 </div>
             </form>
         </div>

@@ -113,6 +113,7 @@ Route::middleware('auth')->group(function () {
             Route::match(['get', 'post'], '/orders/{order}/kitchen-ticket', [RestaurantOrderController::class, 'kitchenTicket'])->name('orders.kitchen-ticket');
             Route::match(['get', 'post'], '/orders/{order}/pre-bill', [RestaurantOrderController::class, 'preBill'])->name('orders.prebill');
             Route::post('/orders/{order}/cancel-empty', [RestaurantOrderController::class, 'cancelEmpty'])->name('orders.cancel-empty');
+            Route::post('/orders/{order}/change-table', [RestaurantOrderController::class, 'changeTable'])->name('orders.change-table');
 
             // Domicilios y Despacho
             Route::get('/deliveries', [RestaurantOrderController::class, 'deliveries'])->name('orders.deliveries');
