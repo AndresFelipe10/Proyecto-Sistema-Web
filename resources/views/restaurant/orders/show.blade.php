@@ -126,12 +126,9 @@
 
             {{-- Botón Cancelar Comanda Vacía --}}
             @if($order->status === 'open' && $order->items->isEmpty())
-                <form action="{{ route('restaurant.orders.cancel-empty', $order) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Confirmas que deseas cancelar esta comanda vacía y liberar la mesa?');">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-danger fw-semibold">
-                        <i class="bi bi-x-circle me-1"></i> Cancelar Comanda Vacía
-                    </button>
-                </form>
+                <button type="button" class="btn btn-outline-danger fw-semibold" data-bs-toggle="modal" data-bs-target="#cancelEmptyOrderModal">
+                    <i class="bi bi-trash3 me-1"></i> Cancelar Comanda Vacía
+                </button>
             @endif
 
             {{-- Botón Cobrar / Facturar --}}
@@ -190,12 +187,9 @@
                             <p class="mb-2 fw-semibold">No hay platos agregados a esta comanda aún.</p>
                             @if($order->status === 'open')
                                 <p class="small text-muted mb-3">Si esta comanda fue abierta por error, puedes anularla y liberar la mesa inmediatamente.</p>
-                                <form action="{{ route('restaurant.orders.cancel-empty', $order) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Confirmas que deseas cancelar esta comanda vacía y liberar la mesa?');">
-                                    @csrf
-                                    <button type="submit" class="btn btn-outline-danger btn-sm px-3">
-                                        <i class="bi bi-x-circle me-1"></i> Cancelar Comanda Vacía
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-outline-danger btn-sm px-3" data-bs-toggle="modal" data-bs-target="#cancelEmptyOrderModal">
+                                    <i class="bi bi-trash3 me-1"></i> Cancelar Comanda Vacía
+                                </button>
                             @endif
                         </div>
                     @else
@@ -1761,6 +1755,69 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
     </div>
 </div>
+@endif
+
+{{-- MODAL PARA CANCELAR COMANDA VACÍA --}}
+@if($order->status === 'open' && $order->items->isEmpty())
+<div class="modal fade" id="cancelEmptyOrderModal" tabindex="-1" aria-labelledby="cancelEmptyOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header bg-danger text-white py-3">
+                <h5 class="modal-title fw-bold" id="cancelEmptyOrderModalLabel">
+                    <i class="bi bi-trash3 me-2"></i>Cancelar Comanda Vacía
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-warning d-flex align-items-center mb-0 rounded-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-warning flex-shrink-0"></i>
+                    <div>
+                        <div class="fw-semibold text-dark mb-1">
+                            ¿Confirmas que deseas cancelar la comanda <strong>{{ $order->order_number }}</strong> y liberar inmediatamente la <strong>{{ $order->table ? $order->table->name : 'mesa' }}</strong>?
+                        </div>
+                        <div class="small text-muted">
+                            Esta comanda no contiene platos activos y la mesa quedará disponible para nuevos comensales.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light px-4 py-3 d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">
+                    Conservar Comanda
+                </button>
+                <form action="{{ route('restaurant.orders.cancel-empty', $order) }}" method="POST" id="cancelEmptyOrderForm" class="d-inline m-0" data-no-disable>
+                    @csrf
+                    @method('POST')
+                    <button type="submit" class="btn btn-danger px-4 fw-bold" id="btnConfirmCancelEmpty">
+                        <i class="bi bi-trash3 me-1"></i> Sí, Cancelar y Liberar Mesa
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const formCancelEmpty = document.getElementById('cancelEmptyOrderForm');
+    const btnConfirmCancelEmpty = document.getElementById('btnConfirmCancelEmpty');
+    const cancelEmptyModal = document.getElementById('cancelEmptyOrderModal');
+
+    if (formCancelEmpty && btnConfirmCancelEmpty) {
+        formCancelEmpty.addEventListener('submit', function() {
+            btnConfirmCancelEmpty.disabled = true;
+            btnConfirmCancelEmpty.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Procesando...';
+        });
+    }
+
+    if (cancelEmptyModal && btnConfirmCancelEmpty) {
+        cancelEmptyModal.addEventListener('hidden.bs.modal', function () {
+            btnConfirmCancelEmpty.disabled = false;
+            btnConfirmCancelEmpty.innerHTML = '<i class="bi bi-trash3 me-1"></i> Sí, Cancelar y Liberar Mesa';
+        });
+    }
+});
+</script>
 @endif
 
 @include('restaurant.partials.kitchen-config-modal')

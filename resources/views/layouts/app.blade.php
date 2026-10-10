@@ -371,11 +371,13 @@
     <script>
         // Feedback táctil inmediato en formularios para evitar dobles envíos y sensación de lentitud
         document.addEventListener('submit', function (e) {
+            if (e.defaultPrevented) return;
             const form = e.target;
             if (form.hasAttribute('data-no-disable')) return;
             const submitBtn = form.querySelector('button[type="submit"]:not([disabled])');
             if (submitBtn) {
                 setTimeout(() => {
+                    if (e.defaultPrevented) return;
                     submitBtn.disabled = true;
                     submitBtn.dataset.originalHtml = submitBtn.innerHTML;
                     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Procesando...';

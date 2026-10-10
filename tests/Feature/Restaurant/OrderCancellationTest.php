@@ -670,4 +670,95 @@ class OrderCancellationTest extends TestCase
         $this->assertEquals(2, $item->quantity);
         $this->assertEquals('pending', $item->status);
     }
+
+    public function test_empty_order_show_view_renders_modal_trigger_and_modal_dialog_without_native_confirm(): void
+    {
+        $this->table->update(['status' => 'occupied']);
+
+        $emptyOrder = RestaurantOrder::create([
+            'business_id' => $this->restaurant->id,
+            'table_id' => $this->table->id,
+            'user_id' => $this->admin->id,
+            'order_number' => 'ORD-EMPTY-UI',
+            'order_type' => 'table',
+            'status' => 'open',
+            'subtotal' => 0.00,
+            'total' => 0.00,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->withSession(['current_business_id' => $this->restaurant->id])
+            ->get(route('restaurant.orders.show', $emptyOrder));
+
+        $response->assertOk();
+        $response->assertSee('data-bs-target="#cancelEmptyOrderModal"', false);
+        $response->assertSee('id="cancelEmptyOrderModal"', false);
+        $response->assertSee('id="cancelEmptyOrderForm"', false);
+        $response->assertSee('id="btnConfirmCancelEmpty"', false);
+        $response->assertSee('¿Confirmas que deseas cancelar la comanda', false);
+        $response->assertSee('liberar inmediatamente la', false);
+        $response->assertDontSee('confirm(', false);
+        $response->assertDontSee('window.confirm', false);
+    }
+
+    public function test_order_with_items_does_not_render_cancel_empty_modal(): void
+    {
+        $this->table->update(['status' => 'occupied']);
+
+        $orderWithItems = RestaurantOrder::create([
+            'business_id' => $this->restaurant->id,
+            'table_id' => $this->table->id,
+            'user_id' => $this->admin->id,
+            'order_number' => 'ORD-WITH-ITEMS-UI',
+            'order_type' => 'table',
+            'status' => 'open',
+            'subtotal' => 35000.00,
+            'total' => 35000.00,
+        ]);
+
+        RestaurantOrderItem::create([
+            'business_id' => $this->restaurant->id,
+            'order_id' => $orderWithItems->id,
+            'product_id' => $this->dish1->id,
+            'quantity' => 1,
+            'unit_price' => 35000.00,
+            'subtotal' => 35000.00,
+            'status' => 'pending',
+            'batch_number' => 1,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->withSession(['current_business_id' => $this->restaurant->id])
+            ->get(route('restaurant.orders.show', $orderWithItems));
+
+        $response->assertOk();
+        $response->assertDontSee('id="cancelEmptyOrderModal"', false);
+        $response->assertDontSee('data-bs-target="#cancelEmptyOrderModal"', false);
+    }
+
+    public function test_empty_order_index_view_renders_modal_trigger_and_modal_without_native_confirm(): void
+    {
+        $this->table->update(['status' => 'occupied']);
+
+        RestaurantOrder::create([
+            'business_id' => $this->restaurant->id,
+            'table_id' => $this->table->id,
+            'user_id' => $this->admin->id,
+            'order_number' => 'ORD-EMPTY-INDEX',
+            'order_type' => 'table',
+            'status' => 'open',
+            'subtotal' => 0.00,
+            'total' => 0.00,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->withSession(['current_business_id' => $this->restaurant->id])
+            ->get(route('restaurant.orders.index'));
+
+        $response->assertOk();
+        $response->assertSee('id="cancelEmptyOrderIndexModal"', false);
+        $response->assertSee('data-bs-target="#cancelEmptyOrderIndexModal"', false);
+        $response->assertSee('id="cancelEmptyOrderIndexForm"', false);
+        $response->assertDontSee("confirm('¿Confirmas que deseas cancelar", false);
+    }
 }

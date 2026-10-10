@@ -174,12 +174,16 @@
                                             <td class="text-end pe-4">
                                                 <div class="d-inline-flex gap-1 align-items-center">
                                                     @if($order->status === 'open' && $order->items->count() === 0)
-                                                        <form action="{{ route('restaurant.orders.cancel-empty', $order) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Confirmas que deseas cancelar la comanda vacía {{ $order->order_number }} y liberar la mesa?');">
-                                                            @csrf
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancelar comanda vacía">
-                                                                <i class="bi bi-x-circle me-1"></i> Cancelar Vacía
-                                                            </button>
-                                                        </form>
+                                                        <button type="button" 
+                                                                class="btn btn-sm btn-outline-danger" 
+                                                                title="Cancelar comanda vacía"
+                                                                data-bs-toggle="modal" 
+                                                                data-bs-target="#cancelEmptyOrderIndexModal"
+                                                                data-order-number="{{ $order->order_number }}"
+                                                                data-table-name="{{ $order->table ? $order->table->name : 'mesa' }}"
+                                                                data-action="{{ route('restaurant.orders.cancel-empty', $order) }}">
+                                                            <i class="bi bi-trash3 me-1"></i> Cancelar Vacía
+                                                        </button>
                                                     @endif
                                                     <a href="{{ route('restaurant.orders.show', $order) }}" class="btn btn-sm btn-outline-primary">
                                                         <i class="bi bi-eye me-1"></i> Gestionar
@@ -315,12 +319,16 @@
                                             <td class="text-end pe-4">
                                                 <div class="d-inline-flex gap-1 align-items-center">
                                                     @if($order->status === 'open' && $order->items->count() === 0)
-                                                        <form action="{{ route('restaurant.orders.cancel-empty', $order) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Confirmas que deseas cancelar la comanda vacía {{ $order->order_number }} y liberar la mesa?');">
-                                                            @csrf
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancelar comanda vacía">
-                                                                <i class="bi bi-x-circle me-1"></i> Cancelar Vacía
-                                                            </button>
-                                                        </form>
+                                                        <button type="button" 
+                                                                class="btn btn-sm btn-outline-danger" 
+                                                                title="Cancelar comanda vacía"
+                                                                data-bs-toggle="modal" 
+                                                                data-bs-target="#cancelEmptyOrderIndexModal"
+                                                                data-order-number="{{ $order->order_number }}"
+                                                                data-table-name="{{ $order->table ? $order->table->name : 'mesa' }}"
+                                                                data-action="{{ route('restaurant.orders.cancel-empty', $order) }}">
+                                                            <i class="bi bi-trash3 me-1"></i> Cancelar Vacía
+                                                        </button>
                                                     @endif
                                                     <a href="{{ route('restaurant.orders.show', $order) }}" class="btn btn-sm btn-outline-primary">
                                                         <i class="bi bi-eye me-1"></i> Ver Detalle
@@ -344,4 +352,87 @@
         </div>
     </div>
 </div>
+
+{{-- MODAL REUTILIZABLE PARA CANCELAR COMANDA VACÍA EN HISTORIAL --}}
+<div class="modal fade" id="cancelEmptyOrderIndexModal" tabindex="-1" aria-labelledby="cancelEmptyOrderIndexModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header bg-danger text-white py-3">
+                <h5 class="modal-title fw-bold" id="cancelEmptyOrderIndexModalLabel">
+                    <i class="bi bi-trash3 me-2"></i>Cancelar Comanda Vacía
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-warning d-flex align-items-center mb-0 rounded-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-warning flex-shrink-0"></i>
+                    <div>
+                        <div class="fw-semibold text-dark mb-1">
+                            ¿Confirmas que deseas cancelar la comanda <strong id="cancelEmptyModalOrderNumber"></strong> y liberar inmediatamente la <strong id="cancelEmptyModalTableName">mesa</strong>?
+                        </div>
+                        <div class="small text-muted">
+                            Esta comanda no contiene platos activos y la mesa quedará disponible para nuevos comensales.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light px-4 py-3 d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">
+                    Conservar Comanda
+                </button>
+                <form action="" method="POST" id="cancelEmptyOrderIndexForm" class="d-inline m-0" data-no-disable>
+                    @csrf
+                    @method('POST')
+                    <button type="submit" class="btn btn-danger px-4 fw-bold" id="btnConfirmCancelEmptyIndex">
+                        <i class="bi bi-trash3 me-1"></i> Sí, Cancelar y Liberar Mesa
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const cancelModal = document.getElementById('cancelEmptyOrderIndexModal');
+    const cancelForm = document.getElementById('cancelEmptyOrderIndexForm');
+    const orderNumberSpan = document.getElementById('cancelEmptyModalOrderNumber');
+    const tableNameSpan = document.getElementById('cancelEmptyModalTableName');
+    const btnConfirm = document.getElementById('btnConfirmCancelEmptyIndex');
+
+    if (cancelModal) {
+        cancelModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            if (!button) return;
+
+            const orderNumber = button.getAttribute('data-order-number') || '';
+            const tableName = button.getAttribute('data-table-name') || 'mesa';
+            const actionUrl = button.getAttribute('data-action') || '';
+
+            if (orderNumberSpan) orderNumberSpan.textContent = orderNumber;
+            if (tableNameSpan) tableNameSpan.textContent = tableName;
+            if (cancelForm && actionUrl) cancelForm.setAttribute('action', actionUrl);
+
+            if (btnConfirm) {
+                btnConfirm.disabled = false;
+                btnConfirm.innerHTML = '<i class="bi bi-trash3 me-1"></i> Sí, Cancelar y Liberar Mesa';
+            }
+        });
+
+        cancelModal.addEventListener('hidden.bs.modal', function () {
+            if (btnConfirm) {
+                btnConfirm.disabled = false;
+                btnConfirm.innerHTML = '<i class="bi bi-trash3 me-1"></i> Sí, Cancelar y Liberar Mesa';
+            }
+        });
+    }
+
+    if (cancelForm && btnConfirm) {
+        cancelForm.addEventListener('submit', function () {
+            btnConfirm.disabled = true;
+            btnConfirm.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Procesando...';
+        });
+    }
+});
+</script>
 @endsection
