@@ -6,7 +6,7 @@
 <div class="row justify-content-center">
     <div class="col-lg-8">
         <div class="card card-dark p-4 p-md-5">
-            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4 border-bottom border-secondary pb-3">
                 <div>
                     <h3 class="fw-bold mb-1">Registrar Nuevo Emprendimiento</h3>
                     <p class="text-secondary small mb-0">Crea en un solo paso el negocio y su usuario administrador inicial.</p>
@@ -101,9 +101,9 @@
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-end gap-2 border-top border-secondary pt-3">
-                    <a href="{{ route('superadmin.businesses.index') }}" class="btn btn-outline-secondary px-4">Cancelar</a>
-                    <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 border-top border-secondary pt-3">
+                    <a href="{{ route('superadmin.businesses.index') }}" class="btn btn-outline-secondary px-4 w-100 w-sm-auto text-center" style="min-height: 44px; display: inline-flex; align-items: center; justify-content: center;">Cancelar</a>
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold w-100 w-sm-auto d-inline-flex align-items-center justify-content-center" style="min-height: 44px;">
                         <i class="bi bi-check-circle me-1"></i> Crear Negocio y Administrador
                     </button>
                 </div>

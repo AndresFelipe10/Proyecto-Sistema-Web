@@ -3,53 +3,58 @@
 @section('title', 'Gestión de Negocios')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
     <div>
-        <h3 class="fw-bold mb-1">Negocios Registrados</h3>
+        <h1 class="fs-3 fw-bold text-white mb-1">Negocios Registrados</h1>
         <p class="text-secondary small mb-0">Administra los negocios de la plataforma PuntoStock</p>
     </div>
-    <a href="{{ route('superadmin.businesses.create') }}" class="btn btn-primary rounded-pill px-3">
-        <i class="bi bi-plus-circle me-1"></i> Crear Nuevo Negocio
+    <a href="{{ route('superadmin.businesses.create') }}" class="btn btn-primary d-inline-flex align-items-center justify-content-center gap-2 px-3 py-2 fw-semibold w-100 w-sm-auto text-nowrap rounded-3 shadow-sm" style="min-height: 44px;">
+        <i class="bi bi-plus-circle fs-5"></i>
+        <span>Crear Nuevo Negocio</span>
     </a>
 </div>
 
-<div class="card card-dark p-3 mb-4">
-    <form method="GET" action="{{ route('superadmin.businesses.index') }}" class="row g-2 align-items-center">
-        <div class="col-md-5">
+<div class="card card-dark border-secondary border-opacity-25 rounded-3 p-3 mb-4 shadow-sm">
+    <form method="GET" action="{{ route('superadmin.businesses.index') }}" class="row g-2 align-items-end">
+        <div class="col-12 col-md-5 col-lg-5">
             <div class="input-group">
                 <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-search"></i></span>
                 <input type="text" name="search" class="form-control bg-dark border-secondary text-light" 
-                       placeholder="Buscar por nombre, NIT, teléfono o email..." value="{{ $search }}">
+                       placeholder="Buscar por nombre, NIT, teléfono o email..." value="{{ $search }}" style="min-height: 42px;">
             </div>
         </div>
-        <div class="col-md-3">
-            <select name="status" class="form-select bg-dark border-secondary text-light">
+        <div class="col-12 col-sm-6 col-md-3 col-lg-3">
+            <select name="status" class="form-select bg-dark border-secondary text-light" style="min-height: 42px;">
                 <option value="">Todos los estados</option>
                 <option value="active" {{ $selectedStatus === 'active' ? 'selected' : '' }}>Activos</option>
                 <option value="inactive" {{ $selectedStatus === 'inactive' ? 'selected' : '' }}>Suspendidos</option>
             </select>
         </div>
-        <div class="col-md-4 d-flex gap-2">
-            <button type="submit" class="btn btn-outline-primary px-3">Filtrar</button>
+        <div class="col-12 col-sm-6 col-md-4 col-lg-4 d-flex gap-2">
+            <button type="submit" class="btn btn-outline-primary px-3 flex-fill flex-sm-grow-0 d-inline-flex align-items-center justify-content-center gap-1" style="min-height: 42px;">
+                <i class="bi bi-funnel"></i> Filtrar
+            </button>
             @if ($search || $selectedStatus)
-                <a href="{{ route('superadmin.businesses.index') }}" class="btn btn-outline-secondary px-3">Limpiar</a>
+                <a href="{{ route('superadmin.businesses.index') }}" class="btn btn-outline-secondary px-3 flex-fill flex-sm-grow-0 d-inline-flex align-items-center justify-content-center gap-1" style="min-height: 42px;">
+                    <i class="bi bi-x-circle"></i> Limpiar
+                </a>
             @endif
         </div>
     </form>
 </div>
 
-<div class="card card-dark overflow-hidden">
+<div class="card card-dark border-secondary border-opacity-25 rounded-4 overflow-hidden shadow-sm">
     <div class="table-responsive">
         <table class="table table-dark-custom align-middle mb-0">
             <thead>
                 <tr>
-                    <th>Negocio</th>
-                    <th>NIT / Identificación</th>
-                    <th>Contacto</th>
-                    <th>Administrador</th>
-                    <th>Vencimiento Mensualidad</th>
-                    <th>Estado</th>
-                    <th class="text-end">Acciones</th>
+                    <th style="min-width: 180px;">Negocio</th>
+                    <th style="min-width: 130px;">NIT / Identificación</th>
+                    <th style="min-width: 140px;">Contacto</th>
+                    <th style="min-width: 150px;">Administrador</th>
+                    <th style="min-width: 180px;">Vencimiento Mensualidad</th>
+                    <th style="min-width: 110px;">Estado</th>
+                    <th class="text-end" style="min-width: 200px;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -138,11 +143,11 @@
                             @endif
                         </td>
                         <td class="text-end">
-                            <div class="btn-group btn-group-sm">
-                                <a href="{{ route('superadmin.businesses.edit', $biz) }}" class="btn btn-outline-primary" style="opacity: 1 !important; visibility: visible !important;" title="Editar">
+                            <div class="d-inline-flex gap-1 justify-content-end align-items-center">
+                                <a href="{{ route('superadmin.businesses.edit', $biz) }}" class="btn btn-outline-primary btn-action-table" style="opacity: 1 !important; visibility: visible !important;" title="Editar">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <a href="{{ route('superadmin.businesses.users', $biz) }}" class="btn btn-outline-info" title="Ver usuarios">
+                                <a href="{{ route('superadmin.businesses.users', $biz) }}" class="btn btn-outline-info btn-action-table" title="Ver usuarios">
                                     <i class="bi bi-people"></i>
                                 </a>
                                 @php
@@ -154,29 +159,29 @@
                                         $confirmRenew = "¿Confirmas la renovación de 30 días para {$biz->name}? Nueva fecha de corte: {$nextCutFormatted}.";
                                     }
                                 @endphp
-                                <form method="POST" action="{{ route('superadmin.businesses.renewSubscription', $biz) }}" class="d-inline"
+                                <form method="POST" action="{{ route('superadmin.businesses.renewSubscription', $biz) }}" class="d-inline m-0"
                                       onsubmit="return confirm('{{ addslashes($confirmRenew) }}');">
                                     @csrf
-                                    <button type="submit" class="btn btn-outline-success" title="Renovar 30 días">
+                                    <button type="submit" class="btn btn-outline-success btn-action-table" title="Renovar 30 días">
                                         <i class="bi bi-arrow-repeat"></i>
                                     </button>
                                 </form>
-                                <form method="POST" action="{{ route('superadmin.businesses.resetPassword', $biz) }}" class="d-inline"
+                                <form method="POST" action="{{ route('superadmin.businesses.resetPassword', $biz) }}" class="d-inline m-0"
                                       onsubmit="return confirm('¿Restablecer la contraseña del administrador de {{ $biz->name }}? Se generará una clave temporal.');">
                                     @csrf
-                                    <button type="submit" class="btn btn-outline-warning" title="Restablecer contraseña del admin">
+                                    <button type="submit" class="btn btn-outline-warning btn-action-table" title="Restablecer contraseña del admin">
                                         <i class="bi bi-key"></i>
                                     </button>
                                 </form>
-                                <form method="POST" action="{{ route('superadmin.businesses.toggleStatus', $biz) }}" class="d-inline"
+                                <form method="POST" action="{{ route('superadmin.businesses.toggleStatus', $biz) }}" class="d-inline m-0"
                                       onsubmit="return confirm('¿Seguro que deseas cambiar el estado de {{ $biz->name }}?');">
                                     @csrf
                                     @if ($biz->status === 'active')
-                                        <button type="submit" class="btn btn-outline-danger" title="Suspender negocio">
+                                        <button type="submit" class="btn btn-outline-danger btn-action-table" title="Suspender negocio">
                                             <i class="bi bi-pause-fill"></i>
                                         </button>
                                     @else
-                                        <button type="submit" class="btn btn-outline-success" title="Reactivar negocio">
+                                        <button type="submit" class="btn btn-outline-success btn-action-table" title="Reactivar negocio">
                                             <i class="bi bi-play-fill"></i>
                                         </button>
                                     @endif

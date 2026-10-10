@@ -8,8 +8,8 @@
     <p class="text-secondary small mb-0">Monitoreo general de negocios y usuarios en PuntoStock</p>
 </div>
 
-<div class="row g-4 mb-4">
-    <div class="col-md-4">
+<div class="row g-3 g-md-4 mb-4">
+    <div class="col-12 col-md-4">
         <div class="card card-dark p-4 h-100">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="text-secondary small fw-semibold text-uppercase">Negocios Activos</span>
@@ -20,7 +20,7 @@
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-12 col-md-4">
         <div class="card card-dark p-4 h-100">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="text-secondary small fw-semibold text-uppercase">Negocios Suspendidos</span>
@@ -31,7 +31,7 @@
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-12 col-md-4">
         <div class="card card-dark p-4 h-100">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="text-secondary small fw-semibold text-uppercase">Total Usuarios</span>
@@ -47,12 +47,12 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="fw-bold mb-0"><i class="bi bi-lightning-charge text-warning me-2"></i>Acciones Rápidas</h5>
     </div>
-    <div class="d-flex gap-3 flex-wrap">
-        <a href="{{ route('superadmin.businesses.create') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle me-1"></i> Crear Nuevo Negocio
+    <div class="d-flex flex-column flex-sm-row gap-2 gap-sm-3">
+        <a href="{{ route('superadmin.businesses.create') }}" class="btn btn-primary d-inline-flex align-items-center justify-content-center gap-2 px-3 py-2 fw-semibold rounded-3 shadow-sm" style="min-height: 44px;">
+            <i class="bi bi-plus-circle fs-5"></i> Crear Nuevo Negocio
         </a>
-        <a href="{{ route('superadmin.businesses.index') }}" class="btn btn-outline-light">
-            <i class="bi bi-buildings me-1"></i> Gestionar Negocios
+        <a href="{{ route('superadmin.businesses.index') }}" class="btn btn-outline-light d-inline-flex align-items-center justify-content-center gap-2 px-3 py-2 fw-semibold rounded-3 shadow-sm" style="min-height: 44px;">
+            <i class="bi bi-buildings fs-5"></i> Gestionar Negocios
         </a>
     </div>
 </div>

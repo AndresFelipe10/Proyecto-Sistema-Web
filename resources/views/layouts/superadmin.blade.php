@@ -21,11 +21,12 @@
             background-color: #0f172a;
             color: #e2e8f0;
             min-height: 100vh;
+            overflow-x: hidden;
         }
         .navbar-superadmin {
             background-color: #1e293b;
             border-bottom: 1px solid #334155;
-            height: 64px;
+            min-height: 64px;
         }
         .superadmin-badge {
             background: #3b82f6;
@@ -40,26 +41,54 @@
         .app-layout {
             display: flex;
             min-height: calc(100vh - 64px);
+            width: 100%;
         }
-        .sidebar {
-            width: 250px;
-            background-color: #1e293b;
-            border-right: 1px solid #334155;
-            padding: 1.25rem 0.75rem;
-            flex-shrink: 0;
+
+        /* Estructura Desktop (>= 992px) */
+        @media (min-width: 992px) {
+            .sidebar {
+                width: 250px;
+                background-color: #1e293b;
+                border-right: 1px solid #334155;
+                padding: 1.25rem 0.75rem;
+                flex-shrink: 0;
+            }
+            .main-content {
+                flex-grow: 1;
+                padding: 1.75rem 2rem;
+                background-color: #0f172a;
+                overflow-y: auto;
+                width: calc(100% - 250px);
+                max-width: calc(100% - 250px);
+            }
         }
-        .main-content {
-            flex-grow: 1;
-            padding: 1.75rem 2rem;
-            background-color: #0f172a;
-            overflow-y: auto;
+
+        /* Estructura Móvil y Tablets (< 992px) */
+        @media (max-width: 991.98px) {
+            .sidebar.offcanvas-lg {
+                background-color: #1e293b !important;
+                width: 280px;
+                max-width: 85vw;
+                border-right: 1px solid #334155;
+            }
+            .app-layout {
+                flex-direction: column;
+            }
+            .main-content {
+                width: 100%;
+                max-width: 100%;
+                padding: 1.25rem 1rem;
+                flex-grow: 1;
+            }
         }
+
         .nav-link-super {
             display: flex;
             align-items: center;
-            padding: 0.65rem 0.85rem;
+            padding: 0.75rem 1rem;
+            min-height: 44px;
             border-radius: 0.5rem;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             color: #94a3b8;
             text-decoration: none;
             transition: all 0.15s ease-in-out;
@@ -88,9 +117,23 @@
             background-color: #0f172a;
             color: #94a3b8;
             border-color: #334155;
+            white-space: nowrap;
         }
         .table-dark-custom td {
             border-color: #334155;
+        }
+
+        /* Botones táctiles ergonómicos en filas de tabla */
+        .btn-action-table {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            min-height: 36px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.375rem;
         }
 
         /* Alertas de Alto Contraste para el tema oscuro de Superadmin */
@@ -139,21 +182,34 @@
 <body>
     <nav class="navbar navbar-superadmin sticky-top">
         <div class="container-fluid px-3 px-lg-4">
-            <div class="d-flex align-items-center gap-3">
-                <a class="navbar-brand m-0 text-decoration-none" href="{{ route('superadmin.dashboard') }}">
+            <div class="d-flex align-items-center gap-2 gap-sm-3">
+                <!-- Botón Hamburguesa Offcanvas (Visible en < lg) -->
+                <button class="btn btn-outline-secondary d-lg-none d-flex align-items-center justify-content-center border-secondary border-opacity-50 text-light rounded-3 p-0" 
+                        type="button" 
+                        data-bs-toggle="offcanvas" 
+                        data-bs-target="#superadminSidebar" 
+                        aria-controls="superadminSidebar" 
+                        aria-label="Abrir menú de navegación"
+                        style="width: 44px; height: 44px; min-width: 44px; min-height: 44px;">
+                    <i class="bi bi-list fs-3"></i>
+                </button>
+
+                <a class="navbar-brand m-0 text-decoration-none d-flex align-items-center" href="{{ route('superadmin.dashboard') }}">
                     <x-brand size="sm" light />
                 </a>
-                <span class="superadmin-badge"><i class="bi bi-shield-lock-fill me-1"></i> Plataforma</span>
+                <span class="superadmin-badge d-none d-sm-inline-flex align-items-center">
+                    <i class="bi bi-shield-lock-fill me-1"></i> Plataforma
+                </span>
             </div>
 
-            <div class="d-flex align-items-center gap-3">
-                <span class="text-slate-300 small">
+            <div class="d-flex align-items-center gap-2 gap-sm-3">
+                <span class="text-slate-300 small d-none d-md-inline-block text-truncate" style="max-width: 160px;">
                     <i class="bi bi-person-circle me-1 text-primary"></i> {{ auth()->user()->name }}
                 </span>
-                <form method="POST" action="{{ route('logout') }}" class="d-inline">
+                <form method="POST" action="{{ route('logout') }}" class="d-inline m-0">
                     @csrf
-                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
-                        <i class="bi bi-box-arrow-right me-1"></i> Salir
+                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3 d-inline-flex align-items-center gap-1" style="min-height: 38px;">
+                        <i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Salir</span>
                     </button>
                 </form>
             </div>
@@ -161,19 +217,40 @@
     </nav>
 
     <div class="app-layout">
-        <aside class="sidebar">
-            <ul class="nav flex-column gap-1">
-                <li class="nav-item">
-                    <a class="nav-link-super {{ request()->routeIs('superadmin.dashboard') ? 'active' : '' }}" href="{{ route('superadmin.dashboard') }}">
-                        <i class="bi bi-speedometer2 me-2"></i> Panel
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link-super {{ request()->routeIs('superadmin.businesses.*') ? 'active' : '' }}" href="{{ route('superadmin.businesses.index') }}">
-                        <i class="bi bi-buildings me-2"></i> Negocios
-                    </a>
-                </li>
-            </ul>
+        <!-- Sidebar adaptable: Fijo en Desktop / Offcanvas en Móvil (< lg) -->
+        <aside class="sidebar offcanvas-lg offcanvas-start text-white" id="superadminSidebar" tabindex="-1" aria-labelledby="superadminSidebarLabel">
+            <div class="offcanvas-header d-lg-none border-bottom border-secondary border-opacity-25 px-3 py-3">
+                <div class="d-flex align-items-center gap-2" id="superadminSidebarLabel">
+                    <x-brand size="sm" light />
+                    <span class="superadmin-badge"><i class="bi bi-shield-lock-fill me-1"></i> Plataforma</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#superadminSidebar" aria-label="Cerrar"></button>
+            </div>
+            <div class="offcanvas-body p-3 p-lg-0 d-flex flex-column justify-content-between h-100">
+                <ul class="nav flex-column gap-1 w-100">
+                    <li class="nav-item">
+                        <a class="nav-link-super {{ request()->routeIs('superadmin.dashboard') ? 'active' : '' }}" href="{{ route('superadmin.dashboard') }}">
+                            <i class="bi bi-speedometer2 me-2 fs-5"></i> Panel
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link-super {{ request()->routeIs('superadmin.businesses.*') ? 'active' : '' }}" href="{{ route('superadmin.businesses.index') }}">
+                            <i class="bi bi-buildings me-2 fs-5"></i> Negocios
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Identificador de usuario en menú móvil -->
+                <div class="d-lg-none mt-auto pt-3 border-top border-secondary border-opacity-25">
+                    <div class="d-flex align-items-center gap-2 px-2 text-slate-300 small">
+                        <i class="bi bi-person-circle fs-5 text-primary"></i>
+                        <div class="text-truncate">
+                            <div class="fw-semibold text-white text-truncate">{{ auth()->user()->name }}</div>
+                            <div class="text-secondary small text-truncate">{{ auth()->user()->email }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </aside>
 
         <main class="main-content">

@@ -158,4 +158,18 @@ class SuperadminBusinessUserTest extends TestCase
 
         $postResponse->assertNotFound();
     }
+
+    public function test_superadmin_views_render_responsive_offcanvas_sidebar_and_table_structure(): void
+    {
+        $response = $this->actingAs($this->superadmin)
+            ->get(route('superadmin.businesses.index'));
+
+        $response->assertOk();
+        $response->assertSee('id="superadminSidebar"', false);
+        $response->assertSee('data-bs-toggle="offcanvas"', false);
+        $response->assertSee('data-bs-target="#superadminSidebar"', false);
+        $response->assertSee('class="table-responsive"', false);
+        $response->assertSee('btn-action-table', false);
+        $response->assertSee('Crear Nuevo Negocio', false);
+    }
 }

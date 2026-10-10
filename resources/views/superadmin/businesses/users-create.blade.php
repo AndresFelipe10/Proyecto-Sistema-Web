@@ -6,7 +6,7 @@
 <div class="row justify-content-center">
     <div class="col-lg-7">
         <div class="card card-dark p-4 p-md-5 shadow-sm">
-            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 border-bottom border-secondary pb-3 gap-3">
                 <div>
                     <h3 class="fw-bold mb-1">Agregar Colaborador</h3>
                     <p class="text-secondary small mb-0">Vincula un nuevo usuario al negocio <strong>{{ $business->name }}</strong>.</p>
@@ -85,11 +85,11 @@
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-end gap-2 pt-2 border-top border-secondary">
-                    <a href="{{ route('superadmin.businesses.users', $business) }}" class="btn btn-outline-secondary px-4">
+                <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 pt-2 border-top border-secondary">
+                    <a href="{{ route('superadmin.businesses.users', $business) }}" class="btn btn-outline-secondary px-4 w-100 w-sm-auto text-center" style="min-height: 44px; display: inline-flex; align-items: center; justify-content: center;">
                         Cancelar
                     </a>
-                    <button type="submit" class="btn btn-primary fw-semibold px-4">
+                    <button type="submit" class="btn btn-primary fw-semibold px-4 w-100 w-sm-auto d-inline-flex align-items-center justify-content-center" style="min-height: 44px;">
                         <i class="bi bi-person-check me-1"></i> Guardar Colaborador
                     </button>
                 </div>

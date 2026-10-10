@@ -3,16 +3,16 @@
 @section('title', 'Usuarios de ' . $business->name)
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">
     <div>
-        <h3 class="fw-bold mb-1">Usuarios de {{ $business->name }}</h3>
+        <h1 class="fs-3 fw-bold text-white mb-1">Usuarios de {{ $business->name }}</h1>
         <p class="text-secondary small mb-0">Listado de colaboradores vinculados a este negocio</p>
     </div>
-    <div class="d-flex align-items-center gap-2">
-        <a href="{{ route('superadmin.businesses.users.create', $business) }}" class="btn btn-primary fw-semibold">
+    <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2 w-100 w-sm-auto">
+        <a href="{{ route('superadmin.businesses.users.create', $business) }}" class="btn btn-primary fw-semibold d-inline-flex align-items-center justify-content-center" style="min-height: 42px;">
             <i class="bi bi-person-plus me-1"></i> + Agregar Colaborador
         </a>
-        <a href="{{ route('superadmin.businesses.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+        <a href="{{ route('superadmin.businesses.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 d-inline-flex align-items-center justify-content-center" style="min-height: 42px;">
             <i class="bi bi-arrow-left me-1"></i> Volver a Negocios
         </a>
     </div>
@@ -33,17 +33,17 @@
     </div>
 @endif
 
-<div class="card card-dark overflow-hidden">
+<div class="card card-dark border-secondary border-opacity-25 rounded-4 overflow-hidden shadow-sm">
     <div class="table-responsive">
         <table class="table table-dark-custom align-middle mb-0">
             <thead>
                 <tr>
-                    <th>Nombre</th>
-                    <th>Correo Electrónico</th>
-                    <th>Rol</th>
-                    <th>Estado</th>
-                    <th>Fecha de Vinculación</th>
-                    <th class="text-end">Acciones</th>
+                    <th style="min-width: 160px;">Nombre</th>
+                    <th style="min-width: 180px;">Correo Electrónico</th>
+                    <th style="min-width: 130px;">Rol</th>
+                    <th style="min-width: 110px;">Estado</th>
+                    <th style="min-width: 150px;">Fecha de Vinculación</th>
+                    <th class="text-end" style="min-width: 140px;">Acciones</th>
                 </tr>
             </thead>
             <tbody>
