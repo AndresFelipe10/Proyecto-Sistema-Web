@@ -44,10 +44,10 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'store']);
 
     Route::get('/forgot-password', [PasswordResetController::class, 'createForgot'])->name('password.request');
-    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email');
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])->middleware('throttle:10,1')->name('password.email');
 
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'createReset'])->name('password.reset');
-    Route::post('/reset-password', [PasswordResetController::class, 'updatePassword'])->name('password.update');
+    Route::post('/reset-password', [PasswordResetController::class, 'updatePassword'])->middleware('throttle:10,1')->name('password.update');
 });
 
 // Rutas protegidas por autenticación
@@ -162,7 +162,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/cash-register', [ReportController::class, 'cashRegister'])->name('reports.cash-register');
 
         // API interna para búsqueda de productos (POS autocomplete)
-        Route::get('/api/products/search', ProductSearchController::class)->name('api.products.search');
+        Route::get('/api/products/search', ProductSearchController::class)->middleware('throttle:60,1')->name('api.products.search');
 
         // Asistente de Consultas en Lenguaje Natural (IA)
         Route::get('/ai', fn() => redirect()->route('ai.index'));

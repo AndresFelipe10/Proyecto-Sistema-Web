@@ -447,9 +447,96 @@
             }
         });
 
-        // Ergonomía global: Auto-selección en foco y eliminación reactiva de ceros parásitos
+        // Helpers globales de moneda COP (Pesos Colombianos)
+        window.parseCopNumber = function (val) {
+            if (val === null || val === undefined || val === '') return 0;
+            if (typeof val === 'number') return isNaN(val) ? 0 : val;
+            const str = String(val).trim();
+            // Eliminar puntos de miles y reemplazar coma decimal por punto
+            const cleaned = str.replace(/\./g, '').replace(',', '.');
+            const num = parseFloat(cleaned);
+            return isNaN(num) ? 0 : num;
+        };
+
+        window.formatCopInteger = function (val) {
+            if (val === null || val === undefined || val === '') return '';
+            const num = window.parseCopNumber(val);
+            if (isNaN(num)) return '';
+            const rounded = Math.round(num);
+            return rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        };
+
+        // Formatea visualmente un input data-cop-money preservando la posición exacta del cursor
+        function formatCopMoneyInput(input) {
+            const rawVal = input.value;
+            if (!rawVal) return;
+
+            const cursor = input.selectionStart || rawVal.length;
+            const textBeforeCursor = rawVal.substring(0, cursor);
+            const digitsBeforeCursor = textBeforeCursor.replace(/\D/g, '').length;
+
+            let digits = rawVal.replace(/\D/g, '');
+            // Eliminar ceros iniciales si hay dígitos adicionales (ej. 05000 -> 5000)
+            if (/^0+[1-9]/.test(digits)) {
+                digits = digits.replace(/^0+/, '');
+            }
+
+            if (digits === '') {
+                input.value = '';
+                return;
+            }
+
+            const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            input.value = formatted;
+
+            // Recalcular posición del cursor basada en la cantidad de dígitos previos
+            let newCursor = 0;
+            let count = 0;
+            for (let i = 0; i < formatted.length; i++) {
+                if (/\d/.test(formatted[i])) {
+                    count++;
+                }
+                if (count >= digitsBeforeCursor) {
+                    newCursor = i + 1;
+                    break;
+                }
+            }
+            if (digitsBeforeCursor === 0) newCursor = 0;
+            if (newCursor > formatted.length) newCursor = formatted.length;
+
+            input.setSelectionRange(newCursor, newCursor);
+        }
+
+        // Actualiza el indicador dinámico en vivo en inputs de número (spinners)
+        function updateCopLivePreview(input) {
+            let preview = input.parentElement?.querySelector('.cop-live-preview');
+            if (!preview && input.closest('.input-group')) {
+                preview = input.closest('.input-group').parentElement?.querySelector('.cop-live-preview');
+            }
+            if (!preview) return;
+
+            const val = window.parseCopNumber(input.value);
+            preview.textContent = val > 0 ? '$' + window.formatCopInteger(val) + ' COP' : '';
+        }
+
+        // Ergonomía global: Auto-selección en foco y formateo inicial COP
         function setupNumberInputErgonomics() {
-            document.querySelectorAll('input[type="number"], .currency-input, input[name="cost_price"], input[name="sale_price"], input[name="stock"], input[name="min_stock"]').forEach(input => {
+            // Formatear valores iniciales en inputs COP
+            document.querySelectorAll('input[data-cop-money="true"]').forEach(input => {
+                if (input.value && input.value !== '0' && input.value !== '0.00') {
+                    const num = window.parseCopNumber(input.value);
+                    if (num > 0) {
+                        input.value = window.formatCopInteger(num);
+                    }
+                }
+            });
+
+            // Live preview inicial para inputs de tarifas y montos
+            document.querySelectorAll('input[name="delivery_fee"], input[data-cop-live-preview="true"]').forEach(input => {
+                updateCopLivePreview(input);
+            });
+
+            document.querySelectorAll('input[type="number"], input[data-cop-money="true"], .currency-input, input[name="cost_price"], input[name="sale_price"], input[name="stock"], input[name="min_stock"]').forEach(input => {
                 if (input.dataset.ergonomicsAttached) return;
                 input.dataset.ergonomicsAttached = 'true';
 
@@ -458,6 +545,31 @@
                 });
             });
         }
+
+        // Limpieza automática de puntos de miles al enviar cualquier formulario
+        document.addEventListener('submit', function (e) {
+            const form = e.target;
+            if (!form || !form.querySelectorAll) return;
+
+            form.querySelectorAll('input[data-cop-money="true"]').forEach(input => {
+                if (input.value) {
+                    input.value = String(input.value).replace(/\./g, '').trim();
+                }
+            });
+        }, true);
+
+        // Prevenir que la tecla Backspace quede atrapada detrás de un separador de miles
+        document.addEventListener('keydown', function (e) {
+            const target = e.target;
+            if (target && target.matches('input[data-cop-money="true"]')) {
+                if (e.key === 'Backspace') {
+                    const pos = target.selectionStart;
+                    if (pos === target.selectionEnd && pos > 0 && target.value[pos - 1] === '.') {
+                        target.setSelectionRange(pos - 1, pos - 1);
+                    }
+                }
+            }
+        });
 
         // Prevenir que la rueda del ratón (wheel) altere valores numéricos accidentalmente
         document.addEventListener('wheel', function (e) {
@@ -480,6 +592,18 @@
         document.addEventListener('input', function (e) {
             const target = e.target;
             if (!target || !target.tagName || (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA')) return;
+
+            // 0. Inputs de moneda COP en vivo (puntos de miles)
+            if (target.matches('input[data-cop-money="true"]')) {
+                formatCopMoneyInput(target);
+                updateCopLivePreview(target);
+                return;
+            }
+
+            // Live preview para inputs de tipo number (como delivery_fee)
+            if (target.matches('input[name="delivery_fee"], input[data-cop-live-preview="true"]')) {
+                updateCopLivePreview(target);
+            }
 
             // 1. Inputs numéricos: supresión reactiva de ceros a la izquierda
             if (target.matches('input[type="number"], .currency-input, input[name="cost_price"], input[name="sale_price"], input[name="stock"], input[name="min_stock"]')) {

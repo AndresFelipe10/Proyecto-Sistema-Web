@@ -91,7 +91,7 @@ class ResetTenantDataCommand extends Command
         }
 
         try {
-            DB::transaction(function () use ($businessId) {
+            DB::transaction(function () use ($businessId, $user) {
                 // 1. Líneas de comanda de restaurante
                 $orderItemsCount = RestaurantOrderItem::withoutGlobalScopes()
                     ->where('business_id', $businessId)
@@ -147,6 +147,27 @@ class ResetTenantDataCommand extends Command
                     $categoriesCount = Category::withoutGlobalScopes()
                         ->where('business_id', $businessId)
                         ->delete();
+                } else {
+                    // Para productos existentes con stock > 0, registrar un movimiento de saldo inicial
+                    // para preservar la consistencia contable del kardex tras purgar las transacciones de prueba.
+                    $productsWithStock = Product::withoutGlobalScopes()
+                        ->where('business_id', $businessId)
+                        ->where('stock', '>', 0)
+                        ->get();
+
+                    foreach ($productsWithStock as $prod) {
+                        InventoryMovement::withoutGlobalScopes()->create([
+                            'business_id' => $businessId,
+                            'product_id' => $prod->id,
+                            'user_id' => $user->id,
+                            'type' => InventoryMovement::TYPE_ENTRY,
+                            'quantity' => $prod->stock,
+                            'previous_stock' => 0,
+                            'new_stock' => $prod->stock,
+                            'movement_date' => now(),
+                            'reason' => 'Saldo inicial tras reseteo de datos de prueba',
+                        ]);
+                    }
                 }
 
                 $this->info("✓ Comandas eliminadas:            {$ordersCount} (con {$orderItemsCount} ítems)");

@@ -13,16 +13,14 @@ class ExpenseAiTools
      */
     public function summary(int $businessId, array $filters = []): AiQueryResult
     {
-        $query = Expense::where('business_id', $businessId)->with('supplier');
+        $baseQuery = Expense::where('business_id', $businessId);
+        $totalCount = $baseQuery->count();
 
-        $expenses = $query->orderByDesc('issue_date')->orderByDesc('id')->limit(10)->get();
-        $count = $expenses->count();
-
-        $monthTotal = Expense::where('business_id', $businessId)
+        $monthTotal = (clone $baseQuery)
             ->whereBetween('issue_date', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])
             ->sum('amount');
 
-        if ($count === 0) {
+        if ($totalCount === 0) {
             return new AiQueryResult(
                 intent: 'expenses_summary',
                 summary: 'No se encontraron gastos registrados en tu negocio.',
@@ -30,6 +28,12 @@ class ExpenseAiTools
                 meta: ['domain' => 'expenses', 'count' => 0]
             );
         }
+
+        $expenses = (clone $baseQuery)->with('supplier')
+            ->orderByDesc('issue_date')
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get();
 
         $data = $expenses->map(fn($e) => [
             'description' => $e->description ?: ($e->supplier ? 'Gasto: ' . $e->supplier->name : 'Gasto operativo'),
@@ -43,11 +47,11 @@ class ExpenseAiTools
 
         return new AiQueryResult(
             intent: 'expenses_summary',
-            summary: "Se registran gastos este mes por un valor total de $" . number_format((float)$monthTotal, 0, ',', '.') . ". A continuación se muestran los últimos {$count} movimientos registrados.",
+            summary: "Se registran gastos este mes por un valor total de $" . number_format((float)$monthTotal, 0, ',', '.') . ". A continuación se muestran los últimos {$expenses->count()} movimientos registrados.",
             data: $data,
             meta: [
                 'domain' => 'expenses',
-                'count' => $count,
+                'count' => $totalCount,
                 'month_total' => $monthTotal,
             ]
         );

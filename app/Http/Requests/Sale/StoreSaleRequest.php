@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Sale;
 
+use App\Http\Requests\Concerns\NormalizesCopMonetaryFields;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Sale;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class StoreSaleRequest extends FormRequest
 {
+    use NormalizesCopMonetaryFields;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -40,7 +43,7 @@ class StoreSaleRequest extends FormRequest
                 'required',
                 Rule::exists('products', 'id')->where('business_id', $businessId),
             ],
-            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:99999'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.001', 'max:99999'],
             'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
 
             // Validación de pagos mixtos
@@ -73,55 +76,9 @@ class StoreSaleRequest extends FormRequest
             return null;
         }
 
-        if (is_numeric($value)) {
-            // Caso especial: string numérico con un punto seguido de 3 dígitos (ej. "650.000" o "20.000")
-            if (is_string($value) && preg_match('/^\d+\.\d{3}$/', trim($value))) {
-                return (float) str_replace('.', '', trim($value));
-            }
-            return (float) $value;
-        }
+        $normalized = $this->normalizeCopMoney($value);
 
-        if (!is_string($value)) {
-            return (float) $value;
-        }
-
-        $str = trim($value);
-        // Quitar símbolos de moneda y caracteres no numéricos excepto coma y punto
-        $str = preg_replace('/[^\d,\.]/', '', $str);
-
-        if ($str === '') {
-            return 0.0;
-        }
-
-        // Si tiene punto y coma, determinar cuál es el separador decimal
-        if (str_contains($str, '.') && str_contains($str, ',')) {
-            $lastDot = strrpos($str, '.');
-            $lastComma = strrpos($str, ',');
-            if ($lastComma > $lastDot) {
-                // Formato latino: 1.250.000,50
-                $str = str_replace('.', '', $str);
-                $str = str_replace(',', '.', $str);
-            } else {
-                // Formato anglo: 1,250,000.50
-                $str = str_replace(',', '', $str);
-            }
-        } elseif (str_contains($str, ',')) {
-            if (substr_count($str, ',') > 1) {
-                $str = str_replace(',', '', $str);
-            } elseif (preg_match('/,\d{3}$/', $str)) {
-                $str = str_replace(',', '', $str);
-            } else {
-                $str = str_replace(',', '.', $str);
-            }
-        } elseif (str_contains($str, '.')) {
-            if (substr_count($str, '.') > 1) {
-                $str = str_replace('.', '', $str);
-            } elseif (preg_match('/\.\d{3}$/', $str)) {
-                $str = str_replace('.', '', $str);
-            }
-        }
-
-        return (float) $str;
+        return is_numeric($normalized) ? (float) $normalized : null;
     }
 
     /**
@@ -152,10 +109,26 @@ class StoreSaleRequest extends FormRequest
             $this->merge(['tax_inc' => ($rawInc === '' || $rawInc === null) ? 0.00 : ($this->sanitizeCurrency($rawInc) ?? 0.00)]);
         }
 
+        if ($this->has('payment_method')) {
+            $rawMethod = strtolower(trim((string) $this->input('payment_method')));
+            if (in_array($rawMethod, ['nequi', 'daviplata'], true)) {
+                $this->merge(['payment_method' => 'transfer']);
+            }
+        }
+
         // Sanitizar referencias y montos en payments si existen
         if ($this->has('payments') && is_array($this->input('payments'))) {
             $cleanedPayments = [];
             foreach ($this->input('payments') as $p) {
+                if (isset($p['method'])) {
+                    $rawMethod = strtolower(trim((string) $p['method']));
+                    if (in_array($rawMethod, ['nequi', 'daviplata'], true)) {
+                        $p['method'] = 'transfer';
+                        if (empty($p['reference'])) {
+                            $p['reference'] = ucfirst($rawMethod);
+                        }
+                    }
+                }
                 if (isset($p['amount'])) {
                     $p['amount'] = $this->sanitizeCurrency($p['amount']);
                 }
@@ -166,7 +139,8 @@ class StoreSaleRequest extends FormRequest
                     $p['change_given'] = $this->sanitizeCurrency($p['change_given']);
                 }
                 if (isset($p['reference'])) {
-                    $p['reference'] = strip_tags(trim((string)$p['reference']));
+                    $ref = strip_tags(trim((string) $p['reference']));
+                    $p['reference'] = mb_substr($ref, 0, 60);
                 }
                 $cleanedPayments[] = $p;
             }

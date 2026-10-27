@@ -12,6 +12,7 @@ use App\Models\Sale;
 use App\Models\SaleDetail;
 use App\Models\SalePayment;
 use App\Models\User;
+use App\Http\Requests\Concerns\NormalizesCopMonetaryFields;
 use App\Services\Inventory\InventoryService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
@@ -20,6 +21,8 @@ use Illuminate\Validation\ValidationException;
 
 class RestaurantOrderService
 {
+    use NormalizesCopMonetaryFields;
+
     public function __construct(
         protected InventoryService $inventoryService
     ) {}
@@ -252,6 +255,10 @@ class RestaurantOrderService
     public function updateDeliveryStatus(RestaurantOrder $order, string $newStatus): RestaurantOrder
     {
         return DB::transaction(function () use ($order, $newStatus) {
+            $lockedOrder = RestaurantOrder::where('business_id', $order->business_id)
+                ->lockForUpdate()
+                ->findOrFail($order->id);
+
             $validStatuses = ['open', 'in_kitchen', 'dispatched', 'delivered', 'cancelled'];
             if (! in_array($newStatus, $validStatuses, true)) {
                 throw ValidationException::withMessages([
@@ -259,9 +266,32 @@ class RestaurantOrderService
                 ]);
             }
 
-            $order->update(['status' => $newStatus]);
+            if (! $lockedOrder->canBeModified()) {
+                throw ValidationException::withMessages([
+                    'order' => 'No se puede cambiar el estado de un pedido que ya fue facturado, cerrado o anulado.',
+                ]);
+            }
 
-            return $order->fresh();
+            if ($newStatus === 'cancelled') {
+                if ($lockedOrder->hasPartialPayments() || $lockedOrder->paidAmount() > 0) {
+                    throw ValidationException::withMessages([
+                        'order' => 'No se puede anular un pedido con pagos registrados.',
+                    ]);
+                }
+
+                if ($lockedOrder->table_id) {
+                    $table = RestaurantTable::where('business_id', $lockedOrder->business_id)
+                        ->lockForUpdate()
+                        ->find($lockedOrder->table_id);
+                    if ($table) {
+                        $table->update(['status' => 'available']);
+                    }
+                }
+            }
+
+            $lockedOrder->update(['status' => $newStatus]);
+
+            return $lockedOrder->fresh();
         });
     }
 
@@ -315,7 +345,7 @@ class RestaurantOrderService
         RestaurantOrderItem $item,
         string $reason,
         User $admin,
-        ?int $quantityToRemove = null
+        float|int|null $quantityToRemove = null
     ): RestaurantOrder {
         if (! $admin->isCurrentAdmin()) {
             throw new AuthorizationException('Esta acción es de acceso exclusivo para administradores.');
@@ -367,12 +397,12 @@ class RestaurantOrderService
                 ]);
             }
 
-            $currentQty = (int) $lockedItem->quantity;
-            $qtyToRemove = $quantityToRemove !== null ? (int) $quantityToRemove : $currentQty;
+            $currentQty = (float) $lockedItem->quantity;
+            $qtyToRemove = $quantityToRemove !== null ? (float) $quantityToRemove : $currentQty;
 
             if ($qtyToRemove <= 0) {
                 throw ValidationException::withMessages([
-                    'quantity_to_remove' => 'La cantidad a retirar debe ser al menos 1.',
+                    'quantity_to_remove' => 'La cantidad a retirar debe ser mayor a cero.',
                 ]);
             }
 
@@ -407,7 +437,7 @@ class RestaurantOrderService
                     'cancellation_reason' => $reason,
                 ]);
             } else {
-                $newQty = $currentQty - $qtyToRemove;
+                $newQty = round($currentQty - $qtyToRemove, 3);
                 $newSubtotal = round($newQty * (float) $lockedItem->unit_price, 2);
 
                 $auditNote = "Reducción de {$qtyToRemove} un. por {$admin->name}: {$reason}";
@@ -563,9 +593,25 @@ class RestaurantOrderService
                 ]);
             }
 
-            $lockedNewTable = RestaurantTable::where('business_id', $lockedOrder->business_id)
+            $oldTableId = $lockedOrder->table_id;
+            $newTableId = (int) $newTable->id;
+
+            $tableIds = array_values(array_filter(array_unique([$oldTableId, $newTableId])));
+            sort($tableIds);
+
+            $lockedTables = RestaurantTable::where('business_id', $lockedOrder->business_id)
+                ->whereIn('id', $tableIds)
                 ->lockForUpdate()
-                ->findOrFail($newTable->id);
+                ->get()
+                ->keyBy('id');
+
+            $lockedNewTable = $lockedTables->get($newTableId);
+
+            if (! $lockedNewTable) {
+                throw ValidationException::withMessages([
+                    'table_id' => 'La mesa seleccionada no existe o no pertenece al negocio.',
+                ]);
+            }
 
             if ($lockedNewTable->status !== 'available') {
                 throw ValidationException::withMessages([
@@ -573,12 +619,7 @@ class RestaurantOrderService
                 ]);
             }
 
-            $oldTable = null;
-            if ($lockedOrder->table_id) {
-                $oldTable = RestaurantTable::where('business_id', $lockedOrder->business_id)
-                    ->lockForUpdate()
-                    ->find($lockedOrder->table_id);
-            }
+            $oldTable = $oldTableId ? $lockedTables->get($oldTableId) : null;
 
             // 1. Liberar la mesa previa
             if ($oldTable) {
@@ -760,10 +801,20 @@ class RestaurantOrderService
             $payments = [];
             if (! empty($input['payments']) && is_array($input['payments'])) {
                 foreach ($input['payments'] as $p) {
-                    $rawMethod = $p['method'] ?? 'cash';
+                    $rawMethod = strtolower($p['method'] ?? 'cash');
                     $method = in_array($rawMethod, ['nequi', 'daviplata'], true) ? 'transfer' : $rawMethod;
-                    $amount = isset($p['amount']) && $p['amount'] !== null && $p['amount'] !== ''
-                        ? round((float) $p['amount'], 2)
+                    $ref = ! empty($p['reference']) ? strip_tags(trim((string) $p['reference'])) : null;
+                    if (in_array($rawMethod, ['nequi', 'daviplata'], true) && empty($ref)) {
+                        $ref = ucfirst($rawMethod);
+                    }
+                    if ($ref !== null) {
+                        $ref = mb_substr($ref, 0, 60);
+                    }
+
+                    $rawAmt = $p['amount'] ?? null;
+                    $normalizedAmt = $rawAmt !== null && $rawAmt !== '' ? $this->normalizeCopMoney($rawAmt) : null;
+                    $amount = $normalizedAmt !== null
+                        ? round((float) $normalizedAmt, 2)
                         : $totalToSettle;
 
                     if ($amount <= 0) {
@@ -771,9 +822,10 @@ class RestaurantOrderService
                     }
 
                     $isCash = ($method === 'cash');
-                    $received = $p['received'] ?? $p['cash_received'] ?? null;
+                    $rawReceived = $p['received'] ?? $p['cash_received'] ?? null;
+                    $normalizedReceived = $rawReceived !== null && $rawReceived !== '' ? $this->normalizeCopMoney($rawReceived) : null;
                     $cashReceived = $isCash
-                        ? ($received !== null && $received !== '' ? round((float) $received, 2) : $amount)
+                        ? ($normalizedReceived !== null ? round((float) $normalizedReceived, 2) : $amount)
                         : $amount;
                     $changeGiven = $isCash ? max(0.00, round($cashReceived - $amount, 2)) : 0.00;
 
@@ -787,18 +839,30 @@ class RestaurantOrderService
                         'raw_method' => $rawMethod,
                         'method' => $method,
                         'amount' => $amount,
-                        'reference' => ! empty($p['reference']) ? strip_tags(trim((string) $p['reference'])) : null,
+                        'reference' => $ref,
                         'cash_received' => $cashReceived,
                         'change_given' => $changeGiven,
                     ];
                 }
             } elseif (! empty($input['payment_method'])) {
-                $rawMethod = $input['payment_method'];
+                $rawMethod = strtolower($input['payment_method']);
                 $method = in_array($rawMethod, ['nequi', 'daviplata'], true) ? 'transfer' : $rawMethod;
-                $amount = isset($input['amount']) ? round((float) $input['amount'], 2) : $totalToSettle;
-                $received = $input['cash_received'] ?? null;
+                $ref = ! empty($input['reference']) ? strip_tags(trim((string) $input['reference'])) : null;
+                if (in_array($rawMethod, ['nequi', 'daviplata'], true) && empty($ref)) {
+                    $ref = ucfirst($rawMethod);
+                }
+                if ($ref !== null) {
+                    $ref = mb_substr($ref, 0, 60);
+                }
+
+                $rawAmt = $input['amount'] ?? null;
+                $normalizedAmt = $rawAmt !== null && $rawAmt !== '' ? $this->normalizeCopMoney($rawAmt) : null;
+                $amount = $normalizedAmt !== null ? round((float) $normalizedAmt, 2) : $totalToSettle;
+
+                $rawReceived = $input['cash_received'] ?? $input['received'] ?? null;
+                $normalizedReceived = $rawReceived !== null && $rawReceived !== '' ? $this->normalizeCopMoney($rawReceived) : null;
                 $cashReceived = $method === 'cash'
-                    ? ($received !== null && $received !== '' ? round((float) $received, 2) : $amount)
+                    ? ($normalizedReceived !== null ? round((float) $normalizedReceived, 2) : $amount)
                     : $amount;
                 $changeGiven = $method === 'cash' ? max(0.00, round($cashReceived - $amount, 2)) : 0.00;
 
@@ -812,7 +876,7 @@ class RestaurantOrderService
                     'raw_method' => $rawMethod,
                     'method' => $method,
                     'amount' => $amount,
-                    'reference' => ! empty($input['reference']) ? strip_tags(trim((string) $input['reference'])) : null,
+                    'reference' => $ref,
                     'cash_received' => $cashReceived,
                     'change_given' => $changeGiven,
                 ];
@@ -832,21 +896,26 @@ class RestaurantOrderService
             }
 
             // 5. Resolución de Cliente y Datos de Facturación
-            $customerId = $input['customer_id'] ?? null;
+            $customerId = $input['customer_id'] ?? $lockedOrder->customer_id;
             $customerName = null;
             $customerDocument = null;
 
             if ($customerId) {
                 $customer = Customer::where('business_id', $lockedOrder->business_id)->find($customerId);
                 if ($customer) {
+                    $customerId = $customer->id;
                     $customerName = $customer->name;
                     $customerDocument = $customer->document ?? $customer->identification_number;
+                } else {
+                    $customerId = null;
                 }
             }
 
             if (! $customerName) {
-                $customerName = $lockedOrder->customer_name ?? 'Consumidor Final';
-                $customerDocument = $lockedOrder->customer_document ?? '222222222222';
+                $customerName = ! empty($input['customer_name'])
+                    ? strip_tags(trim((string) $input['customer_name']))
+                    : ($lockedOrder->customer_name ?: config('sales.default_customer_name', 'CONSUMIDOR FINAL'));
+                $customerDocument = $lockedOrder->customer_document ?? config('sales.default_customer_document', '222222222222');
             }
 
             // 6. Registro de Venta (Sale)
@@ -886,7 +955,7 @@ class RestaurantOrderService
                     'sale_id' => $sale->id,
                     'method' => $p['method'],
                     'amount' => $p['amount'],
-                    'reference' => $p['reference'],
+                    'reference' => ! empty($p['reference']) ? mb_substr((string) $p['reference'], 0, 60) : null,
                     'cash_received' => $p['cash_received'],
                     'change_given' => $p['change_given'],
                 ]);
@@ -1081,17 +1150,27 @@ class RestaurantOrderService
             $payments = [];
             if (! empty($data['payments']) && is_array($data['payments'])) {
                 foreach ($data['payments'] as $p) {
-                    $method = $p['method'] ?? 'cash';
-                    if ($method === 'nequi') {
-                        $method = 'transfer';
+                    $rawMethod = strtolower($p['method'] ?? 'cash');
+                    $method = in_array($rawMethod, ['nequi', 'daviplata'], true) ? 'transfer' : $rawMethod;
+                    $ref = ! empty($p['reference']) ? strip_tags(trim((string) $p['reference'])) : null;
+                    if (in_array($rawMethod, ['nequi', 'daviplata'], true) && empty($ref)) {
+                        $ref = ucfirst($rawMethod);
                     }
-                    $amount = round((float) ($p['amount'] ?? 0), 2);
+                    if ($ref !== null) {
+                        $ref = mb_substr($ref, 0, 60);
+                    }
+
+                    $rawAmt = $p['amount'] ?? 0;
+                    $normalizedAmt = $rawAmt !== null && $rawAmt !== '' ? $this->normalizeCopMoney($rawAmt) : 0;
+                    $amount = round((float) $normalizedAmt, 2);
                     if ($amount <= 0) {
                         continue;
                     }
                     $isCash = ($method === 'cash');
+                    $rawReceived = $p['cash_received'] ?? $p['received'] ?? null;
+                    $normalizedReceived = $rawReceived !== null && $rawReceived !== '' ? $this->normalizeCopMoney($rawReceived) : null;
                     $cashReceived = $isCash
-                        ? (isset($p['cash_received']) && $p['cash_received'] !== '' ? round((float) $p['cash_received'], 2) : $amount)
+                        ? ($normalizedReceived !== null ? round((float) $normalizedReceived, 2) : $amount)
                         : $amount;
                     $changeGiven = $isCash ? max(0.00, round($cashReceived - $amount, 2)) : 0.00;
 
@@ -1104,16 +1183,30 @@ class RestaurantOrderService
                     $payments[] = [
                         'method' => $method,
                         'amount' => $amount,
-                        'reference' => ! empty($p['reference']) ? strip_tags(trim((string) $p['reference'])) : null,
+                        'reference' => $ref,
                         'cash_received' => $cashReceived,
                         'change_given' => $changeGiven,
                     ];
                 }
             } elseif (! empty($data['payment_method'])) {
-                $method = $data['payment_method'] === 'nequi' ? 'transfer' : $data['payment_method'];
-                $amount = isset($data['amount']) ? round((float) $data['amount'], 2) : $pendingBalance;
+                $rawMethod = strtolower($data['payment_method']);
+                $method = in_array($rawMethod, ['nequi', 'daviplata'], true) ? 'transfer' : $rawMethod;
+                $ref = ! empty($data['reference']) ? strip_tags(trim((string) $data['reference'])) : null;
+                if (in_array($rawMethod, ['nequi', 'daviplata'], true) && empty($ref)) {
+                    $ref = ucfirst($rawMethod);
+                }
+                if ($ref !== null) {
+                    $ref = mb_substr($ref, 0, 60);
+                }
+
+                $rawAmt = $data['amount'] ?? null;
+                $normalizedAmt = $rawAmt !== null && $rawAmt !== '' ? $this->normalizeCopMoney($rawAmt) : null;
+                $amount = $normalizedAmt !== null ? round((float) $normalizedAmt, 2) : $pendingBalance;
+
+                $rawReceived = $data['cash_received'] ?? $data['received'] ?? null;
+                $normalizedReceived = $rawReceived !== null && $rawReceived !== '' ? $this->normalizeCopMoney($rawReceived) : null;
                 $cashReceived = $method === 'cash'
-                    ? (isset($data['cash_received']) && $data['cash_received'] !== '' ? round((float) $data['cash_received'], 2) : $amount)
+                    ? ($normalizedReceived !== null ? round((float) $normalizedReceived, 2) : $amount)
                     : $amount;
                 $changeGiven = $method === 'cash' ? max(0.00, round($cashReceived - $amount, 2)) : 0.00;
 
@@ -1126,7 +1219,7 @@ class RestaurantOrderService
                 $payments[] = [
                     'method' => $method,
                     'amount' => $amount,
-                    'reference' => ! empty($data['reference']) ? strip_tags(trim((string) $data['reference'])) : null,
+                    'reference' => $ref,
                     'cash_received' => $cashReceived,
                     'change_given' => $changeGiven,
                 ];
@@ -1148,11 +1241,11 @@ class RestaurantOrderService
 
             $tipAmount = ! empty($data['include_tip'])
                 ? round($netItems * 0.10, 2)
-                : (isset($data['service_fee']) ? max(0, round((float) $data['service_fee'], 2)) : 0.00);
+                : (isset($data['service_fee']) && $data['service_fee'] !== '' ? max(0, round((float) $this->normalizeCopMoney($data['service_fee']), 2)) : 0.00);
 
             $taxAmount = ! empty($data['include_tax'])
                 ? round($netItems * 0.08, 2)
-                : (isset($data['tax_inc']) ? max(0, round((float) $data['tax_inc'], 2)) : 0.00);
+                : (isset($data['tax_inc']) && $data['tax_inc'] !== '' ? max(0, round((float) $this->normalizeCopMoney($data['tax_inc']), 2)) : 0.00);
 
             $expectedTotalToSettle = round($netItems + $tipAmount + $taxAmount + $deliveryFee, 2);
 
@@ -1170,11 +1263,34 @@ class RestaurantOrderService
             // 5. Creación de la Venta (Sale)
             $invoiceNumber = $this->generateInvoiceNumber($lockedOrder->business_id);
 
+            $customerId = $data['customer_id'] ?? $lockedOrder->customer_id;
+            $customerName = null;
+            $customerDocument = null;
+
+            if ($customerId) {
+                $customer = Customer::where('business_id', $lockedOrder->business_id)->find($customerId);
+                if ($customer) {
+                    $customerId = $customer->id;
+                    $customerName = $customer->name;
+                    $customerDocument = $customer->document ?? $customer->identification_number;
+                } else {
+                    $customerId = null;
+                }
+            }
+
+            if (! $customerName) {
+                $customerName = ! empty($data['customer_name'])
+                    ? strip_tags(trim((string) $data['customer_name']))
+                    : ($lockedOrder->customer_name ?: config('sales.default_customer_name', 'CONSUMIDOR FINAL'));
+                $customerDocument = $lockedOrder->customer_document ?? config('sales.default_customer_document', '222222222222');
+            }
+
             $sale = Sale::create([
                 'business_id' => $lockedOrder->business_id,
                 'user_id' => $user->id,
-                'customer_id' => $data['customer_id'] ?? $lockedOrder->customer_id,
-                'customer_name' => $data['customer_name'] ?? $lockedOrder->customer_name,
+                'customer_id' => $customerId,
+                'customer_name' => $customerName,
+                'customer_document' => $customerDocument,
                 'restaurant_order_id' => $lockedOrder->id,
                 'order_type' => $lockedOrder->order_type ?? 'table',
                 'invoice_number' => $invoiceNumber,
@@ -1198,7 +1314,7 @@ class RestaurantOrderService
                     'sale_id' => $sale->id,
                     'method' => $p['method'],
                     'amount' => $p['amount'],
-                    'reference' => $p['reference'],
+                    'reference' => ! empty($p['reference']) ? mb_substr((string) $p['reference'], 0, 60) : null,
                     'cash_received' => $p['cash_received'],
                     'change_given' => $p['change_given'],
                 ]);

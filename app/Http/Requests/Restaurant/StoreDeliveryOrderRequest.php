@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\Restaurant;
 
+use App\Http\Requests\Concerns\NormalizesCopMonetaryFields;
 use App\Models\RestaurantOrder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreDeliveryOrderRequest extends FormRequest
 {
+    use NormalizesCopMonetaryFields;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -99,6 +102,10 @@ class StoreDeliveryOrderRequest extends FormRequest
     {
         if ($this->has('customer_name') && is_string($this->input('customer_name'))) {
             $this->merge(['customer_name' => trim($this->input('customer_name'))]);
+        }
+
+        if ($this->has('delivery_fee')) {
+            $this->merge(['delivery_fee' => $this->normalizeCopMoney($this->input('delivery_fee'))]);
         }
 
         if ($this->input('order_type') === 'takeout') {

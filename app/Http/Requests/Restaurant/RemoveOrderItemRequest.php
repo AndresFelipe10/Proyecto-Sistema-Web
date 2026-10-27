@@ -25,7 +25,7 @@ class RemoveOrderItemRequest extends FormRequest
     {
         return [
             'reason' => ['required', 'string', 'min:4', 'max:500'],
-            'quantity_to_remove' => ['required', 'integer', 'min:1'],
+            'quantity_to_remove' => ['required', 'numeric', 'min:0.001'],
         ];
     }
 
@@ -39,7 +39,7 @@ class RemoveOrderItemRequest extends FormRequest
             $qtyToRemove = $this->input('quantity_to_remove');
 
             if ($item && is_numeric($qtyToRemove)) {
-                if ((int) $qtyToRemove > (int) $item->quantity) {
+                if ((float) $qtyToRemove > (float) $item->quantity) {
                     $validator->errors()->add(
                         'quantity_to_remove',
                         "La cantidad a retirar ({$qtyToRemove}) no puede ser mayor a la cantidad actual del plato ({$item->quantity})."
@@ -56,8 +56,8 @@ class RemoveOrderItemRequest extends FormRequest
             'reason.min' => 'El motivo debe contener al menos 4 caracteres.',
             'reason.max' => 'El motivo no puede exceder los 500 caracteres.',
             'quantity_to_remove.required' => 'Debes especificar la cantidad a retirar.',
-            'quantity_to_remove.integer' => 'La cantidad a retirar debe ser un número entero.',
-            'quantity_to_remove.min' => 'La cantidad a retirar debe ser al menos 1.',
+            'quantity_to_remove.numeric' => 'La cantidad a retirar debe ser un valor numérico.',
+            'quantity_to_remove.min' => 'La cantidad a retirar debe ser mayor a cero.',
         ];
     }
 }

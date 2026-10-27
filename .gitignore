@@ -65,5 +65,7 @@ desktop.ini
 
 # Security audit artifacts
 /security-audit/
+puntostock-*.xml
+*.xml
 
 .obsidian/

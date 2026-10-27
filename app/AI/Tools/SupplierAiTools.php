@@ -24,8 +24,7 @@ class SupplierAiTools
             });
         }
 
-        $suppliers = $query->orderBy('name')->limit(15)->get();
-        $count = $suppliers->count();
+        $count = $query->count();
 
         if ($count === 0) {
             return new AiQueryResult(
@@ -35,6 +34,8 @@ class SupplierAiTools
                 meta: ['domain' => 'suppliers', 'count' => 0]
             );
         }
+
+        $suppliers = (clone $query)->orderBy('name')->limit(15)->get();
 
         $data = $suppliers->map(fn($s) => [
             'name' => $s->name,

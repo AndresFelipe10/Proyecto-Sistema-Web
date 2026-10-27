@@ -79,7 +79,7 @@
                             <label for="cost_price" class="form-label small fw-semibold text-secondary">Precio de Compra / Costo</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                <input type="number" step="0.01" min="0" class="form-control @error('cost_price') is-invalid @enderror" id="cost_price" name="cost_price" value="{{ old('cost_price', '0.00') }}" placeholder="0.00">
+                                <input type="text" inputmode="numeric" data-cop-money="true" class="form-control @error('cost_price') is-invalid @enderror" id="cost_price" name="cost_price" value="{{ old('cost_price', '0') }}" placeholder="0">
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -109,14 +109,14 @@
                             <label for="sale_price" class="form-label small fw-semibold text-secondary">Precio de Venta <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                <input type="number" 
-                                       step="0.01" 
-                                       min="0" 
+                                <input type="text" 
+                                       inputmode="numeric"
+                                       data-cop-money="true"
                                        class="form-control @error('sale_price') is-invalid @enderror" 
                                        id="sale_price" 
                                        name="sale_price" 
                                        value="{{ old('sale_price') }}" 
-                                       placeholder="0.00"
+                                       placeholder="0"
                                        required>
                             </div>
                         </div>
@@ -212,31 +212,33 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label for="cost_price" class="form-label small fw-semibold text-secondary">Precio de Compra <span class="text-danger">*</span></label>
+                            <label for="cost_price_retail" class="form-label small fw-semibold text-secondary">Precio de Compra <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                <input type="number" 
-                                       step="0.01" 
-                                       min="0" 
+                                <input type="text" 
+                                       inputmode="numeric"
+                                       data-cop-money="true" 
                                        class="form-control @error('cost_price') is-invalid @enderror" 
-                                       id="cost_price" 
+                                       id="cost_price_retail" 
                                        name="cost_price" 
-                                       value="{{ old('cost_price', '0.00') }}" 
+                                       value="{{ old('cost_price', '0') }}" 
+                                       placeholder="0"
                                        required>
                             </div>
                         </div>
 
                         <div class="col-md-3">
-                            <label for="sale_price" class="form-label small fw-semibold text-secondary">Precio de Venta <span class="text-danger">*</span></label>
+                            <label for="sale_price_retail" class="form-label small fw-semibold text-secondary">Precio de Venta <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                <input type="number" 
-                                       step="0.01" 
-                                       min="0" 
+                                <input type="text" 
+                                       inputmode="numeric"
+                                       data-cop-money="true" 
                                        class="form-control @error('sale_price') is-invalid @enderror" 
-                                       id="sale_price" 
+                                       id="sale_price_retail" 
                                        name="sale_price" 
-                                       value="{{ old('sale_price', '0.00') }}" 
+                                       value="{{ old('sale_price', '0') }}" 
+                                       placeholder="0"
                                        required>
                             </div>
                         </div>

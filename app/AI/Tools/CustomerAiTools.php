@@ -24,16 +24,17 @@ class CustomerAiTools
             });
         }
 
-        $customers = $query->orderBy('name')->limit(15)->get();
-        $count = $customers->count();
+        $totalCount = $query->count();
 
-        if ($count === 0) {
+        if ($totalCount === 0) {
             return new AiQueryResult(
                 intent: 'list_customers',
                 summary: "No se encontraron clientes activos registrados en el emprendimiento.",
                 data: []
             );
         }
+
+        $customers = (clone $query)->orderBy('name')->limit(15)->get();
 
         $data = $customers->map(fn($c) => [
             'name' => $c->name,
@@ -44,11 +45,11 @@ class CustomerAiTools
 
         return new AiQueryResult(
             intent: 'list_customers',
-            summary: "Se encontraron {$count} clientes activos en tu emprendimiento.",
+            summary: "Se encontraron {$totalCount} clientes activos en tu emprendimiento.",
             data: $data,
             meta: [
                 'domain' => 'customers',
-                'count' => $count,
+                'count' => $totalCount,
             ]
         );
     }

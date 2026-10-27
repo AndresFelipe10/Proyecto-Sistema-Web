@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\User;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreUserRequest extends FormRequest
 {
@@ -32,7 +34,10 @@ class StoreUserRequest extends FormRequest
             ],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
-            'role_id' => ['required', 'exists:roles,id'],
+            'role_id' => [
+                'required',
+                Rule::exists('roles', 'id')->whereIn('slug', [Role::ROLE_ADMIN, Role::ROLE_EMPLOYEE]),
+            ],
         ];
     }
 

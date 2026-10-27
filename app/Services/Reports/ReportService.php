@@ -231,15 +231,18 @@ class ReportService
         $totalCogs = 0.0;
 
         $products = $results->map(function ($item) use (&$totalItemsSold, &$totalRevenue, &$totalCogs) {
-            $qty = (int) $item->total_quantity;
+            $rawQty = round((float) $item->total_quantity, 3);
             $revenue = (float) $item->total_revenue;
             $costPrice = (float) $item->cost_price;
 
-            $cogs = round($qty * $costPrice, 2);
+            $cogs = round($rawQty * $costPrice, 2);
             $grossProfit = round($revenue - $cogs, 2);
             $marginPercent = $revenue > 0 ? round(($grossProfit / $revenue) * 100, 1) : 0.0;
 
-            $totalItemsSold += $qty;
+            $formattedQty = (float) $rawQty == (int) $rawQty ? (int) $rawQty : $rawQty;
+            $item->total_quantity = $formattedQty;
+
+            $totalItemsSold = round($totalItemsSold + $rawQty, 3);
             $totalRevenue += $revenue;
             $totalCogs += $cogs;
 
@@ -250,6 +253,7 @@ class ReportService
             return $item;
         });
 
+        $totalItemsSold = fmod((float) $totalItemsSold, 1.0) === 0.0 ? (int) $totalItemsSold : $totalItemsSold;
         $totalGrossProfit = round($totalRevenue - $totalCogs, 2);
         $overallMarginPercent = $totalRevenue > 0 ? round(($totalGrossProfit / $totalRevenue) * 100, 1) : 0.0;
 

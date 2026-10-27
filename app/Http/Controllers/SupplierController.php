@@ -121,6 +121,13 @@ class SupplierController extends Controller
     {
         Gate::authorize('delete', $supplier);
 
+        if ($supplier->expenses()->withTrashed()->exists()) {
+            $supplier->update(['is_active' => false]);
+
+            return redirect()->route('suppliers.index')
+                ->with('info', "El proveedor '{$supplier->name}' tiene gastos o facturas registradas. Ha sido desactivado en lugar de eliminado para conservar la trazabilidad.");
+        }
+
         $name = $supplier->name;
         $supplier->delete();
 

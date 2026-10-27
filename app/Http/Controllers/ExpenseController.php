@@ -53,7 +53,7 @@ class ExpenseController extends Controller
         Gate::authorize('create', Expense::class);
 
         $businessId = (int) session('current_business_id');
-        $suppliers = Supplier::where('business_id', $businessId)->orderBy('name')->get();
+        $suppliers = Supplier::where('business_id', $businessId)->where('is_active', true)->orderBy('name')->get();
 
         return view('expenses.create', [
             'suppliers' => $suppliers,
@@ -105,7 +105,13 @@ class ExpenseController extends Controller
         Gate::authorize('update', $expense);
 
         $businessId = (int) session('current_business_id');
-        $suppliers = Supplier::where('business_id', $businessId)->orderBy('name')->get();
+        $suppliers = Supplier::where('business_id', $businessId)
+            ->where(function ($q) use ($expense) {
+                $q->where('is_active', true)
+                  ->orWhere('id', $expense->supplier_id);
+            })
+            ->orderBy('name')
+            ->get();
 
         return view('expenses.edit', [
             'expense' => $expense,

@@ -31,6 +31,14 @@ class Supplier extends Model
     }
 
     /**
+     * Accessor de compatibilidad para NIT (columna identification_number).
+     */
+    public function getNitAttribute(): ?string
+    {
+        return $this->identification_number;
+    }
+
+    /**
      * Gastos y facturas de compra asociadas al proveedor.
      */
     public function expenses(): \Illuminate\Database\Eloquent\Relations\HasMany

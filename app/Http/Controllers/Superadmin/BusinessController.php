@@ -237,10 +237,12 @@ class BusinessController extends Controller
             'address.regex' => 'La dirección contiene caracteres no válidos o repetición indebida de caracteres.',
         ]);
 
-        if (! empty($validated['subscription_ends_at'])) {
-            $validated['subscription_ends_at'] = Carbon::parse($validated['subscription_ends_at'], 'America/Bogota')->endOfDay();
+        if ($request->has('subscription_ends_at')) {
+            $validated['subscription_ends_at'] = ! empty($validated['subscription_ends_at'])
+                ? Carbon::parse($validated['subscription_ends_at'], 'America/Bogota')->endOfDay()
+                : null;
         } else {
-            $validated['subscription_ends_at'] = null;
+            unset($validated['subscription_ends_at']);
         }
 
         $business->update($validated);

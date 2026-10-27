@@ -58,23 +58,25 @@ class RestaurantAiTools
      */
     public function openOrders(int $businessId): AiQueryResult
     {
-        $orders = RestaurantOrder::where('business_id', $businessId)
-            ->whereIn('status', ['open', 'in_kitchen', 'dispatched', 'billed'])
-            ->with(['table'])
-            ->orderByDesc('created_at')
-            ->limit(15)
-            ->get();
+        $baseQuery = RestaurantOrder::where('business_id', $businessId)
+            ->whereIn('status', ['open', 'in_kitchen', 'dispatched', 'billed']);
 
-        $count = $orders->count();
+        $count = $baseQuery->count();
 
         if ($count === 0) {
             return new AiQueryResult(
                 intent: 'restaurant_orders_open',
                 summary: 'Actualmente no hay comandas ni pedidos abiertos en el restaurante.',
                 data: [],
-                meta: ['domain' => 'restaurant_orders', 'count' => 0]
+                meta: ['domain' => 'restaurant_orders', 'count' => 0, 'open_count' => 0]
             );
         }
+
+        $orders = (clone $baseQuery)
+            ->with(['table'])
+            ->orderByDesc('created_at')
+            ->limit(15)
+            ->get();
 
         $data = $orders->map(fn($o) => [
             'order_number' => $o->order_number,
@@ -106,15 +108,13 @@ class RestaurantAiTools
      */
     public function deliveriesToday(int $businessId): AiQueryResult
     {
-        $deliveries = RestaurantOrder::where('business_id', $businessId)
+        $baseQuery = RestaurantOrder::where('business_id', $businessId)
             ->where('order_type', 'delivery')
             ->whereDate('created_at', Carbon::today())
-            ->orderByDesc('created_at')
-            ->limit(15)
-            ->get();
+            ->where('status', '!=', 'cancelled');
 
-        $count = $deliveries->count();
-        $totalAmount = $deliveries->sum('total');
+        $count = $baseQuery->count();
+        $totalAmount = (float) $baseQuery->sum('total');
 
         if ($count === 0) {
             return new AiQueryResult(
@@ -124,6 +124,11 @@ class RestaurantAiTools
                 meta: ['domain' => 'deliveries', 'count' => 0]
             );
         }
+
+        $deliveries = (clone $baseQuery)
+            ->orderByDesc('created_at')
+            ->limit(15)
+            ->get();
 
         $data = $deliveries->map(fn($d) => [
             'order_number' => $d->order_number,
@@ -159,14 +164,15 @@ class RestaurantAiTools
      */
     public function tipsCollected(int $businessId): AiQueryResult
     {
-        $sales = Sale::where('business_id', $businessId)
+        $stats = Sale::where('business_id', $businessId)
             ->whereDate('sale_date', Carbon::today())
             ->where('status', 'completed')
             ->where('service_fee', '>', 0)
-            ->get();
+            ->selectRaw('COUNT(*) as orders_count, COALESCE(SUM(service_fee), 0) as total_tips')
+            ->first();
 
-        $totalTips = (float) $sales->sum('service_fee');
-        $ordersCount = $sales->count();
+        $totalTips = (float) ($stats->total_tips ?? 0.0);
+        $ordersCount = (int) ($stats->orders_count ?? 0);
 
         return new AiQueryResult(
             intent: 'restaurant_tips_collected',

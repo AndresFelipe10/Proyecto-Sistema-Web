@@ -45,7 +45,7 @@
                         <select name="supplier_id" class="form-select @error('supplier_id') is-invalid @enderror">
                             <option value="">Sin proveedor / Gasto general</option>
                             @foreach($suppliers as $sup)
-                                <option value="{{ $sup->id }}" @selected(old('supplier_id') == $sup->id)>{{ $sup->name }} @if($sup->nit)({{ $sup->nit }})@endif</option>
+                                <option value="{{ $sup->id }}" @selected(old('supplier_id') == $sup->id)>{{ $sup->name }} @if($sup->identification_number ?? $sup->nit)({{ $sup->identification_number ?? $sup->nit }})@endif</option>
                             @endforeach
                         </select>
                         @error('supplier_id')
@@ -81,7 +81,7 @@
                         <label class="form-label small fw-semibold">Monto Total ($ COP) <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text">$</span>
-                            <input type="number" step="0.01" min="0.01" name="amount" class="form-control @error('amount') is-invalid @enderror" placeholder="0" value="{{ old('amount') }}" required>
+                            <input type="text" inputmode="numeric" data-cop-money="true" name="amount" id="amount" class="form-control @error('amount') is-invalid @enderror" placeholder="0" value="{{ old('amount') }}" required>
                         </div>
                         @error('amount')
                             <div class="invalid-feedback d-block">{{ $message }}</div>

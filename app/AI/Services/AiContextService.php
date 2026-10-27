@@ -5,6 +5,7 @@ namespace App\AI\Services;
 use App\AI\DTOs\AiQueryIntent;
 use App\AI\DTOs\AiQueryResult;
 use App\AI\Enums\AiIntent;
+use App\Models\Product;
 
 class AiContextService
 {
@@ -192,6 +193,30 @@ class AiContextService
                         rawResponse: 'contextual_low_stock_followup'
                     );
                 }
+
+                if ($lastIntent === AiIntent::OUT_OF_STOCK_PRODUCTS) {
+                    return new AiQueryIntent(
+                        intent: AiIntent::OUT_OF_STOCK_PRODUCTS,
+                        filters: [],
+                        confidence: 1.0,
+                        rawResponse: 'contextual_out_of_stock_followup'
+                    );
+                }
+
+                if ($lastIntent === AiIntent::INVENTORY_SUMMARY) {
+                    $hasLowStock = Product::where('business_id', $businessId)
+                        ->where('is_active', true)
+                        ->whereColumn('stock', '<=', 'min_stock')
+                        ->exists();
+
+                    return new AiQueryIntent(
+                        intent: $hasLowStock ? AiIntent::LOW_STOCK_PRODUCTS : AiIntent::LIST_PRODUCTS,
+                        filters: [],
+                        confidence: 1.0,
+                        rawResponse: 'contextual_inventory_summary_followup'
+                    );
+                }
+
                 return new AiQueryIntent(
                     intent: AiIntent::OUT_OF_STOCK_PRODUCTS,
                     filters: [],

@@ -23,6 +23,7 @@ class Product extends Model
         'description',
         'sku',
         'cost_price',
+        'purchase_price',
         'sale_price',
         'stock',
         'min_stock',
@@ -38,6 +39,16 @@ class Product extends Model
             'min_stock' => 'float',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function getPurchasePriceAttribute(): ?float
+    {
+        return $this->cost_price !== null ? (float) $this->cost_price : null;
+    }
+
+    public function setPurchasePriceAttribute($value): void
+    {
+        $this->attributes['cost_price'] = $value;
     }
 
     public function isDish(): bool
@@ -84,12 +95,25 @@ class Product extends Model
     {
         $prefix = ($productType === 'dish') ? 'MNU-' : 'ART-';
 
-        $count = static::withoutGlobalScopes()
+        $query = static::withoutGlobalScopes()
             ->where('business_id', $businessId)
-            ->where('sku', 'like', "{$prefix}%")
-            ->count();
+            ->where('sku', 'like', "{$prefix}%");
 
-        $candidateNumber = $count + 1;
+        if (\Illuminate\Support\Facades\DB::transactionLevel() > 0 && \Illuminate\Support\Facades\DB::getDriverName() !== 'sqlite') {
+            $query->lockForUpdate();
+        }
+
+        $lastSku = $query->orderByRaw('LENGTH(sku) DESC, sku DESC')->value('sku');
+
+        if ($lastSku && preg_match('/^' . preg_quote($prefix, '/') . '(\d+)$/', $lastSku, $matches)) {
+            $candidateNumber = ((int) $matches[1]) + 1;
+        } else {
+            $count = static::withoutGlobalScopes()
+                ->where('business_id', $businessId)
+                ->where('sku', 'like', "{$prefix}%")
+                ->count();
+            $candidateNumber = $count + 1;
+        }
 
         do {
             $candidateSku = sprintf('%s%03d', $prefix, $candidateNumber);

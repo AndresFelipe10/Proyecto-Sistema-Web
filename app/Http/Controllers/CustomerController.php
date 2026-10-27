@@ -158,11 +158,14 @@ class CustomerController extends Controller
     {
         Gate::authorize('delete', $customer);
 
-        if ($customer->sales()->exists()) {
+        $hasHistory = $customer->sales()->exists()
+            || \App\Models\RestaurantOrder::withoutGlobalScopes()->where('customer_id', $customer->id)->exists();
+
+        if ($hasHistory) {
             $customer->update(['is_active' => false]);
 
             return redirect()->route('customers.index')
-                ->with('info', "El cliente '{$customer->name}' tiene ventas registradas. Ha sido desactivado en lugar de eliminado para conservar el historial.");
+                ->with('info', "El cliente '{$customer->name}' tiene ventas o pedidos registrados. Ha sido desactivado en lugar de eliminado para conservar el historial.");
         }
 
         $name = $customer->name;

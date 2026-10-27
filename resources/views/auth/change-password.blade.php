@@ -30,11 +30,19 @@
         <div class="input-group">
             <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-muted"></i></span>
             <input type="password" 
-                   class="form-control border-start-0 @error('password') is-invalid @enderror" 
+                   class="form-control border-start-0 border-end-0 @error('password') is-invalid @enderror" 
                    id="password" 
                    name="password" 
                    placeholder="••••••••••••" 
                    required>
+            <button type="button" 
+                    class="btn btn-outline-secondary bg-white border-start-0 text-secondary px-3" 
+                    onclick="togglePasswordField('password', this)"
+                    aria-label="Mostrar u ocultar contraseña"
+                    title="Mostrar / ocultar contraseña"
+                    style="border-color: var(--bs-border-color);">
+                <i class="bi bi-eye"></i>
+            </button>
         </div>
         @error('password')
             <div class="text-danger small mt-1">{{ $message }}</div>
@@ -46,11 +54,19 @@
         <div class="input-group">
             <span class="input-group-text bg-light border-end-0"><i class="bi bi-shield-check text-muted"></i></span>
             <input type="password" 
-                   class="form-control border-start-0" 
+                   class="form-control border-start-0 border-end-0" 
                    id="password_confirmation" 
                    name="password_confirmation" 
                    placeholder="••••••••••••" 
                    required>
+            <button type="button" 
+                    class="btn btn-outline-secondary bg-white border-start-0 text-secondary px-3" 
+                    onclick="togglePasswordField('password_confirmation', this)"
+                    aria-label="Mostrar u ocultar contraseña"
+                    title="Mostrar / ocultar contraseña"
+                    style="border-color: var(--bs-border-color);">
+                <i class="bi bi-eye"></i>
+            </button>
         </div>
     </div>
 
@@ -80,4 +96,19 @@
             <i class="bi bi-box-arrow-left me-1"></i> Cerrar sesión
         </button>
     </form>
+
+    <script>
+        function togglePasswordField(id, btn) {
+            const input = document.getElementById(id);
+            if (!input) return;
+            const icon = btn.querySelector('i');
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            if (icon) {
+                icon.classList.toggle('bi-eye', !isPassword);
+                icon.classList.toggle('bi-eye-slash', isPassword);
+            }
+            input.focus();
+        }
+    </script>
 @endsection

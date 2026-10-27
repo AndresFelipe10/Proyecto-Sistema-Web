@@ -47,23 +47,24 @@ class ExpenseService
         $query = Expense::where('business_id', $businessId);
         $this->applyFilters($query, $filters);
 
-        $expenses = $query->get();
+        $today = Carbon::today()->toDateString();
 
-        $totalAmount = (float) $expenses->sum('amount');
-        $paidAmount = (float) $expenses->where('status', 'paid')->sum('amount');
-        $pendingAmount = (float) $expenses->where('status', 'pending')->sum('amount');
-
-        $overdueExpenses = $expenses->filter(fn(Expense $e) => $e->is_overdue);
-        $overdueAmount = (float) $overdueExpenses->sum('amount');
-        $overdueCount = $overdueExpenses->count();
+        $metrics = $query->selectRaw("
+            COUNT(*) as total_count,
+            COALESCE(SUM(amount), 0) as total_amount,
+            COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) as paid_amount,
+            COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) as pending_amount,
+            COALESCE(SUM(CASE WHEN status = 'pending' AND due_date IS NOT NULL AND due_date < ? THEN amount ELSE 0 END), 0) as overdue_amount,
+            COALESCE(SUM(CASE WHEN status = 'pending' AND due_date IS NOT NULL AND due_date < ? THEN 1 ELSE 0 END), 0) as overdue_count
+        ", [$today, $today])->first();
 
         return [
-            'total_amount' => $totalAmount,
-            'paid_amount' => $paidAmount,
-            'pending_amount' => $pendingAmount,
-            'overdue_amount' => $overdueAmount,
-            'overdue_count' => $overdueCount,
-            'count' => $expenses->count(),
+            'total_amount' => (float) ($metrics->total_amount ?? 0),
+            'paid_amount' => (float) ($metrics->paid_amount ?? 0),
+            'pending_amount' => (float) ($metrics->pending_amount ?? 0),
+            'overdue_amount' => (float) ($metrics->overdue_amount ?? 0),
+            'overdue_count' => (int) ($metrics->overdue_count ?? 0),
+            'count' => (int) ($metrics->total_count ?? 0),
         ];
     }
 
@@ -150,6 +151,16 @@ class ExpenseService
     {
         return DB::transaction(function () use ($expense) {
             $this->deletePhysicalAttachment($expense->attachment_path);
+
+            // Evitar colisión de índice único compuesto (business_id, supplier_id, invoice_number)
+            // en MySQL permitiendo que el número de factura quede disponible para registrarse de nuevo
+            if (! empty($expense->invoice_number)) {
+                $suffix = '_del_' . $expense->id . '_' . time();
+                $maxBaseLen = max(0, 50 - strlen($suffix));
+                $newInvoiceNumber = mb_substr($expense->invoice_number, 0, $maxBaseLen) . $suffix;
+                $expense->update(['invoice_number' => $newInvoiceNumber]);
+            }
+
             return $expense->delete();
         });
     }

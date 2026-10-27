@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
@@ -90,12 +91,14 @@ class ProductController extends Controller
     {
         $data = $request->validated();
 
-        if (empty($data['sku'])) {
-            $tenantId = app(\App\Services\Tenant\TenantManager::class)->id();
-            $data['sku'] = Product::generateUniqueSku($tenantId, $data['product_type'] ?? 'standard');
-        }
+        $product = DB::transaction(function () use ($data) {
+            if (empty($data['sku'])) {
+                $tenantId = app(\App\Services\Tenant\TenantManager::class)->id();
+                $data['sku'] = Product::generateUniqueSku($tenantId, $data['product_type'] ?? 'standard');
+            }
 
-        $product = Product::create($data);
+            return Product::create($data);
+        });
 
         return redirect()->route('products.index')
             ->with('status', "Producto '{$product->name}' (SKU: {$product->sku}) registrado exitosamente.");
@@ -150,11 +153,15 @@ class ProductController extends Controller
     {
         Gate::authorize('delete', $product);
 
-        if ($product->saleDetails()->exists()) {
+        $hasHistory = $product->saleDetails()->exists()
+            || $product->inventoryMovements()->exists()
+            || \App\Models\RestaurantOrderItem::withoutGlobalScopes()->where('product_id', $product->id)->exists();
+
+        if ($hasHistory) {
             $product->update(['is_active' => false]);
 
             return redirect()->route('products.index')
-                ->with('info', "El producto '{$product->name}' no se puede eliminar porque tiene ventas registradas. Ha sido desactivado.");
+                ->with('info', "El producto '{$product->name}' no se puede eliminar porque tiene historial de ventas, comandas o movimientos de inventario registrados. Ha sido desactivado para conservar la trazabilidad.");
         }
 
         $name = $product->name;

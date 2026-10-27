@@ -11,9 +11,24 @@ ARCHIVE="$BACKUP_DIR/backup_$DATE.tar.gz"
 mkdir -p "$BACKUP_DIR"
 mkdir -p "$TEMP_DIR"
 
-ENV_FILE="${PROJECT_ROOT}/.env"
-if [ -f "$ENV_FILE" ]; then
-    export $(grep -v '^#' "$ENV_FILE" | grep -E "DB_DATABASE|DB_USERNAME|DB_PASSWORD|DB_ROOT_PASSWORD" | xargs)
+# Cargar variables de base de datos de forma segura desde .env (soporta caracteres especiales en contraseñas)
+if [ -f "${PROJECT_ROOT}/.env" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+        line="$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+        case "$line" in
+            \#*|"") continue ;;
+            DB_*=*|MYSQL_*=*)
+                var_name="${line%%=*}"
+                var_val="${line#*=}"
+                if [[ "$var_val" =~ ^\"(.*)\"$ ]]; then
+                    var_val="${BASH_REMATCH[1]}"
+                elif [[ "$var_val" =~ ^\'(.*)\'$ ]]; then
+                    var_val="${BASH_REMATCH[1]}"
+                fi
+                export "$var_name=$var_val"
+                ;;
+        esac
+    done < "${PROJECT_ROOT}/.env"
 fi
 
 DB_NAME="${DB_DATABASE:-sistema_web}"
@@ -33,7 +48,7 @@ else
 fi
 
 echo "Iniciando respaldo de base de datos '${DB_NAME}' desde '${DB_CONTAINER}'..."
-docker exec "${DB_CONTAINER}" mysqldump --no-tablespaces -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" > "$TEMP_DIR/database.sql"
+docker exec "${DB_CONTAINER}" mysqldump --no-tablespaces --single-transaction --quick -u"${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" > "$TEMP_DIR/database.sql"
 
 echo "Iniciando respaldo de adjuntos privados (app_storage) desde '${APP_CONTAINER}'..."
 docker exec "${APP_CONTAINER}" sh -c "mkdir -p /var/www/html/storage/app/private && tar -czf - -C /var/www/html/storage/app private" > "$TEMP_DIR/storage_private.tar.gz"

@@ -24,15 +24,17 @@ class ProductAiTools
             });
         }
 
-        $products = $query->orderBy('name')->limit(15)->get();
+        $totalCount = $query->count();
 
-        if ($products->isEmpty()) {
+        if ($totalCount === 0) {
             return new AiQueryResult(
                 intent: 'list_products',
                 summary: "No se encontraron productos activos con los criterios solicitados.",
                 data: []
             );
         }
+
+        $products = (clone $query)->orderBy('name')->limit(15)->get();
 
         $data = $products->map(fn($p) => [
             'id' => $p->id,
@@ -45,9 +47,9 @@ class ProductAiTools
 
         return new AiQueryResult(
             intent: 'list_products',
-            summary: "Se encontraron {$products->count()} productos en el catálogo.",
+            summary: "Se encontraron {$totalCount} productos en el catálogo.",
             data: $data,
-            meta: ['domain' => 'products', 'count' => $products->count()]
+            meta: ['domain' => 'products', 'count' => $totalCount]
         );
     }
 }

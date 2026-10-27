@@ -4,6 +4,7 @@ namespace App\Http\Requests\Expense;
 
 use App\Enums\ExpenseCategory;
 use App\Enums\PaymentMethod;
+use App\Http\Requests\Concerns\NormalizesCopMonetaryFields;
 use App\Models\Expense;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class UpdateExpenseRequest extends FormRequest
 {
+    use NormalizesCopMonetaryFields;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -61,6 +64,18 @@ class UpdateExpenseRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('amount')) {
+            $this->merge([
+                'amount' => $this->normalizeCopMoney($this->input('amount')),
+            ]);
+        }
+    }
+
+    /**
      * Configure the validator instance.
      */
     public function withValidator($validator): void
@@ -73,6 +88,7 @@ class UpdateExpenseRequest extends FormRequest
 
             if (!empty($supplierId) && !empty($invoiceNumber) && $expense instanceof Expense) {
                 $exists = Expense::withoutGlobalScopes()
+                    ->whereNull('deleted_at')
                     ->where('business_id', $businessId)
                     ->where('supplier_id', $supplierId)
                     ->where('invoice_number', $invoiceNumber)

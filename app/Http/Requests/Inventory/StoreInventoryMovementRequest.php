@@ -25,6 +25,7 @@ class StoreInventoryMovementRequest extends FormRequest
     public function rules(): array
     {
         $tenantId = app(TenantManager::class)->id();
+        $isAdjustment = $this->input('type') === InventoryMovement::TYPE_ADJUSTMENT;
 
         return [
             'product_id' => [
@@ -42,7 +43,7 @@ class StoreInventoryMovementRequest extends FormRequest
             'quantity' => [
                 'required',
                 'numeric',
-                'min:0',
+                $isAdjustment ? 'min:0' : 'gt:0',
                 'regex:/^\d+(\.\d{1,3})?$/',
             ],
             'reason' => [
@@ -63,7 +64,8 @@ class StoreInventoryMovementRequest extends FormRequest
         return [
             'product_id.exists' => 'El producto seleccionado no pertenece a este emprendimiento.',
             'type.in' => 'El tipo de movimiento debe ser entrada, salida o ajuste.',
-            'quantity.min' => 'La cantidad debe ser mayor o igual a cero.',
+            'quantity.min' => 'La cantidad no puede ser negativa.',
+            'quantity.gt' => 'La cantidad debe ser mayor a cero para entradas y salidas.',
             'reason.required' => 'Debes indicar el motivo o justificación del movimiento.',
         ];
     }

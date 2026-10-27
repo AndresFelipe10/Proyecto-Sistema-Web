@@ -76,8 +76,8 @@ class SaleService
                 }
 
                 $unitPrice = (float) $product->sale_price;
-                $quantity = (int) $item['quantity'];
-                $lineSubtotal = $quantity * $unitPrice;
+                $quantity = round((float) $item['quantity'], 3);
+                $lineSubtotal = round($quantity * $unitPrice, 2);
                 $subtotal += $lineSubtotal;
 
                 $resolvedItems[] = [
@@ -190,6 +190,18 @@ class SaleService
                     ],
                 ];
             }
+
+            // Normalizar billeteras electrónicas hacia transfer preservando referencia
+            foreach ($payments as &$p) {
+                $rawMethod = strtolower($p['method'] ?? 'cash');
+                if (in_array($rawMethod, ['nequi', 'daviplata'], true)) {
+                    $p['method'] = 'transfer';
+                    if (empty($p['reference'])) {
+                        $p['reference'] = ucfirst($rawMethod);
+                    }
+                }
+            }
+            unset($p);
 
             // Authoritative payments validation when total > 0
             if ($total > 0) {

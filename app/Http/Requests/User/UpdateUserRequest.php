@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\User;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateUserRequest extends FormRequest
 {
@@ -25,7 +27,10 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'role_id' => ['required', 'exists:roles,id'],
+            'role_id' => [
+                'required',
+                Rule::exists('roles', 'id')->whereIn('slug', [Role::ROLE_ADMIN, Role::ROLE_EMPLOYEE]),
+            ],
         ];
     }
 

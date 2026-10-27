@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Product;
 
+use App\Http\Requests\Concerns\NormalizesCopMonetaryFields;
 use App\Models\Product;
 use App\Services\Tenant\TenantManager;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,6 +10,8 @@ use Illuminate\Validation\Rule;
 
 class StoreProductRequest extends FormRequest
 {
+    use NormalizesCopMonetaryFields;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -44,7 +47,8 @@ class StoreProductRequest extends FormRequest
                 Rule::exists('categories', 'id')->where('business_id', $tenantId),
             ],
             'description' => ['nullable', 'string', 'max:1000'],
-            'cost_price' => [$isRestaurant ? 'nullable' : 'required', 'numeric', 'min:0'],
+            'cost_price' => [$isRestaurant ? 'nullable' : 'required_without:purchase_price', 'numeric', 'min:0'],
+            'purchase_price' => ['nullable', 'numeric', 'min:0'],
             'sale_price' => ['required', 'numeric', 'min:0'],
             'stock' => [$isRestaurant ? 'nullable' : 'required', 'numeric', 'min:0', 'regex:/^\d+(\.\d{1,3})?$/'],
             'min_stock' => [$isRestaurant ? 'nullable' : 'required', 'numeric', 'min:0', 'regex:/^\d+(\.\d{1,3})?$/'],
@@ -73,10 +77,20 @@ class StoreProductRequest extends FormRequest
             $productType = $isRestaurant ? 'dish' : 'standard';
         }
 
+        $rawCost = $this->input('cost_price') ?? $this->input('purchase_price');
+        $normalizedCost = $this->normalizeCopMoney($rawCost);
+        $normalizedSale = $this->normalizeCopMoney($this->input('sale_price'));
+
+        $finalCost = ($isRestaurant && $productType === 'dish' && ($normalizedCost === null || $normalizedCost === ''))
+            ? 0.00
+            : ($normalizedCost !== null && $normalizedCost !== '' ? $normalizedCost : 0.00);
+
         $this->merge([
             'sku' => $sku,
             'is_active' => $this->boolean('is_active', true),
-            'cost_price' => ($isRestaurant && $productType === 'dish' && ($this->input('cost_price') === null || $this->input('cost_price') === '')) ? '0.00' : ($this->input('cost_price') ?? '0.00'),
+            'cost_price' => $finalCost,
+            'purchase_price' => $finalCost,
+            'sale_price' => $normalizedSale,
             'stock' => ($isRestaurant && $productType === 'dish' && ($this->input('stock') === null || $this->input('stock') === '')) ? '0' : ($this->input('stock') ?? '0'),
             'min_stock' => ($isRestaurant && $productType === 'dish' && ($this->input('min_stock') === null || $this->input('min_stock') === '')) ? '0' : ($this->input('min_stock') ?? '0'),
             'product_type' => $productType,

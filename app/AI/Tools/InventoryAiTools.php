@@ -12,21 +12,25 @@ class InventoryAiTools
      */
     public function lowStock(int $businessId): AiQueryResult
     {
-        $products = Product::where('business_id', $businessId)
+        $baseQuery = Product::where('business_id', $businessId)
             ->where('is_active', true)
             ->whereColumn('stock', '<=', 'min_stock')
-            ->where('stock', '>', 0)
-            ->orderBy('stock', 'asc')
-            ->limit(10)
-            ->get();
+            ->where('stock', '>', 0);
 
-        if ($products->isEmpty()) {
+        $totalCount = $baseQuery->count();
+
+        if ($totalCount === 0) {
             return new AiQueryResult(
                 intent: 'low_stock_products',
                 summary: "¡Excelente noticia! No tienes productos con bajo stock en este momento.",
                 data: []
             );
         }
+
+        $products = (clone $baseQuery)
+            ->orderBy('stock', 'asc')
+            ->limit(10)
+            ->get();
 
         $data = $products->map(function ($p) {
             $deficit = round(max(0, (float) $p->min_stock - (float) $p->stock), 3);
@@ -45,9 +49,9 @@ class InventoryAiTools
 
         return new AiQueryResult(
             intent: 'low_stock_products',
-            summary: "Tienes {$products->count()} productos con existencias iguales o inferiores a su stock mínimo de seguridad.",
+            summary: "Tienes {$totalCount} productos con existencias iguales o inferiores a su stock mínimo de seguridad.",
             data: $data,
-            meta: ['domain' => 'inventory', 'type' => 'low_stock', 'count' => $products->count()]
+            meta: ['domain' => 'inventory', 'type' => 'low_stock', 'count' => $totalCount]
         );
     }
 
@@ -56,14 +60,13 @@ class InventoryAiTools
      */
     public function outOfStock(int $businessId): AiQueryResult
     {
-        $products = Product::where('business_id', $businessId)
+        $baseQuery = Product::where('business_id', $businessId)
             ->where('is_active', true)
-            ->where('stock', '<=', 0)
-            ->orderBy('name', 'asc')
-            ->limit(10)
-            ->get();
+            ->where('stock', '<=', 0);
 
-        if ($products->isEmpty()) {
+        $totalCount = $baseQuery->count();
+
+        if ($totalCount === 0) {
             return new AiQueryResult(
                 intent: 'out_of_stock_products',
                 summary: "No tienes productos agotados actualmente. Todo tu catálogo cuenta con inventario disponible.",
@@ -71,6 +74,11 @@ class InventoryAiTools
                 meta: ['domain' => 'inventory', 'type' => 'out_of_stock', 'count' => 0]
             );
         }
+
+        $products = (clone $baseQuery)
+            ->orderBy('name', 'asc')
+            ->limit(10)
+            ->get();
 
         $data = $products->map(fn($p) => [
             'name' => $p->name,
@@ -81,9 +89,9 @@ class InventoryAiTools
 
         return new AiQueryResult(
             intent: 'out_of_stock_products',
-            summary: "Atención: Tienes {$products->count()} productos completamente agotados (stock en cero).",
+            summary: "Atención: Tienes {$totalCount} productos completamente agotados (stock en cero).",
             data: $data,
-            meta: ['domain' => 'inventory', 'type' => 'out_of_stock', 'count' => $products->count()]
+            meta: ['domain' => 'inventory', 'type' => 'out_of_stock', 'count' => $totalCount]
         );
     }
 

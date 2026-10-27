@@ -86,20 +86,18 @@ class SaleAiTools
             [$dateFrom, $dateTo] = [$dateTo->copy()->startOfDay(), $dateFrom->copy()->endOfDay()];
         }
 
-        $sales = Sale::where('business_id', $businessId)
+        $baseQuery = Sale::where('business_id', $businessId)
             ->where('status', 'completed')
-            ->whereBetween('sale_date', [$dateFrom, $dateTo])
+            ->whereBetween('sale_date', [$dateFrom, $dateTo]);
+
+        $totalCount = $baseQuery->count();
+        $totalRevenue = (float) (clone $baseQuery)->sum('total');
+
+        $sales = (clone $baseQuery)
             ->with('customer')
             ->orderByDesc('sale_date')
             ->limit(10)
             ->get();
-
-        $totalRevenue = (float) Sale::where('business_id', $businessId)
-            ->where('status', 'completed')
-            ->whereBetween('sale_date', [$dateFrom, $dateTo])
-            ->sum('total');
-
-        $count = $sales->count();
 
         $data = $sales->map(fn($s) => [
             'invoice' => $s->invoice_number,
@@ -113,7 +111,11 @@ class SaleAiTools
             intent: 'sales_by_period',
             summary: "Se registraron ventas por un total de $" . number_format($totalRevenue, 0, ',', '.') .
                 " entre {$dateFrom->format('d/m/Y')} y {$dateTo->format('d/m/Y')}.",
-            data: $data
+            data: $data,
+            meta: [
+                'domain' => 'sales',
+                'count' => $totalCount,
+            ]
         );
     }
 
@@ -148,15 +150,19 @@ class SaleAiTools
             );
         }
 
-        $data = $results->map(fn($r) => [
-            'name' => $r->name,
-            'sku' => $r->sku,
-            'quantity_sold' => (int) $r->total_quantity,
-            'revenue_generated' => '$' . number_format($r->total_revenue, 0, ',', '.'),
-        ])->toArray();
+        $data = $results->map(function ($r) {
+            $qty = (float) $r->total_quantity == (int) $r->total_quantity ? (int) $r->total_quantity : round((float) $r->total_quantity, 3);
+            return [
+                'name' => $r->name,
+                'sku' => $r->sku,
+                'quantity_sold' => $qty,
+                'revenue_generated' => '$' . number_format($r->total_revenue, 0, ',', '.'),
+            ];
+        })->toArray();
 
         $topName = $results->first()->name;
-        $topQty = $results->first()->total_quantity;
+        $rawTopQty = (float) $results->first()->total_quantity;
+        $topQty = $rawTopQty == (int) $rawTopQty ? (int) $rawTopQty : round($rawTopQty, 3);
 
         return new AiQueryResult(
             intent: 'top_selling_products',

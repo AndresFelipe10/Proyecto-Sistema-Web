@@ -120,10 +120,10 @@
                                 @endif
                             </span>
                         </div>
-                        @if($expense->supplier && $expense->supplier->nit)
+                        @if($expense->supplier && ($expense->supplier->identification_number ?? $expense->supplier->nit))
                             <div class="d-flex justify-content-between py-1 border-bottom">
                                 <span class="text-muted small">NIT / Documento:</span>
-                                <span class="small font-monospace">{{ $expense->supplier->nit }}</span>
+                                <span class="small font-monospace">{{ $expense->supplier->identification_number ?? $expense->supplier->nit }}</span>
                             </div>
                         @endif
                         <div class="py-2">

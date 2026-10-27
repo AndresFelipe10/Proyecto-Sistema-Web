@@ -316,18 +316,26 @@ class RestaurantOrderController extends Controller
     {
         Gate::authorize('view', $order);
 
-        if (! $order->isClosedOrBilled() && ! $order->isCancelled()) {
-            $order->update([
-                'precount_printed_at' => now(),
-            ]);
+        DB::transaction(function () use ($order) {
+            $lockedOrder = RestaurantOrder::where('business_id', $order->business_id)
+                ->lockForUpdate()
+                ->findOrFail($order->id);
 
-            if ($order->table_id) {
-                $table = RestaurantTable::where('business_id', $order->business_id)->find($order->table_id);
-                if ($table && $table->status !== 'billed') {
-                    $table->update(['status' => 'billed']);
+            if (! $lockedOrder->isClosedOrBilled() && ! $lockedOrder->isCancelled()) {
+                $lockedOrder->update([
+                    'precount_printed_at' => now(),
+                ]);
+
+                if ($lockedOrder->table_id) {
+                    $table = RestaurantTable::where('business_id', $lockedOrder->business_id)
+                        ->lockForUpdate()
+                        ->find($lockedOrder->table_id);
+                    if ($table && $table->status !== 'billed') {
+                        $table->update(['status' => 'billed']);
+                    }
                 }
             }
-        }
+        });
 
         $order->refresh()->load(['items.product', 'user', 'table', 'business']);
 
@@ -380,9 +388,9 @@ class RestaurantOrderController extends Controller
             ]);
         }
 
-        $previousQty = (int) $item->quantity;
+        $previousQty = (float) $item->quantity;
         $qtyToRemove = $request->validated('quantity_to_remove') !== null
-            ? (int) $request->validated('quantity_to_remove')
+            ? (float) $request->validated('quantity_to_remove')
             : $previousQty;
 
         $orderService->removeItemFromOrder(

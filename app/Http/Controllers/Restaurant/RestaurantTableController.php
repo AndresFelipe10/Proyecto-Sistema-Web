@@ -96,9 +96,9 @@ class RestaurantTableController extends Controller
     {
         Gate::authorize('delete', $table);
 
-        if ($table->isOccupied()) {
+        if (! $table->isAvailable() || $table->activeOrder()->exists()) {
             return redirect()->route('restaurant.tables.index')
-                ->with('error', 'No es posible eliminar una mesa que actualmente tiene una comanda abierta.');
+                ->with('error', 'No es posible eliminar una mesa que actualmente tiene una comanda abierta o en proceso de cobro.');
         }
 
         $table->delete();

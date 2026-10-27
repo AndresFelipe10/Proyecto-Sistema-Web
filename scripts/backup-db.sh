@@ -11,10 +11,24 @@ BACKUP_DIR="${PROJECT_ROOT}/backups"
 TIMESTAMP="$(date +"%Y%m%d_%H%M%S")"
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-7}"
 
-# Cargar variables de entorno si existe .env
+# Cargar variables de base de datos de forma segura desde .env (soporta caracteres especiales en contraseñas)
 if [ -f "${PROJECT_ROOT}/.env" ]; then
-    # shellcheck disable=SC1091
-    export $(grep -v '^#' "${PROJECT_ROOT}/.env" | grep -E '^(DB_|MYSQL_)' | xargs)
+    while IFS= read -r line || [ -n "$line" ]; do
+        line="$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+        case "$line" in
+            \#*|"") continue ;;
+            DB_*=*|MYSQL_*=*)
+                var_name="${line%%=*}"
+                var_val="${line#*=}"
+                if [[ "$var_val" =~ ^\"(.*)\"$ ]]; then
+                    var_val="${BASH_REMATCH[1]}"
+                elif [[ "$var_val" =~ ^\'(.*)\'$ ]]; then
+                    var_val="${BASH_REMATCH[1]}"
+                fi
+                export "$var_name=$var_val"
+                ;;
+        esac
+    done < "${PROJECT_ROOT}/.env"
 fi
 
 DB_NAME="${DB_DATABASE:-sistema_web}"
