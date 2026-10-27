@@ -40,12 +40,20 @@
         <div class="input-group">
             <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-muted"></i></span>
             <input type="password" 
-                   class="form-control border-start-0 @error('password') is-invalid @enderror" 
+                   class="form-control border-start-0 border-end-0 @error('password') is-invalid @enderror" 
                    id="password" 
                    name="password" 
                    placeholder="••••••••" 
                    required 
                    autocomplete="current-password">
+            <button type="button" 
+                    class="btn btn-outline-secondary bg-white border-start-0 text-secondary px-3" 
+                    id="togglePasswordBtn"
+                    aria-label="Mostrar u ocultar contraseña"
+                    title="Mostrar / ocultar contraseña"
+                    style="border-color: var(--bs-border-color);">
+                <i class="bi bi-eye" id="togglePasswordIcon"></i>
+            </button>
         </div>
     </div>
 
@@ -58,6 +66,24 @@
         <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
     </button>
 </form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggleBtn = document.getElementById('togglePasswordBtn');
+        const passwordInput = document.getElementById('password');
+        const toggleIcon = document.getElementById('togglePasswordIcon');
+
+        if (toggleBtn && passwordInput && toggleIcon) {
+            toggleBtn.addEventListener('click', function () {
+                const isPassword = passwordInput.type === 'password';
+                passwordInput.type = isPassword ? 'text' : 'password';
+                toggleIcon.classList.toggle('bi-eye', !isPassword);
+                toggleIcon.classList.toggle('bi-eye-slash', isPassword);
+                passwordInput.focus();
+            });
+        }
+    });
+</script>
 @endsection
 
 @section('footer')

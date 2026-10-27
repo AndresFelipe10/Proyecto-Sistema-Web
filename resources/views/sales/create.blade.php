@@ -58,16 +58,51 @@
                             <span class="input-group-text bg-light border-end-0"><i class="bi bi-box-seam text-muted"></i></span>
                             <select id="product_dropdown_pos" class="form-select border-start-0">
                                 <option value="">-- O selecciona un producto del catálogo --</option>
-                                @foreach ($products ?? [] as $prod)
-                                    <option value="{{ $prod->id }}" 
-                                            data-id="{{ $prod->id }}"
-                                            data-name="{{ $prod->name }}"
-                                            data-sku="{{ $prod->sku }}"
-                                            data-price="{{ $prod->sale_price }}"
-                                            data-stock="{{ $prod->stock }}">
-                                        {{ $prod->name }} - ${{ number_format($prod->sale_price, 0, ',', '.') }} (Stock: {{ $prod->formatted_stock ?? $prod->stock }})
-                                    </option>
-                                @endforeach
+                                @php
+                                    $allProds = collect($products ?? []);
+                                    $menuProducts = $allProds->filter(fn($p) => ($p->product_type ?? '') === 'dish' || ($p->product_type ?? '') === 'menu');
+                                    $merchandiseProducts = $allProds->reject(fn($p) => ($p->product_type ?? '') === 'dish' || ($p->product_type ?? '') === 'menu');
+                                @endphp
+
+                                @if($menuProducts->isNotEmpty() && $merchandiseProducts->isNotEmpty())
+                                    <optgroup label="📦 Mercancía de Mostrador">
+                                        @foreach($merchandiseProducts as $product)
+                                            <option value="{{ $product->id }}" 
+                                                    data-id="{{ $product->id }}"
+                                                    data-name="{{ $product->name }}"
+                                                    data-sku="{{ $product->sku }}"
+                                                    data-price="{{ $product->sale_price }}"
+                                                    data-stock="{{ $product->stock }}">
+                                                {{ $product->name }} - ${{ number_format($product->sale_price, 0, ',', '.') }} (Stock: {{ $product->formatted_stock ?? $product->stock }})
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
+                                    <optgroup label="🍽️ Carta / Menú de Cocina">
+                                        @foreach($menuProducts as $product)
+                                            <option value="{{ $product->id }}" 
+                                                    data-id="{{ $product->id }}"
+                                                    data-name="{{ $product->name }}"
+                                                    data-sku="{{ $product->sku }}"
+                                                    data-price="{{ $product->sale_price }}"
+                                                    data-stock="{{ $product->stock }}">
+                                                {{ $product->name }} - ${{ number_format($product->sale_price, 0, ',', '.') }} (Carta / Cocina)
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
+                                @else
+                                    <optgroup label="{{ $menuProducts->isNotEmpty() ? '🍽️ Carta / Menú de Cocina' : '📦 Mercancía de Mostrador' }}">
+                                        @foreach($allProds as $product)
+                                            <option value="{{ $product->id }}" 
+                                                    data-id="{{ $product->id }}"
+                                                    data-name="{{ $product->name }}"
+                                                    data-sku="{{ $product->sku }}"
+                                                    data-price="{{ $product->sale_price }}"
+                                                    data-stock="{{ $product->stock }}">
+                                                {{ $product->name }} - ${{ number_format($product->sale_price, 0, ',', '.') }} {{ (($product->product_type ?? '') === 'dish' || ($product->product_type ?? '') === 'menu') ? '(Carta / Cocina)' : '(Stock: ' . ($product->formatted_stock ?? $product->stock) . ')' }}
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
                             </select>
                         </div>
                     </div>
@@ -504,7 +539,7 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addProductToSale = addToCart;
 
     // ── Selector Dropdown POS sincronizado ──
-    const productDropdownPos = document.getElementById('product_dropdown_pos');
+    const productDropdownPos = document.getElementById('product_dropdown_pos') || document.getElementById('productSelect');
     if (productDropdownPos) {
         productDropdownPos.addEventListener('change', function () {
             const selectedOpt = this.options[this.selectedIndex];

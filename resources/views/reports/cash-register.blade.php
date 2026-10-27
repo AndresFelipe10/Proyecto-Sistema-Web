@@ -5,28 +5,323 @@
 @section('content')
 <style>
     @media print {
-        .no-print, .navbar, .sidebar-desktop, .offcanvas, .btn, form, footer {
+        @page {
+            size: letter portrait;
+            margin: 10mm 12mm;
+        }
+
+        .no-print, .navbar, .sidebar-desktop, .offcanvas, .btn, form, footer, .d-print-none {
             display: none !important;
         }
+
         .main-content {
             margin: 0 !important;
             padding: 0 !important;
+            width: 100% !important;
         }
-        .card {
-            border: 1px solid #ddd !important;
-            box-shadow: none !important;
-            break-inside: avoid;
-        }
+
         body {
             background-color: #fff !important;
             color: #000 !important;
-            font-size: 12px !important;
+            font-size: 8.5pt !important;
+            line-height: 1.25 !important;
         }
+
         .print-header {
             display: block !important;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
+            padding-top: 4mm !important;
+            margin-top: 0 !important;
+            margin-bottom: 12px !important;
+            border-bottom: 2px solid #333 !important;
+            padding-bottom: 8px !important;
+        }
+
+        /* Desactivar sticky y fixed para evitar superposiciones */
+        .sticky-top,
+        .position-sticky,
+        .position-fixed {
+            position: static !important;
+            transform: none !important;
+            float: none !important;
+        }
+
+        .card {
+            break-inside: avoid;
+            page-break-inside: avoid;
+            margin-bottom: 0.65rem !important;
+            box-shadow: none !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 4px !important;
+            background: #fff !important;
+        }
+
+        .card-custom.p-4 {
+            padding: 8px 10px !important;
+        }
+
+        .card-custom h5 {
+            font-size: 9.5pt !important;
+            margin-bottom: 6px !important;
+        }
+
+        /* 1. Grilla horizontal compacta para los 4 KPIs principales */
+        .print-kpi-grid {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 8px !important;
+            margin-bottom: 10px !important;
+        }
+
+        .print-kpi-grid > [class*="col-"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            flex: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .print-kpi-grid .card {
+            padding: 8px 10px !important;
+            margin-bottom: 0 !important;
+            border-left-width: 3px !important;
+        }
+
+        .print-kpi-grid h3 {
+            font-size: 13pt !important;
+            margin-top: 2px !important;
+            margin-bottom: 2px !important;
+        }
+
+        .print-kpi-grid span {
+            font-size: 7.5pt !important;
+            line-height: 1.1 !important;
+        }
+
+        .print-kpi-grid small {
+            font-size: 7pt !important;
+        }
+
+        /* 2. Grilla para Canales de Venta (Restaurante) */
+        .print-restaurant-row > [class*="col-"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            flex: none !important;
+            padding: 0 !important;
+            margin-bottom: 8px !important;
+        }
+
+        .print-channel-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 8px !important;
+        }
+
+        .print-channel-grid > [class*="col-"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            flex: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .print-channel-grid .p-3 {
+            padding: 6px 8px !important;
+        }
+
+        .print-channel-grid h4 {
+            font-size: 11pt !important;
+        }
+
+        .print-channel-grid span {
+            font-size: 8pt !important;
+        }
+
+        /* Grilla de Fletes y Propinas en 2 columnas */
+        .print-fletes-propinas-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+            margin-top: 8px !important;
+        }
+
+        .print-fletes-propinas-grid > div {
+            margin-top: 0 !important;
+            padding: 6px 8px !important;
+        }
+
+        .print-fletes-propinas-grid .h4 {
+            font-size: 11pt !important;
+        }
+
+        /* Conciliación de Arqueo compacta */
+        .print-conciliacion-list {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+            margin-bottom: 4px !important;
+        }
+
+        .print-conciliacion-list .list-group-item {
+            padding: 4px 0 !important;
+            border: none !important;
+        }
+
+        /* 3. Grilla de Arqueo Operativo (Caja Menor, Caja General, Balance Consolidado) */
+        .print-arqueo-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 8px !important;
+            margin-bottom: 10px !important;
+        }
+
+        .print-arqueo-grid > [class*="col-"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            flex: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .print-arqueo-grid .card {
+            padding: 8px 10px !important;
+            margin-bottom: 0 !important;
+        }
+
+        .print-arqueo-grid p {
+            display: none !important;
+        }
+
+        .print-arqueo-grid .list-group-item {
+            padding: 2px 0 !important;
+            font-size: 7.5pt !important;
+        }
+
+        .print-arqueo-grid .bg-light {
+            padding: 4px 6px !important;
+            margin-top: 4px !important;
+        }
+
+        .print-arqueo-grid .fs-5 {
+            font-size: 10pt !important;
+        }
+
+        /* 4. Tablas Contables Nítidas sin Letras Verticales */
+        .table-responsive {
+            overflow: visible !important;
+            overflow-x: visible !important;
+            display: block !important;
+            width: 100% !important;
+        }
+
+        .table-responsive::-webkit-scrollbar {
+            display: none !important;
+        }
+
+        .table {
+            width: 100% !important;
+            max-width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 8.5pt !important;
+            line-height: 1.25 !important;
+            table-layout: auto !important;
+            margin-bottom: 0 !important;
+        }
+
+        .table th,
+        .table td {
+            word-break: normal !important;
+            overflow-wrap: normal !important;
+            padding: 5px 6px !important;
+            vertical-align: middle !important;
+        }
+
+        .table th {
+            background-color: #f1f5f9 !important;
+            color: #1e293b !important;
+            font-size: 7.5pt !important;
+            font-weight: 700 !important;
+        }
+
+        /* Evitar que el tfoot se repita en cada página */
+        .table tfoot {
+            display: table-row-group !important;
+        }
+
+        .table tr {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+        }
+
+        /* Columnas con nowrap obligatorio para que números y fechas jamás se partan */
+        .print-nowrap,
+        .table .print-nowrap {
+            white-space: nowrap !important;
+        }
+
+        .print-notes {
+            font-size: 7.5pt !important;
+            line-height: 1.15 !important;
+            max-width: 140px !important;
+        }
+
+        /* Anchos de columnas para Tabla 1: Medios de Pago */
+        .table-payment-methods th:nth-child(1),
+        .table-payment-methods td:nth-child(1) {
+            width: 22% !important;
+        }
+        .table-payment-methods th:nth-child(2),
+        .table-payment-methods td:nth-child(2) {
+            width: 12% !important;
+            text-align: center !important;
+            white-space: nowrap !important;
+        }
+        .table-payment-methods th:nth-child(3),
+        .table-payment-methods td:nth-child(3) {
+            width: 10% !important;
+            text-align: right !important;
+            white-space: nowrap !important;
+        }
+        .table-payment-methods th:nth-child(4),
+        .table-payment-methods td:nth-child(4) {
+            width: 18% !important;
+            text-align: right !important;
+            white-space: nowrap !important;
+        }
+        .table-payment-methods th:nth-child(5),
+        .table-payment-methods td:nth-child(5) {
+            width: 38% !important;
+            white-space: normal !important;
+        }
+
+        /* Anchos y nowrap para Tabla 2: Gastos Operativos */
+        .table-expenses th:nth-child(1),
+        .table-expenses td:nth-child(1),
+        .table-expenses th:nth-child(2),
+        .table-expenses td:nth-child(2),
+        .table-expenses th:nth-child(3),
+        .table-expenses td:nth-child(3),
+        .table-expenses th:nth-child(5),
+        .table-expenses td:nth-child(5),
+        .table-expenses th:nth-child(7),
+        .table-expenses td:nth-child(7) {
+            white-space: nowrap !important;
+        }
+
+        /* Anchos y nowrap para Tabla 3: Detalle de Ventas */
+        .table-sales th:nth-child(1),
+        .table-sales td:nth-child(1),
+        .table-sales th:nth-child(2),
+        .table-sales td:nth-child(2),
+        .table-sales th:nth-child(3),
+        .table-sales td:nth-child(3),
+        .table-sales th:nth-child(7),
+        .table-sales td:nth-child(7) {
+            white-space: nowrap !important;
+        }
+
+        .badge {
+            border: 1px solid #cbd5e1 !important;
+            font-weight: 600 !important;
         }
     }
     .print-header {
@@ -166,7 +461,7 @@
 </div>
 
 {{-- Subtítulo indicador del período actual --}}
-<div class="alert alert-light border shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 px-3 mb-4 rounded-3">
+<div class="alert alert-light border shadow-sm d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 px-3 mb-4 rounded-3 no-print">
     <div class="d-flex align-items-center gap-2">
         <i class="bi bi-info-circle-fill text-primary"></i>
         <span>
@@ -187,7 +482,7 @@
     $electronicAmount = ($by_method['transfer']['amount'] ?? 0) + ($by_method['card']['amount'] ?? 0) + ($by_method['other']['amount'] ?? 0);
 @endphp
 
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4 print-kpi-grid">
     <div class="col-sm-6 col-xl-3">
         <div class="card card-custom p-3 bg-white h-100 border-0 shadow-sm border-start border-4 border-primary">
             <span class="text-muted small fw-semibold text-uppercase">Total Recaudado (Ventas)</span>
@@ -224,9 +519,9 @@
 
 @if($currentBusiness->isRestaurant())
     {{-- MÓDULO RESTAURANTE: CANALES DE VENTA Y RECAUDO DE FLETES --}}
-    <div class="row g-3 mb-4">
+    <div class="row g-3 mb-4 print-restaurant-row">
         {{-- Tarjeta: Desglose por Canales de Venta --}}
-        <div class="col-lg-8">
+        <div class="col-lg-8 print-channels-col">
             <div class="card card-custom p-4 bg-white border-0 shadow-sm h-100">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold mb-0 text-dark">
@@ -234,14 +529,14 @@
                     </h5>
                     <span class="badge bg-light text-dark border">Vertical Restaurante</span>
                 </div>
-                <div class="row g-3">
+                <div class="row g-3 print-channel-grid">
                     <div class="col-md-4 col-sm-6">
                         <div class="p-3 rounded-3 bg-light border border-primary-subtle">
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <i class="bi bi-aspect-ratio text-primary fs-5"></i>
                                 <span class="fw-semibold text-dark">Ventas Salón (Mesas)</span>
                             </div>
-                            <h4 class="fw-bold text-primary mb-0">${{ number_format($channels['table']['total'], 0, ',', '.') }}</h4>
+                            <h4 class="fw-bold text-primary mb-0 print-nowrap">${{ number_format($channels['table']['total'], 0, ',', '.') }}</h4>
                             <small class="text-muted">{{ $channels['table']['count'] }} comandas liquidadas</small>
                         </div>
                     </div>
@@ -251,7 +546,7 @@
                                 <i class="bi bi-bicycle text-info fs-5"></i>
                                 <span class="fw-semibold text-dark">Ventas Domicilios</span>
                             </div>
-                            <h4 class="fw-bold text-info mb-0">${{ number_format($channels['delivery']['total'], 0, ',', '.') }}</h4>
+                            <h4 class="fw-bold text-info mb-0 print-nowrap">${{ number_format($channels['delivery']['total'], 0, ',', '.') }}</h4>
                             <small class="text-muted">{{ $channels['delivery']['count'] }} pedidos entregados</small>
                         </div>
                     </div>
@@ -261,67 +556,70 @@
                                 <i class="bi bi-bag text-secondary fs-5"></i>
                                 <span class="fw-semibold text-dark">Ventas Para Llevar</span>
                             </div>
-                            <h4 class="fw-bold text-dark mb-0">${{ number_format($channels['takeout']['total'], 0, ',', '.') }}</h4>
+                            <h4 class="fw-bold text-dark mb-0 print-nowrap">${{ number_format($channels['takeout']['total'], 0, ',', '.') }}</h4>
                             <small class="text-muted">{{ $channels['takeout']['count'] }} órdenes en mostrador</small>
                         </div>
                     </div>
                 </div>
 
-                {{-- Recaudo de Domicilios / Fletes (Cuadre con Repartidores) --}}
-                <div class="mt-3 p-3 bg-info-subtle rounded-3 border border-info text-info-emphasis d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                        <i class="bi bi-cash-stack fs-5 me-2 align-middle"></i>
-                        <strong class="align-middle">Recaudo Total por Fletes / Domicilios:</strong>
-                        <span class="d-block small text-muted mt-1">Monto acumulado por fletes para liquidación y cuadre con repartidores.</span>
+                {{-- Recaudo de Domicilios / Fletes y Propinas en Grilla Horizontal para Impresión --}}
+                <div class="print-fletes-propinas-grid">
+                    {{-- Recaudo de Domicilios / Fletes (Cuadre con Repartidores) --}}
+                    <div class="mt-3 p-3 bg-info-subtle rounded-3 border border-info text-info-emphasis d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <i class="bi bi-cash-stack fs-5 me-2 align-middle"></i>
+                            <strong class="align-middle">Recaudo Total por Fletes / Domicilios:</strong>
+                            <span class="d-block small text-muted mt-1 d-print-none">Monto acumulado por fletes para liquidación y cuadre con repartidores.</span>
+                        </div>
+                        <div class="text-end">
+                            <span class="h4 fw-bold text-dark mb-0 print-nowrap">${{ number_format($total_delivery_fee, 0, ',', '.') }}</span>
+                        </div>
                     </div>
-                    <div class="text-end">
-                        <span class="h4 fw-bold text-dark mb-0">${{ number_format($total_delivery_fee, 0, ',', '.') }}</span>
-                    </div>
-                </div>
 
-                {{-- Recaudo de Propinas Voluntarias (Bolsa de Propinas para Personal de Servicio) --}}
-                <div class="mt-3 p-3 bg-success-subtle rounded-3 border border-success text-success-emphasis d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                        <i class="bi bi-heart-fill fs-5 me-2 align-middle text-success"></i>
-                        <strong class="align-middle">Total Propinas Recaudadas (Servicio Voluntario):</strong>
-                        <span class="d-block small text-muted mt-1">
-                            Bolsa de propinas acumulada para distribución al personal de servicio.
-                            (Efectivo: <strong>${{ number_format($cash_tips ?? 0, 0, ',', '.') }}</strong> | 
-                            Digital: <strong>${{ number_format($digital_tips ?? 0, 0, ',', '.') }}</strong>)
-                        </span>
-                    </div>
-                    <div class="text-end">
-                        <span class="h4 fw-bold text-success mb-0">${{ number_format($total_tips ?? 0, 0, ',', '.') }}</span>
+                    {{-- Recaudo de Propinas Voluntarias (Bolsa de Propinas para Personal de Servicio) --}}
+                    <div class="mt-3 p-3 bg-success-subtle rounded-3 border border-success text-success-emphasis d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                            <i class="bi bi-heart-fill fs-5 me-2 align-middle text-success"></i>
+                            <strong class="align-middle">Total Propinas Recaudadas (Servicio Voluntario):</strong>
+                            <span class="d-block small text-muted mt-1 d-print-none">
+                                Bolsa de propinas acumulada para distribución al personal de servicio.
+                                (Efectivo: <strong>${{ number_format($cash_tips ?? 0, 0, ',', '.') }}</strong> | 
+                                Digital: <strong>${{ number_format($digital_tips ?? 0, 0, ',', '.') }}</strong>)
+                            </span>
+                        </div>
+                        <div class="text-end">
+                            <span class="h4 fw-bold text-success mb-0 print-nowrap">${{ number_format($total_tips ?? 0, 0, ',', '.') }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         {{-- Tarjeta: Conciliación de Efectivo Físico vs Dinero Digital --}}
-        <div class="col-lg-4">
+        <div class="col-lg-4 print-conciliacion-col">
             <div class="card card-custom p-4 bg-white border-0 shadow-sm h-100">
                 <h5 class="fw-bold mb-3 text-dark">
                     <i class="bi bi-arrow-left-right text-success me-2"></i>Conciliación de Arqueo
                 </h5>
-                <div class="list-group list-group-flush mb-3">
+                <div class="list-group list-group-flush mb-3 print-conciliacion-list">
                     <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
                         <div>
                             <span class="fw-semibold text-dark d-block"><i class="bi bi-cash me-1 text-success"></i>Efectivo en Gaveta</span>
-                            <small class="text-muted">Total billetes restando vueltos</small>
+                            <small class="text-muted d-print-none">Total billetes restando vueltos</small>
                         </div>
-                        <span class="fw-bold font-monospace text-success fs-6">${{ number_format($cash_in_drawer, 0, ',', '.') }}</span>
+                        <span class="fw-bold font-monospace text-success fs-6 print-nowrap">${{ number_format($cash_in_drawer, 0, ',', '.') }}</span>
                     </div>
                     <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
                         <div>
                             <span class="fw-semibold text-dark d-block"><i class="bi bi-phone me-1 text-info"></i>Dinero Digital (Apps / Bancos)</span>
-                            <small class="text-muted">Nequi, Daviplata, Tarjetas</small>
+                            <small class="text-muted d-print-none">Nequi, Daviplata, Tarjetas</small>
                         </div>
-                        <span class="fw-bold font-monospace text-info fs-6">${{ number_format($digital_money, 0, ',', '.') }}</span>
+                        <span class="fw-bold font-monospace text-info fs-6 print-nowrap">${{ number_format($digital_money, 0, ',', '.') }}</span>
                     </div>
                 </div>
                 <div class="border-top pt-2 d-flex justify-content-between align-items-center">
                     <span class="fw-bold text-dark">Total Conciliado:</span>
-                    <span class="fw-bold font-monospace fs-5 text-primary">${{ number_format($total_revenue, 0, ',', '.') }}</span>
+                    <span class="fw-bold font-monospace fs-5 text-primary print-nowrap">${{ number_format($total_revenue, 0, ',', '.') }}</span>
                 </div>
             </div>
         </div>
@@ -338,13 +636,13 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0 table-payment-methods">
             <thead class="table-light">
                 <tr>
                     <th>Método de Pago</th>
-                    <th class="text-center" style="width: 130px;">Transacciones</th>
-                    <th class="text-end" style="width: 140px;">% Cuota</th>
-                    <th class="text-end" style="width: 180px;">Total Percibido</th>
+                    <th class="text-center print-nowrap" style="width: 130px;">Transacciones</th>
+                    <th class="text-end print-nowrap" style="width: 140px;">% Cuota</th>
+                    <th class="text-end print-nowrap" style="width: 180px;">Total Percibido</th>
                     <th>Detalle de Operación / Conciliación</th>
                 </tr>
             </thead>
@@ -356,12 +654,12 @@
                     <tr>
                         <td>
                             <div class="d-flex align-items-center gap-2">
-                                <span class="badge bg-{{ $method['color'] }}-subtle text-{{ $method['color'] }} p-2 rounded-circle">
+                                <span class="badge bg-{{ $method['color'] }}-subtle text-{{ $method['color'] }} p-2 rounded-circle d-print-none">
                                     <i class="bi {{ $method['icon'] }} fs-6"></i>
                                 </span>
                                 <div>
                                     <strong class="d-block">{{ $method['name'] }}</strong>
-                                    <small class="text-muted">
+                                    <small class="text-muted d-print-none">
                                         @if($key === 'cash')
                                             Moneda física en cajón
                                         @elseif($key === 'transfer')
@@ -375,18 +673,18 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="text-center">
+                        <td class="text-center print-nowrap">
                             <span class="badge bg-light text-dark border font-monospace px-2 py-1">
                                 {{ $method['transactions_count'] }}
                             </span>
                         </td>
-                        <td class="text-end">
+                        <td class="text-end print-nowrap">
                             <span class="fw-semibold">{{ $percentage }}%</span>
-                            <div class="progress mt-1" style="height: 4px;">
+                            <div class="progress mt-1 d-print-none" style="height: 4px;">
                                 <div class="progress-bar bg-{{ $method['color'] }}" style="width: {{ $percentage }}%"></div>
                             </div>
                         </td>
-                        <td class="text-end">
+                        <td class="text-end print-nowrap">
                             <span class="fw-bold font-monospace fs-6 text-{{ $method['color'] }}">
                                 ${{ number_format($method['amount'], 0, ',', '.') }}
                             </span>
@@ -418,9 +716,9 @@
             <tfoot class="table-light">
                 <tr class="fw-bold">
                     <td>TOTAL CUADRE GENERAL</td>
-                    <td class="text-center font-monospace">{{ $sales_count }}</td>
-                    <td class="text-end">100%</td>
-                    <td class="text-end font-monospace text-primary fs-5">
+                    <td class="text-center font-monospace print-nowrap">{{ $sales_count }}</td>
+                    <td class="text-end print-nowrap">100%</td>
+                    <td class="text-end font-monospace text-primary fs-5 print-nowrap">
                         ${{ number_format($total_revenue, 0, ',', '.') }}
                     </td>
                     <td>
@@ -435,7 +733,7 @@
 </div>
 
 {{-- ARQUEO OPERATIVO: CAJA MENOR (EFECTIVO FÍSICO) Y CAJA GENERAL (CUENTAS DIGITALES) --}}
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4 print-arqueo-grid">
     {{-- Caja Menor (Efectivo Físico) --}}
     <div class="col-md-6 col-lg-4">
         <div class="card card-custom p-4 bg-white border-0 shadow-sm h-100 border-top border-4 border-success">
@@ -559,16 +857,16 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0 table-expenses">
                 <thead class="table-light">
                     <tr>
-                        <th>Comprobante</th>
-                        <th>Fecha de Pago</th>
-                        <th>Categoría</th>
+                        <th class="print-nowrap">Comprobante</th>
+                        <th class="print-nowrap">Fecha de Pago</th>
+                        <th class="print-nowrap">Categoría</th>
                         <th>Proveedor / Beneficiario</th>
-                        <th>Caja / Método</th>
+                        <th class="print-nowrap">Caja / Método</th>
                         <th>Descripción</th>
-                        <th class="text-end">Monto</th>
+                        <th class="text-end print-nowrap">Monto</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -578,13 +876,13 @@
                             $isCashExpense = ($pmValue === 'cash');
                         @endphp
                         <tr>
-                            <td class="font-monospace fw-semibold">
+                            <td class="font-monospace fw-semibold print-nowrap">
                                 {{ $expense->invoice_number ?? 'S/N' }}
                             </td>
-                            <td class="small">
+                            <td class="small print-nowrap">
                                 {{ $expense->paid_at ? $expense->paid_at->format('d/m/Y') : ($expense->issue_date ? $expense->issue_date->format('d/m/Y') : '—') }}
                             </td>
-                            <td>
+                            <td class="print-nowrap">
                                 <span class="badge bg-light text-dark border">
                                     {{ $expense->category instanceof \App\Enums\ExpenseCategory ? $expense->category->label() : $expense->category }}
                                 </span>
@@ -592,7 +890,7 @@
                             <td class="small">
                                 {{ $expense->supplier ? $expense->supplier->name : 'Gasto General' }}
                             </td>
-                            <td>
+                            <td class="print-nowrap">
                                 @if($isCashExpense)
                                     <span class="badge bg-success-subtle text-success border border-success-subtle">
                                         <i class="bi bi-cash me-1"></i>Efectivo (Caja Menor)
@@ -606,7 +904,7 @@
                             <td class="small text-muted" style="max-width: 250px;">
                                 {{ $expense->description ? Str::limit($expense->description, 50) : '—' }}
                             </td>
-                            <td class="text-end font-monospace fw-bold text-danger">
+                            <td class="text-end font-monospace fw-bold text-danger print-nowrap">
                                 -${{ number_format($expense->amount, 0, ',', '.') }}
                             </td>
                         </tr>
@@ -615,7 +913,7 @@
                 <tfoot class="table-light">
                     <tr class="fw-bold">
                         <td colspan="6">TOTAL EGRESOS DEL PERÍODO</td>
-                        <td class="text-end font-monospace text-danger fs-6">
+                        <td class="text-end font-monospace text-danger fs-6 print-nowrap">
                             -${{ number_format($total_expenses, 0, ',', '.') }}
                         </td>
                     </tr>
@@ -645,23 +943,23 @@
         </div>
     @else
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0 table-sales">
                 <thead class="table-light">
                     <tr>
-                        <th>Factura</th>
-                        <th>Fecha / Hora</th>
-                        <th>Cajero</th>
+                        <th class="print-nowrap">Factura</th>
+                        <th class="print-nowrap">Fecha / Hora</th>
+                        <th class="print-nowrap">Cajero</th>
                         <th>Cliente</th>
                         <th>Método(s) de Pago</th>
-                        <th>Notas</th>
-                        <th class="text-end">Total</th>
+                        <th class="print-notes">Notas</th>
+                        <th class="text-end print-nowrap">Total</th>
                         <th class="text-center no-print" style="width: 100px;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($sales as $sale)
                         <tr>
-                            <td>
+                            <td class="print-nowrap">
                                 <a href="{{ route('sales.show', $sale) }}" class="fw-bold text-decoration-none font-monospace">
                                     {{ $sale->invoice_number }}
                                 </a>
@@ -680,10 +978,10 @@
                                     </div>
                                 @endif
                             </td>
-                            <td class="small">
+                            <td class="small print-nowrap">
                                 {{ $sale->sale_date->format('d/m/Y H:i') }}
                             </td>
-                            <td class="small">
+                            <td class="small print-nowrap">
                                 <i class="bi bi-person me-1 text-muted"></i>{{ $sale->user ? $sale->user->name : 'N/A' }}
                             </td>
                             <td class="small">
@@ -693,7 +991,7 @@
                                 @if($sale->payments->isNotEmpty())
                                     <div class="d-flex flex-wrap gap-1">
                                         @foreach($sale->payments as $payment)
-                                            <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.78rem;">
+                                            <span class="badge bg-light text-dark border font-monospace print-nowrap" style="font-size: 0.78rem;">
                                                 {{ $payment->method_label }}: ${{ number_format($payment->amount, 0, ',', '.') }}
                                                 @if($payment->reference)
                                                     <span class="text-muted">({{ $payment->reference }})</span>
@@ -702,15 +1000,15 @@
                                         @endforeach
                                     </div>
                                 @else
-                                    <span class="badge bg-light text-dark border font-monospace" style="font-size: 0.78rem;">
+                                    <span class="badge bg-light text-dark border font-monospace print-nowrap" style="font-size: 0.78rem;">
                                         {{ $sale->payment_method_label ?? $sale->payment_method }}: ${{ number_format($sale->total, 0, ',', '.') }}
                                     </span>
                                 @endif
                             </td>
-                            <td class="small text-muted" style="max-width: 180px;">
+                            <td class="small text-muted print-notes">
                                 {{ $sale->notes ? Str::limit($sale->notes, 40) : '—' }}
                             </td>
-                            <td class="text-end font-monospace fw-bold">
+                            <td class="text-end font-monospace fw-bold print-nowrap">
                                 ${{ number_format($sale->total, 0, ',', '.') }}
                             </td>
                             <td class="text-center no-print">
