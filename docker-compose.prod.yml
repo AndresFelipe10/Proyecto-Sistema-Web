@@ -6,12 +6,23 @@ services:
     container_name: sistema_app_prod
     restart: always
     working_dir: /var/www/html
+    env_file:
+      - .env
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
       DB_HOST: db
       DB_PORT: 3306
+      AI_MODULE_ENABLED: ${AI_MODULE_ENABLED:-false}
+      AI_PROVIDER: ${AI_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-lite-latest}
+      AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-10}
     volumes:
+      - ./.env:/var/www/html/.env:ro
       - app_storage:/var/www/html/storage
     logging:
       driver: "json-file"

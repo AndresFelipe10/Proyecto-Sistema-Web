@@ -3,6 +3,7 @@ FROM php:8.3-fpm-alpine
 # Install system dependencies and build libraries
 RUN apk update && apk add --no-cache \
     curl \
+    ca-certificates \
     git \
     unzip \
     libzip-dev \
@@ -14,7 +15,8 @@ RUN apk update && apk add --no-cache \
     icu-dev \
     mysql-client \
     shadow \
-    bash
+    bash \
+    && update-ca-certificates
 
 # Configure and install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \

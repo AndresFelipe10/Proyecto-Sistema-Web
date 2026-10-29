@@ -39,7 +39,10 @@ echo ">> Ejecutando migraciones de base de datos..."
 docker compose -f docker-compose.prod.yml exec app php artisan migrate --force
 
 # 6. Optimizar caché de Laravel (configuración, rutas, vistas)
-echo ">> Optimizando configuraciones, rutas y vistas en caché..."
+echo ">> Limpiando y optimizando configuraciones, rutas y vistas en caché..."
+docker compose -f docker-compose.prod.yml exec app php artisan config:clear
+docker compose -f docker-compose.prod.yml exec app php artisan route:clear
+docker compose -f docker-compose.prod.yml exec app php artisan view:clear
 docker compose -f docker-compose.prod.yml exec app php artisan config:cache
 docker compose -f docker-compose.prod.yml exec app php artisan route:cache
 docker compose -f docker-compose.prod.yml exec app php artisan view:cache
@@ -54,6 +57,10 @@ if docker ps --format '{{.Names}}' | grep -q "^sistema_app_prod$"; then
     echo ">> Desactivando modo mantenimiento..."
     docker compose -f docker-compose.prod.yml exec app php artisan up || true
 fi
+
+# 9. Diagnóstico de salud del Módulo de IA (No bloqueante)
+echo ">> Verificando salud del Módulo de IA..."
+docker compose -f docker-compose.prod.yml exec app php artisan ai:check || echo "Aviso: Revisa la configuración de GEMINI_API_KEY si deseas habilitar el asistente de IA."
 
 echo "=================================================================="
 echo " Despliegue completado exitosamente a las $(date '+%Y-%m-%d %H:%M:%S')"
